@@ -1,0 +1,26 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="godot-project-1"
+config/features=PackedStringArray("4.4", "Forward Plus")
+config/version="0.1.0"
+
+[autoload]
+
+EventBus="*res://autoload/EventBus.gd"
+GameState="*res://autoload/GameState.gd"
+AudioManager="*res://autoload/AudioManager.gd"
+SaveManager="*res://autoload/SaveManager.gd"
+
+[rendering]
+
+renderer/rendering_method="forward_plus"
