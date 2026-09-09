@@ -14,6 +14,10 @@ config/name="godot-project-1"
 config/features=PackedStringArray("4.4", "Forward Plus")
 config/version="0.1.0"
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/gut/plugin.cfg")
+
 [autoload]
 
 EventBus="*res://autoload/EventBus.gd"
