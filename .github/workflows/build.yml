@@ -1,0 +1,136 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "*"
+
+env:
+  GODOT_VERSION: 4.4.1
+  EXPORT_NAME: godot-project-1
+
+jobs:
+  export-linux:
+    name: Linux Export (Steam Deck target)
+    runs-on: ubuntu-24.04
+    container:
+      image: barichello/godot-ci:4.4.1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Move export templates into place
+        run: |
+          mkdir -v -p ~/.local/share/godot/export_templates/
+          mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+
+      - name: Export
+        run: |
+          mkdir -v -p build/linux
+          EXPORT_DIR="$(readlink -f build)"
+          godot --headless --verbose --export-release "Linux/X11" "$EXPORT_DIR/linux/$EXPORT_NAME.x86_64"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: build/linux
+
+  export-windows:
+    name: Windows Export
+    runs-on: ubuntu-24.04
+    container:
+      image: barichello/godot-ci:4.4.1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Move export templates into place
+        run: |
+          mkdir -v -p ~/.local/share/godot/export_templates/
+          mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+
+      - name: Export
+        run: |
+          mkdir -v -p build/windows
+          EXPORT_DIR="$(readlink -f build)"
+          godot --headless --verbose --export-release "Windows Desktop" "$EXPORT_DIR/windows/$EXPORT_NAME.exe"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: build/windows
+
+  # Deploys the Linux build to itch.io via butler. Only runs on tag pushes
+  # (releases), not on every push to main.
+  deploy-itch:
+    name: Deploy Linux build to itch.io
+    needs: export-linux
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linux
+          path: build/linux
+
+      - name: Install butler
+        run: |
+          curl -L -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+          unzip -o butler.zip -d butler
+          chmod +x butler/butler
+
+      - name: Push build to itch.io
+        env:
+          # Add BUTLER_API_KEY as a repository secret in
+          # Settings -> Secrets and variables -> Actions before tagging a
+          # release. Get the key from https://itch.io/user/settings/api-keys
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: |
+          # TODO: replace with your actual itch.io username/game-slug
+          ./butler/butler push build/linux "your-itch-username/godot-project-1:linux" \
+            --userversion "${{ github.ref_name }}"
+
+  # --- Steam deployment (manual setup required) ---------------------------
+  # TODO: Steam deployment via steamcmd + VDF build scripts is intentionally
+  # left out of automation. steamcmd requires an interactive Steam Guard
+  # login (a one-time code sent to your phone/email) the first time it runs
+  # under a new machine/CI identity, which can't be scripted headlessly
+  # without either disabling Steam Guard (not recommended) or setting up
+  # steamcmd's persistent login cache out-of-band. Set this up manually:
+  #   1. Write app_build.vdf / depot_build.vdf describing your Steam app
+  #      and depots (see https://partner.steamgames.com/doc/sdk/uploading).
+  #   2. Run `steamcmd +login <user> +run_app_build app_build.vdf +quit`
+  #      once locally/interactively to authorize this machine and cache
+  #      credentials (~/Steam/config/config.vdf).
+  #   3. Only then can a CI job reuse those cached credentials as a
+  #      GitHub Actions secret to run steamcmd non-interactively.
+  #
+  # deploy-steam:
+  #   name: Deploy to Steam
+  #   needs: export-linux
+  #   if: startsWith(github.ref, 'refs/tags/')
+  #   runs-on: ubuntu-24.04
+  #   steps:
+  #     - name: Download Linux artifact
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: linux
+  #         path: build/linux
+  #     - name: Install steamcmd
+  #       run: |
+  #         # apt-get update && apt-get install -y steamcmd
+  #     - name: Upload build via steamcmd
+  #       env:
+  #         STEAM_USERNAME: ${{ secrets.STEAM_USERNAME }}
+  #         STEAM_CONFIG_VDF: ${{ secrets.STEAM_CONFIG_VDF }}
+  #       run: |
+  #         # steamcmd +login "$STEAM_USERNAME" +run_app_build scripts/steam/app_build.vdf +quit
