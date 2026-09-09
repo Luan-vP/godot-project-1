@@ -1,0 +1,18 @@
+# Godot 4+ editor/import cache
+.godot/
+.import/
+
+# Godot build output
+export/
+builds/
+*.exe
+*.pck
+*.zip
+
+# Mono-specific
+.mono/
+data_*/
+
+# OS-specific junk
+.DS_Store
+Thumbs.db

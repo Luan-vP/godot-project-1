@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  GODOT_VERSION: 4.4.1
+
+# Only our own GDScript is linted/formatted — addons/ holds vendored
+# third-party code (GUT) that doesn't follow our style and isn't ours
+# to reformat.
+jobs:
+  lint:
+    name: Lint (gdformat + gdlint)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install gdtoolkit
+        run: pip install "gdtoolkit==4.*"
+
+      - name: gdformat --check
+        run: gdformat --check autoload core features resources tests
+
+      - name: gdlint
+        run: gdlint autoload core features resources tests
+
+  test:
+    name: Test (GUT headless)
+    runs-on: ubuntu-24.04
+    container:
+      image: barichello/godot-ci:4.4.1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Run GUT test suite
+        run: |
+          godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests -gexit
