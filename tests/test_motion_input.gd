@@ -106,4 +106,17 @@ func test_smoothing_delays_the_response() -> void:
 	assert_gt(_motion.tilt.x, 0.0, "Should start moving")
 	assert_lt(_motion.tilt.x, 1.0, "Should not arrive in one frame")
 	_step(_tilted(30.0), Vector3.ZERO, 120)
-	assert_almost_eq(_motion.tilt.x, 1.0, 0.01, "Should arrive given time")
+	assert_almost_eq(_motion.tilt.x, 1.0, 0.001, "Should arrive given time")
+
+
+func test_tilt_converges_fully_and_returns_to_rest() -> void:
+	# Smoothing takes ever-smaller steps as it converges. Gating the state
+	# update on the signal epsilon — rather than the emit alone — freezes the
+	# tilt just short of its target, and on the way back leaves the current
+	# permanently leaning with no way to clear it but a recalibrate.
+	_motion.tilt_smoothing = 0.2
+	_step(UPRIGHT)
+	_step(_tilted(30.0), Vector3.ZERO, 120)
+	assert_almost_eq(_motion.tilt.x, 1.0, 0.001, "Should reach full tilt, not stall near it")
+	_step(UPRIGHT, Vector3.ZERO, 120)
+	assert_almost_eq(_motion.tilt.length(), 0.0, 0.001, "Should settle all the way back to rest")

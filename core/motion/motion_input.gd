@@ -32,7 +32,11 @@ const GROUP_NAME := "motion_input"
 ## Sensors are not always live on the first frame.
 const PROBE_SECONDS := 0.75
 
-## Below this change, a tilt update is not worth a signal.
+## How far the tilt must drift from the last announced value before another
+## signal is worth sending. This gates the [b]emit only[/b] — never the state
+## update. Smoothing takes ever-smaller steps as it converges, so gating the
+## update on it freezes the tilt short of its target and, on the way back,
+## leaves the current leaning forever.
 const TILT_EPSILON := 0.001
 
 @export_group("Tilt")
@@ -59,6 +63,7 @@ const TILT_EPSILON := 0.001
 ## Latest smoothed tilt. Length 1 means fully tilted.
 var tilt: Vector2 = Vector2.ZERO
 
+var _announced: Vector2 = Vector2.ZERO
 var _source: MotionSource
 var _calibration := MotionCalibration.new()
 var _jog := JogDetector.new()
@@ -90,9 +95,9 @@ func _process(delta: float) -> void:
 
 	var raw := _calibration.tilt_from(reading.gravity, tilt_span_degrees)
 	var wanted := MotionFilter.apply_deadzone(raw, tilt_deadzone)
-	var smoothed := MotionFilter.smooth(tilt, wanted, tilt_smoothing, delta)
-	if smoothed.distance_to(tilt) > TILT_EPSILON:
-		tilt = smoothed
+	tilt = MotionFilter.smooth(tilt, wanted, tilt_smoothing, delta)
+	if tilt.distance_to(_announced) > TILT_EPSILON:
+		_announced = tilt
 		tilt_changed.emit(tilt)
 
 	var nudge := _jog.feed(_calibration.project(reading.acceleration), delta)
@@ -126,6 +131,7 @@ func calibrate() -> bool:
 	var reading := _source.poll(0.0)
 	_jog.reset()
 	tilt = Vector2.ZERO
+	_announced = Vector2.ZERO
 	return _calibration.calibrate(reading.gravity)
 
 
