@@ -87,6 +87,35 @@ func test_a_sensorless_platform_produces_nothing() -> void:
 	assert_almost_eq(_motion.tilt.length(), 0.0, 0.001, "Tilt should stay at rest")
 
 
+func test_recalibrating_announces_the_neutral_pose() -> void:
+	# Recentre has to reach consumers. They hold the last tilt they were told,
+	# and the freshly levelled pose emits nothing on its own, so without an
+	# explicit announcement the old lean would stand until the player moved.
+	_step(UPRIGHT)
+	var held := _tilted(25.0)
+	_step(held)
+	watch_signals(_motion)
+
+	_source.push(held)
+	assert_true(_motion.calibrate(), "Calibration should succeed")
+
+	# The fourth argument of this assertion is an emission index, not a message.
+	assert_signal_emitted_with_parameters(_motion, "tilt_changed", [Vector2.ZERO])
+
+
+func test_a_failed_calibration_leaves_the_tilt_alone() -> void:
+	# A reading with no direction means the old reference still stands, so the
+	# tilt it produces is still valid. Zeroing would be a spurious jump.
+	_step(UPRIGHT)
+	_step(_tilted(25.0))
+	var before := _motion.tilt
+
+	_source.push(Vector3.ZERO)
+	assert_false(_motion.calibrate(), "Should refuse a reading with no direction")
+
+	assert_almost_eq(_motion.tilt.x, before.x, 0.001, "Tilt should be untouched")
+
+
 func test_recalibrating_makes_the_held_pose_level() -> void:
 	_step(UPRIGHT)
 	var held := _tilted(25.0)

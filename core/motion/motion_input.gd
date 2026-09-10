@@ -125,14 +125,25 @@ func get_source_description() -> String:
 
 ## Take the device's current attitude as level. Call this from a "recentre"
 ## button — whatever the player is holding becomes neutral.
+##
+## The neutral value is announced explicitly. Consumers hold the last tilt they
+## were told, and the freshly levelled pose produces zero on every subsequent
+## frame, so nothing would ever contradict the old value: without this emit the
+## recentre button leaves the tank leaning until the player moves.
 func calibrate() -> bool:
 	if _source == null:
 		return false
 	var reading := _source.poll(0.0)
+	if not _calibration.calibrate(reading.gravity):
+		# The reading carried no direction, so the old reference still stands
+		# and the tilt it produces is still valid. Zeroing here would be a
+		# spurious jump.
+		return false
 	_jog.reset()
 	tilt = Vector2.ZERO
 	_announced = Vector2.ZERO
-	return _calibration.calibrate(reading.gravity)
+	tilt_changed.emit(tilt)
+	return true
 
 
 func is_calibrated() -> bool:

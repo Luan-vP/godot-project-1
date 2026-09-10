@@ -206,19 +206,27 @@ func nudge(world_velocity: Vector2) -> void:
 	_pending_nudge += world_velocity
 
 
-## Blank the tank: velocity, pressure and pigment all go back to rest.
+## The standing lean on the current, in pixels/second^2.
+func get_current_bias() -> Vector2:
+	return _current_bias
+
+
+## Blank the tank: velocity, pressure and pigment all go back to rest. The
+## current bias survives, since it is the caller's state rather than the tank's.
 ##
 ## Clearing the render targets does not do this. Every pass repaints its target
 ## in full from its source in the same frame, and each source is cleared later
 ## in the nested chain, so the old field is simply redrawn. The chain has to be
 ## told to write zeros instead.
 func reset() -> void:
-	if not _built:
-		return
 	_blank_frames = BLANK_FRAMES
 	_field.clear()
 	_elapsed = 0.0
-	_current_bias = Vector2.ZERO
+	# The pending nudge is a queued one-shot that has not landed yet, so it goes
+	# with the rest of the tank state. The current bias does not: it belongs to
+	# whoever set it — a held tilt is still held after a reset — and the tank
+	# has no way to ask for it again. Clearing it would leave tilt inert until
+	# the player happened to move.
 	_pending_nudge = Vector2.ZERO
 
 
