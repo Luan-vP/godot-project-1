@@ -110,6 +110,18 @@ Two things are deliberately **not** scaled by the rendered frame's delta:
   quantity. Scaling by the render step instead under-integrates when rendering
   outruns physics and double-counts when it lags.
 
+## Being pushed from outside
+
+Two entry points exist for whole-tank forces, used by `FluidMotionDriver` to
+apply device tilt and jog:
+
+- `set_current_bias(acceleration)` leans the ambient drift, continuously. It is
+  a bias, not gravity — the tank leans, it does not pour, so what floats in it
+  stays floating.
+- `nudge(velocity)` shoves the entire field uniformly for one frame. A uniform
+  field is already divergence free, so the projection step leaves it alone
+  except at the walls, which is where the sloshing comes from.
+
 ## Emptying the tank
 
 `reset()` does not clear the render targets, because that does not work here:

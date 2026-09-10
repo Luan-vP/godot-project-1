@@ -72,6 +72,8 @@ var _dye_slots: Array[Vector4] = []
 var _dye_paints: Array[Vector4] = []
 var _dye_weights: Array[float] = []
 var _elapsed: float = 0.0
+var _current_bias: Vector2 = Vector2.ZERO
+var _pending_nudge: Vector2 = Vector2.ZERO
 var _blank_frames: int = 0
 var _blanking: bool = false
 var _frames_to_readback: int = 1
@@ -106,6 +108,9 @@ func _process(delta: float) -> void:
 		"dissipation", FluidConfig.retention_over(config.velocity_dissipation, step)
 	)
 	_dye_advect.set_param("dissipation", FluidConfig.retention_over(config.dye_dissipation, step))
+	# Pixels-to-cells is a ratio, so the velocity conversion is also the right
+	# one for an acceleration.
+	_velocity.set_param("ambient_drift", _field.world_to_cell_velocity(_current_bias))
 	_flush_splats()
 	_read_back()
 
@@ -187,18 +192,42 @@ func add_paint(
 	)
 
 
-## Blank the tank: velocity, pressure and pigment all go back to rest.
+## Lean the whole current one way, in pixels/second^2, until changed. This is
+## a bias on the ambient drift rather than gravity: the tank leans, it does not
+## pour, so what floats in it stays floating.
+func set_current_bias(world_acceleration: Vector2) -> void:
+	_current_bias = world_acceleration
+
+
+## Shove the entire tank at once, in pixels/second, as if the container were
+## jerked sideways. Applied uniformly for one frame; the walls turn it into
+## slosh.
+func nudge(world_velocity: Vector2) -> void:
+	_pending_nudge += world_velocity
+
+
+## The standing lean on the current, in pixels/second^2.
+func get_current_bias() -> Vector2:
+	return _current_bias
+
+
+## Blank the tank: velocity, pressure and pigment all go back to rest. The
+## current bias survives, since it is the caller's state rather than the tank's.
 ##
 ## Clearing the render targets does not do this. Every pass repaints its target
 ## in full from its source in the same frame, and each source is cleared later
 ## in the nested chain, so the old field is simply redrawn. The chain has to be
 ## told to write zeros instead.
 func reset() -> void:
-	if not _built:
-		return
 	_blank_frames = BLANK_FRAMES
 	_field.clear()
 	_elapsed = 0.0
+	# The pending nudge is a queued one-shot that has not landed yet, so it goes
+	# with the rest of the tank state. The current bias does not: it belongs to
+	# whoever set it — a held tilt is still held after a reset — and the tank
+	# has no way to ask for it again. Clearing it would leave tilt inert until
+	# the player happened to move.
+	_pending_nudge = Vector2.ZERO
 
 
 func set_simulating(value: bool) -> void:
@@ -294,6 +323,10 @@ func _wire() -> void:
 
 
 func _flush_splats() -> void:
+	# The nudge is a one-frame impulse, so it is uploaded and cleared alongside
+	# the splats rather than persisting like the drift.
+	_velocity.set_param("uniform_impulse", _field.world_to_cell_velocity(_pending_nudge))
+	_pending_nudge = Vector2.ZERO
 	_velocity.set_param("splats", _padded(_velocity_slots))
 	_velocity.set_param("splat_shape", _padded(_velocity_shapes))
 	_dye_advect.set_param("splats", _padded(_dye_slots))
