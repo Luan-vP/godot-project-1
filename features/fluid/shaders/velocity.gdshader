@@ -13,6 +13,13 @@ const int MAX_SPLATS = 16;
 uniform sampler2D velocity_tex : filter_linear, repeat_disable, hint_default_black;
 uniform vec2 texel_size = vec2(1.0 / 256.0);
 uniform float time_step = 0.0166;
+
+// Held true for one frame to empty the tank. Clearing the render targets
+// cannot do this: every pass repaints from its source in the same frame,
+// and sources are cleared later in the nested chain, so the old field
+// survives. Writing zeros here also makes the first frame well-defined
+// without trusting whatever the driver left in the target.
+uniform bool blank = false;
 uniform float dissipation = 0.997;
 uniform float vorticity_strength = 24.0;
 
@@ -25,7 +32,9 @@ uniform float elapsed = 0.0;
 // offset so a blob stays round in a non-square tank.
 uniform vec2 splat_aspect = vec2(1.0, 1.0);
 
-// xy = centre in UV space, zw = impulse in cells/second^2.
+// xy = centre in UV space, zw = an already-integrated impulse in
+// cells/second (acceleration times the submitter's own duration), so it
+// must NOT be scaled by this frame's time step.
 uniform vec4 splats[16];
 // x = radius in tank heights, y = 1.0 while the slot is in use.
 uniform vec4 splat_shape[16];
@@ -72,8 +81,12 @@ void fragment() {
 		vec2 offset = (UV - splats[i].xy) * splat_aspect;
 		float radius = max(splat_shape[i].x, 1e-4);
 		float falloff = exp(-dot(offset, offset) / (radius * radius));
-		velocity += splats[i].zw * falloff * time_step;
+		velocity += splats[i].zw * falloff;
 	}
 
 	COLOR = vec4(velocity, 0.0, 1.0);
+
+	if (blank) {
+		COLOR = vec4(0.0);
+	}
 }

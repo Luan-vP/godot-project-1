@@ -44,6 +44,11 @@ const COPY_SHADER := preload("res://features/fluid/shaders/copy.gdshader")
 ## Pressure relaxation needs at least two targets to ping-pong between.
 const MIN_PRESSURE_PASSES := 2
 
+## Frames the chain is forced to write zeros for when emptying. One is enough:
+## every pass blanks in the same frame, so the next frame reads zeros from all
+## of its sources.
+const BLANK_FRAMES := 1
+
 ## How the tank moves. A default is created if none is assigned.
 @export var config: FluidConfig
 
@@ -67,6 +72,8 @@ var _dye_slots: Array[Vector4] = []
 var _dye_paints: Array[Vector4] = []
 var _dye_weights: Array[float] = []
 var _elapsed: float = 0.0
+var _blank_frames: int = 0
+var _blanking: bool = false
 var _frames_to_readback: int = 1
 var _built: bool = false
 
@@ -87,10 +94,18 @@ func _process(delta: float) -> void:
 	_elapsed += delta
 	# Cheap, and it means moving the tank node is not a silent footgun.
 	_field.configure_world(get_world_rect(), config.cell_size())
+	_update_blanking()
 	var step := minf(delta, config.max_time_step)
 	_velocity.set_param("time_step", step)
 	_velocity.set_param("elapsed", _elapsed)
 	_dye_advect.set_param("time_step", step)
+	# Retention has to be recomputed per step: the solve runs once per rendered
+	# frame with a variable delta, so a fixed multiplier would decay far faster
+	# at 144 fps than at 30.
+	_velocity.set_param(
+		"dissipation", FluidConfig.retention_over(config.velocity_dissipation, step)
+	)
+	_dye_advect.set_param("dissipation", FluidConfig.retention_over(config.dye_dissipation, step))
 	_flush_splats()
 	_read_back()
 
@@ -124,15 +139,21 @@ func get_velocity_texture() -> Texture2D:
 	return null if not _built else _project.texture()
 
 
-## Push the fluid. [param world_acceleration] is in pixels/second^2 and
-## [param radius_pixels] is the Gaussian falloff of the push.
+## Push the fluid. [param world_acceleration] is in pixels/second^2, applied
+## for [param duration] seconds, and [param radius_pixels] is the Gaussian
+## falloff of the push.
+##
+## Pass the [b]caller's own[/b] delta as the duration, never the rendered
+## frame's. The queue is filled from physics and flushed on render, so scaling
+## by the render step would under-integrate when rendering outruns physics and
+## double-count when it lags.
 func add_velocity_impulse(
-	world_position: Vector2, world_acceleration: Vector2, radius_pixels: float
+	world_position: Vector2, world_acceleration: Vector2, radius_pixels: float, duration: float
 ) -> void:
-	if not _built:
+	if not _built or duration <= 0.0:
 		return
 	var uv := _field.world_to_uv(world_position)
-	var cells := _field.world_to_cell_velocity(world_acceleration)
+	var cells := _field.world_to_cell_velocity(world_acceleration * duration)
 	var radius := _radius_to_uv(radius_pixels)
 	_push_splat(
 		_velocity_slots,
@@ -144,11 +165,16 @@ func add_velocity_impulse(
 	)
 
 
-## Deposit pigment. [param amount] is density laid down per second, so a body
-## that sits still keeps staining the water under it.
-func add_paint(world_position: Vector2, color: Color, amount: float, radius_pixels: float) -> void:
-	if not _built or amount <= 0.0:
+## Deposit pigment. [param amount] is density laid down per second, applied for
+## [param duration] seconds, so a body that sits still keeps staining the water
+## under it. As with [method add_velocity_impulse], the duration is the
+## caller's own delta.
+func add_paint(
+	world_position: Vector2, color: Color, amount: float, radius_pixels: float, duration: float
+) -> void:
+	if not _built or amount <= 0.0 or duration <= 0.0:
 		return
+	var deposited := amount * duration
 	var uv := _field.world_to_uv(world_position)
 	var radius := _radius_to_uv(radius_pixels)
 	_push_splat(
@@ -156,17 +182,21 @@ func add_paint(world_position: Vector2, color: Color, amount: float, radius_pixe
 		_dye_paints,
 		_dye_weights,
 		Vector4(uv.x, uv.y, radius, 1.0),
-		Vector4(color.r, color.g, color.b, amount),
-		amount * radius
+		Vector4(color.r, color.g, color.b, deposited),
+		deposited * radius
 	)
 
 
 ## Blank the tank: velocity, pressure and pigment all go back to rest.
+##
+## Clearing the render targets does not do this. Every pass repaints its target
+## in full from its source in the same frame, and each source is cleared later
+## in the nested chain, so the old field is simply redrawn. The chain has to be
+## told to write zeros instead.
 func reset() -> void:
 	if not _built:
 		return
-	for step in _chain:
-		step.clear_target()
+	_blank_frames = BLANK_FRAMES
 	_field.clear()
 	_elapsed = 0.0
 
@@ -178,6 +208,16 @@ func set_simulating(value: bool) -> void:
 	var mode := SubViewport.UPDATE_ALWAYS if simulating else SubViewport.UPDATE_DISABLED
 	for step in _chain:
 		step.viewport.render_target_update_mode = mode
+
+
+func _update_blanking() -> void:
+	var wanted := _blank_frames > 0
+	if wanted != _blanking:
+		_blanking = wanted
+		for step in _chain:
+			step.set_param("blank", _blanking)
+	if _blank_frames > 0:
+		_blank_frames -= 1
 
 
 func _build() -> void:
@@ -212,7 +252,7 @@ func _build() -> void:
 	_wire()
 	# Targets are never cleared during the solve, so their first-frame contents
 	# would otherwise be whatever the driver left there — and a single NaN in a
-	# field that feeds itself never washes out.
+	# field that feeds itself never washes out. Blanking writes real zeros.
 	reset()
 
 
@@ -223,7 +263,6 @@ func _wire() -> void:
 	# Advection reads last frame's projected field: that loop is the time step.
 	_velocity.set_param("velocity_tex", _project.texture())
 	_velocity.set_param("texel_size", texel)
-	_velocity.set_param("dissipation", config.velocity_dissipation)
 	_velocity.set_param("vorticity_strength", config.vorticity)
 	_velocity.set_param("ambient_strength", config.ambient_current)
 	_velocity.set_param("ambient_scale", config.ambient_scale)
@@ -249,7 +288,6 @@ func _wire() -> void:
 	_dye_advect.set_param("velocity_tex", _project.texture())
 	_dye_advect.set_param("dye_tex", _dye_store.texture())
 	_dye_advect.set_param("texel_size", texel)
-	_dye_advect.set_param("dissipation", config.dye_dissipation)
 	_dye_advect.set_param("splat_aspect", aspect)
 
 	_dye_store.set_param("source_tex", _dye_advect.texture())

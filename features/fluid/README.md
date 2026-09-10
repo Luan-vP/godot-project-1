@@ -99,6 +99,27 @@ about all of them:
 Splat radii are given in pixels and converted to tank-heights, with an aspect
 correction passed to the shaders so a blob stays round in a non-square tank.
 
+Two things are deliberately **not** scaled by the rendered frame's delta:
+
+- **Retention** (`velocity_dissipation`, `dye_dissipation`) is a fraction per
+  *second*, raised to the step each frame. A fixed per-frame multiplier would
+  tie how long the water stays alive to the player's refresh rate.
+- **Splats** carry their own duration. The queue is filled from
+  `_physics_process` and flushed on render, so `add_velocity_impulse` and
+  `add_paint` take the *caller's* delta and submit an already-integrated
+  quantity. Scaling by the render step instead under-integrates when rendering
+  outruns physics and double-counts when it lags.
+
+## Emptying the tank
+
+`reset()` does not clear the render targets, because that does not work here:
+every pass repaints its target in full from its source in the same frame, and
+each source is cleared later in the nested chain, so the old field is simply
+redrawn. Instead every pass is told to write zeros for one frame — they all
+blank together, so the next frame reads zeros from all of its sources. The same
+mechanism makes the first frame well-defined without trusting whatever the
+driver left in a freshly allocated target.
+
 ## Reading the fluid from gameplay
 
 The simulation lives on the GPU, which GDScript cannot read. `FluidSimulation`
@@ -114,7 +135,8 @@ purely decorative tank, set `readback_enabled = false` and it costs nothing.
 The controls that actually change the feel, roughly in order of how much:
 
 - `vorticity` — 0 gives smooth syrupy drift, 40+ gives a restless churn
-- `velocity_dissipation` — below ~0.99 the water goes still very fast
+- `velocity_dissipation` — fraction surviving one *second*; below ~0.6 the
+  water goes still fast
 - `stroke_size` (style) — the strongest control over how abstract it looks
 - `ambient_current` — the standing swell that stops the tank dying
 - `pressure_iterations` — higher gives tighter, longer-lived vortices

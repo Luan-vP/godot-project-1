@@ -24,11 +24,15 @@ extends Resource
 @export var world_size: Vector2 = Vector2(1920.0, 1080.0)
 
 @export_group("Motion")
-## Per-step velocity retention. Below ~0.99 the water goes still very fast.
-@export_range(0.9, 1.0, 0.0005) var velocity_dissipation: float = 0.997
+## Fraction of the velocity field surviving one [b]second[/b]. Applied as
+## pow(value, delta) each step, so the water slows at the same rate whatever
+## the frame rate — a fixed per-frame multiplier ties fluid lifetime to the
+## monitor's refresh.
+@export_range(0.0, 1.0, 0.005) var velocity_dissipation: float = 0.84
 
-## Per-step pigment retention. This is what stops the tank silting up.
-@export_range(0.9, 1.0, 0.0005) var dye_dissipation: float = 0.994
+## Fraction of the pigment surviving one second. This is what stops the tank
+## silting up.
+@export_range(0.0, 1.0, 0.005) var dye_dissipation: float = 0.70
 
 ## How hard energy is pushed back into existing swirls. Zero gives smooth,
 ## syrupy drift; high values give a churning, restless medium.
@@ -67,3 +71,11 @@ func readback_size() -> Vector2i:
 ## Size of one simulation cell in world pixels.
 func cell_size() -> Vector2:
 	return world_size / float(maxi(simulation_resolution, 1))
+
+
+## Fraction of a field surviving a step of [param delta] seconds, given a
+## per-second retention. Kept separate and pure because the alternative — a
+## fixed multiplier per frame — decays at wildly different rates on a 30 Hz
+## and a 144 Hz display, and that is not visible by reading the shader.
+static func retention_over(per_second: float, delta: float) -> float:
+	return pow(clampf(per_second, 0.0, 1.0), maxf(delta, 0.0))

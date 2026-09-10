@@ -8,6 +8,13 @@ render_mode blend_disabled, unshaded;
 uniform sampler2D velocity_tex : filter_linear, repeat_disable, hint_default_black;
 uniform vec2 texel_size = vec2(1.0 / 256.0);
 
+// Held true for one frame to empty the tank. Clearing the render targets
+// cannot do this: every pass repaints from its source in the same frame,
+// and sources are cleared later in the nested chain, so the old field
+// survives. Writing zeros here also makes the first frame well-defined
+// without trusting whatever the driver left in the target.
+uniform bool blank = false;
+
 void fragment() {
 	vec2 centre = texture(velocity_tex, UV).xy;
 	float right = texture(velocity_tex, UV + vec2(texel_size.x, 0.0)).x;
@@ -29,4 +36,8 @@ void fragment() {
 	}
 
 	COLOR = vec4(0.5 * ((right - left) + (top - bottom)), 0.0, 0.0, 1.0);
+
+	if (blank) {
+		COLOR = vec4(0.0);
+	}
 }

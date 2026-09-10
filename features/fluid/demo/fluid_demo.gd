@@ -16,6 +16,9 @@ const STIR_GAIN := 9.0
 const STIR_RADIUS := 110.0
 const PAINT_RATE := 3.2
 
+## Pigment density dropped in at startup, as a one-shot rather than a rate.
+const SEED_DENSITY := 1.6
+
 var _simulation: FluidSimulation
 var _last_mouse: Vector2 = Vector2.ZERO
 var _palette: Array[Color] = [
@@ -49,7 +52,7 @@ func _ready() -> void:
 	# A tank that starts as flat colour looks like a bug. Seed it.
 	for i in SEED_BLOBS:
 		var where := Vector2(randf(), randf()) * extent
-		_simulation.add_paint(where, _palette[i % _palette.size()], 90.0, 150.0)
+		_simulation.add_paint(where, _palette[i % _palette.size()], SEED_DENSITY, 150.0, 1.0)
 
 	_last_mouse = get_global_mouse_position()
 
@@ -63,8 +66,8 @@ func _process(delta: float) -> void:
 	if delta <= 0.0 or motion.length() < 0.5:
 		return
 	var color := _palette[int(Time.get_ticks_msec() / 900) % _palette.size()]
-	_simulation.add_velocity_impulse(mouse, motion / delta * STIR_GAIN, STIR_RADIUS)
-	_simulation.add_paint(mouse, color, PAINT_RATE, STIR_RADIUS * 0.6)
+	_simulation.add_velocity_impulse(mouse, motion / delta * STIR_GAIN, STIR_RADIUS, delta)
+	_simulation.add_paint(mouse, color, PAINT_RATE, STIR_RADIUS * 0.6, delta)
 
 
 func _unhandled_key_input(event: InputEvent) -> void:

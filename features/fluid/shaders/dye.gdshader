@@ -13,6 +13,13 @@ uniform sampler2D velocity_tex : filter_linear, repeat_disable, hint_default_bla
 uniform sampler2D dye_tex : filter_linear, repeat_disable, hint_default_black;
 uniform vec2 texel_size = vec2(1.0 / 256.0);
 uniform float time_step = 0.0166;
+
+// Held true for one frame to empty the tank. Clearing the render targets
+// cannot do this: every pass repaints from its source in the same frame,
+// and sources are cleared later in the nested chain, so the old field
+// survives. Writing zeros here also makes the first frame well-defined
+// without trusting whatever the driver left in the target.
+uniform bool blank = false;
 uniform float dissipation = 0.994;
 uniform float max_density = 6.0;
 
@@ -22,7 +29,8 @@ uniform vec2 splat_aspect = vec2(1.0, 1.0);
 
 // xy = centre in UV space, z = radius in tank heights, w = 1.0 while in use.
 uniform vec4 splats[16];
-// rgb = pigment, a = deposition rate in density/second.
+// rgb = pigment, a = an already-integrated density (rate times the
+// submitter's own duration), so it must NOT be scaled by the time step.
 uniform vec4 splat_paint[16];
 
 void fragment() {
@@ -38,9 +46,13 @@ void fragment() {
 		vec2 offset = (UV - splats[i].xy) * splat_aspect;
 		float radius = max(splats[i].z, 1e-4);
 		float falloff = exp(-dot(offset, offset) / (radius * radius));
-		float deposited = splat_paint[i].a * falloff * time_step;
+		float deposited = splat_paint[i].a * falloff;
 		dye += vec4(splat_paint[i].rgb * deposited, deposited);
 	}
 
 	COLOR = clamp(dye, vec4(0.0), vec4(max_density));
+
+	if (blank) {
+		COLOR = vec4(0.0);
+	}
 }

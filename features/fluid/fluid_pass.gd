@@ -49,8 +49,3 @@ func texture() -> ViewportTexture:
 
 func set_param(param_name: String, value: Variant) -> void:
 	material.set_shader_parameter(param_name, value)
-
-
-## Blank the render target on the next frame, dropping accumulated state.
-func clear_target() -> void:
-	viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ONCE

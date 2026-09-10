@@ -70,9 +70,9 @@ func _physics_process(delta: float) -> void:
 		_contain()
 
 	if wake_strength > 0.0:
-		_simulation.add_velocity_impulse(global_position, slip * wake_strength, wake_radius)
+		_simulation.add_velocity_impulse(global_position, slip * wake_strength, wake_radius, delta)
 	if paint_amount > 0.0:
-		_simulation.add_paint(global_position, paint_color, paint_amount, paint_radius)
+		_simulation.add_paint(global_position, paint_color, paint_amount, paint_radius, delta)
 
 
 ## The drift law, kept pure so it can be checked on its own: pull the body
