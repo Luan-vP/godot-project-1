@@ -28,6 +28,15 @@ uniform float ambient_strength = 12.0;
 uniform float ambient_scale = 1.7;
 uniform float elapsed = 0.0;
 
+// A steady lean on the whole current, in cells/second^2. Tilting the device
+// biases the drift rather than adding real gravity, which keeps the eyes
+// weightless instead of pouring them into a corner.
+uniform vec2 ambient_drift = vec2(0.0, 0.0);
+
+// A single frame's shove of the entire tank, in cells/second. Already
+// integrated by the caller, so it is NOT scaled by the time step.
+uniform vec2 uniform_impulse = vec2(0.0, 0.0);
+
 // Splat radii are in units of tank height; this squares up the UV
 // offset so a blob stays round in a non-square tank.
 uniform vec2 splat_aspect = vec2(1.0, 1.0);
@@ -72,7 +81,11 @@ void fragment() {
 		sin(UV.y * ambient_scale * TAU + elapsed * 0.11),
 		cos(UV.x * ambient_scale * TAU - elapsed * 0.083)
 	);
-	velocity += ambient * ambient_strength * time_step;
+	velocity += (ambient * ambient_strength + ambient_drift) * time_step;
+
+	// A uniform field is already divergence free, so the projection step leaves
+	// it alone except at the walls — which is where the sloshing comes from.
+	velocity += uniform_impulse;
 
 	for (int i = 0; i < MAX_SPLATS; i++) {
 		if (splat_shape[i].y < 0.5) {

@@ -5,7 +5,11 @@ extends Node2D
 ## cursor stir. Everything here is assembled in code so the scene file stays a
 ## single node — the demo is meant to be read, not clicked together.
 ##
-## Drag to stir and paint. R empties the tank. Space makes everyone blink.
+## Drag to stir and paint. Arrows tilt, space jogs, C recalibrates, R empties
+## the tank, B makes everyone blink.
+##
+## On a phone the arrows and space are replaced by the real accelerometer,
+## with no change here — [MotionInput] picks the source.
 
 const EYE_COUNT := 7
 const SEED_BLOBS := 5
@@ -20,6 +24,8 @@ const PAINT_RATE := 3.2
 const SEED_DENSITY := 1.6
 
 var _simulation: FluidSimulation
+var _motion: MotionInput
+var _readout: Label
 var _last_mouse: Vector2 = Vector2.ZERO
 var _palette: Array[Color] = [
 	Color(0.36, 0.70, 0.68),
@@ -45,6 +51,16 @@ func _ready() -> void:
 	renderer.name = "FluidRenderer"
 	renderer.z_index = -100
 	add_child(renderer)
+
+	_motion = MotionInput.new()
+	_motion.name = "MotionInput"
+	add_child(_motion)
+
+	var driver := FluidMotionDriver.new()
+	driver.name = "FluidMotionDriver"
+	add_child(driver)
+
+	_build_readout()
 
 	for i in EYE_COUNT:
 		add_child(_make_eye(i, extent))
@@ -78,10 +94,31 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		return
 	if key.keycode == KEY_R:
 		_simulation.reset()
-	elif key.keycode == KEY_SPACE:
+	elif key.keycode == KEY_C:
+		_motion.calibrate()
+	elif key.keycode == KEY_B:
 		for eye in get_children():
 			if eye is FloatyEye:
 				(eye as FloatyEye).blink()
+
+
+## Which source won, and what the tilt is doing. Worth showing: the whole point
+## of the port is that this line changes on a phone and nothing else does.
+func _build_readout() -> void:
+	var layer := CanvasLayer.new()
+	layer.name = "Readout"
+	_readout = Label.new()
+	_readout.position = Vector2(16.0, 12.0)
+	_readout.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.65))
+	layer.add_child(_readout)
+	add_child(layer)
+	_motion.source_changed.connect(_on_source_changed)
+	_on_source_changed(_motion.get_source_description())
+
+
+func _on_source_changed(description: String) -> void:
+	if _readout != null:
+		_readout.text = "motion: %s" % description
 
 
 func _make_eye(index: int, extent: Vector2) -> FloatyEye:
