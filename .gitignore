@@ -16,3 +16,6 @@ data_*/
 # OS-specific junk
 .DS_Store
 Thumbs.db
+
+# GUT test output
+gut_results.xml

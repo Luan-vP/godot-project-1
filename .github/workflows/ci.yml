@@ -43,6 +43,37 @@ jobs:
         with:
           lfs: true
 
+      # GUT resolves its own types (GutTest, GutUtils, ...) through Godot's
+      # global class_name registry, which only exists once the project has been
+      # imported. Without this it aborts before collecting a single test — and
+      # Godot still exits 0, so the job reports green having tested nothing.
+      - name: Import project
+        run: godot --headless --import || true
+
+      - name: Verify the import produced a class cache
+        run: |
+          if [ ! -f .godot/global_script_class_cache.cfg ]; then
+            echo "Import produced no .godot/global_script_class_cache.cfg."
+            echo "GUT would abort before running any tests."
+            exit 1
+          fi
+
       - name: Run GUT test suite
         run: |
-          godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests -gexit
+          godot --headless -s addons/gut/gut_cmdln.gd \
+            -gdir=res://tests -gexit -gjunit_xml_file=res://gut_results.xml
+
+      # A run that collects nothing still exits 0, which is exactly how this
+      # job passed while doing nothing. Assert that tests were actually run.
+      - name: Verify tests actually ran
+        run: |
+          if [ ! -f gut_results.xml ]; then
+            echo "GUT produced no results file."
+            exit 1
+          fi
+          if ! grep -q "<testcase" gut_results.xml; then
+            echo "GUT collected no tests:"
+            cat gut_results.xml
+            exit 1
+          fi
+          echo "Ran $(grep -c "<testcase" gut_results.xml) test cases."
