@@ -2,7 +2,8 @@
 
 What used to be the fluid demo, kept as a level in its own right. A tank full
 of [`FloatyEye`](floaty_eye.gd) thingies drifting on the [fluid](../../fluid/README.md),
-in a painterly style.
+in a painterly style, plus a dusting of [`Floater`](../../floaters/README.md)
+debris.
 
 It moved here — unchanged — because the eyes were never meant to be the point
 of the game; they were a placeholder built from a misreading of "eye

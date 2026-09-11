@@ -7,6 +7,8 @@ A 2D game about floaty eye thingies, in a painterly style. Godot 4.4.
 - `features/fluid/` — the fluid the eyes float in: GPU simulation, painterly
   rendering, and the coupling that lets bodies drift on it and stir it back.
   See its [README](features/fluid/README.md).
+- `features/floaters/` — the eye floaters themselves: specks that drift and
+  sink on the fluid. See its [README](features/floaters/README.md).
 - `features/levels/secret_eyes/` — a secret level built on the fluid: a tank
   full of floaty eyes. See its [README](features/levels/secret_eyes/README.md).
 - `core/motion/` — device tilt and jog behind a port, so the controls can be
