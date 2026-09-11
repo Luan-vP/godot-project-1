@@ -18,9 +18,22 @@ wakes that push each other around. Nothing in here knows what an eye is.
 | `fluid_config.gd` | `FluidConfig` — how the water moves. |
 | `painterly_style.gd` | `PainterlyStyle` — how it looks. |
 | `fluid_gpu.gd` | `FluidGPU` — the device resources and the compute dispatch. |
+| `fluid_refraction_renderer.gd` | `FluidRefractionRenderer` — bends the background behind a clear tank. |
+| `refraction_style.gd` | `RefractionStyle` — how strongly it bends. |
 
-`FluidConfig` and `PainterlyStyle` are separate resources on purpose: retuning
-the palette should never be able to change the physics.
+`FluidConfig` and `PainterlyStyle`/`RefractionStyle` are separate resources on
+purpose: retuning the look should never be able to change the physics.
+
+Two renderers exist because the tank looks different depending on what the
+medium is for. `FluidRenderer` paints an opaque wash of pigment — right for a
+tank that is meant to be seen, like the secret eye level. `FluidRefractionRenderer`
+paints nothing; it only bends whatever is already behind it, using
+`hint_screen_texture` rather than a `SubViewport`. That is right for a clear
+medium like the main level's vitreous humour, where the fluid itself should
+stay all but invisible and only its motion should read, as a ripple passing
+across the background. Pick one per tank, not both — they read the same
+velocity field but neither needs the other's texture, and `FluidRefractionRenderer`
+never touches the dye field at all.
 
 ## Using it
 
@@ -191,6 +204,30 @@ values let it coast through eddies under its own momentum.
 Cost is `4 * (STROKE_RADIUS + 1)^2` taps per pixel — 36 at the default radius
 of 2. If it needs to be cheaper, that constant is the dial.
 
+## The refraction pass
+
+`refraction.gdshader` reads only the velocity field, not the dye. Offsetting
+the sampled UV by the velocity vector directly was tried first and rejected —
+it reads as a smear, because a uniform current then drags every pixel behind
+it by the same amount, current or no current. What actually reads as
+refraction is the *gradient* of local speed: flat, so no offset, wherever the
+flow is uniform, including a tank entirely at rest, and only curved at the rim
+of a swish, where speed changes fastest across the screen. That gradient
+stands in for a normal map's height field and bends the `hint_screen_texture`
+sample instead of dragging it.
+
+The gradient is clamped before it is scaled by `strength`, so a splat's
+leading edge cannot spike the distortion past the configured maximum however
+hard the tank is shoved, and the final sample UV is clamped to `[0, 1]` rather
+than left to whatever `hint_screen_texture` does at the edge, so a sample
+pushed past the border holds the edge pixel instead of tiling or seaming.
+`RefractionStyle.strength` is tunable down to `0.0`, which turns the bend off
+without touching the solve.
+
+`refraction_demo.tscn` is a manual test bed: a tiled checkerboard behind the
+tank so a bend in straight lines is obvious, drag-to-stir, and `+`/`-` to tune
+`strength` live down to zero.
+
 ## Cost
 
 At the defaults (256² grid, 12 pressure iterations) the solve is 17 compute
@@ -208,3 +245,7 @@ The readback is the expensive part per frame, not the solve; see above.
   and the gaze; both read straight off the fluid.
 - Bodies do not displace the fluid geometrically — they only push it. Solid
   obstacles would need a boundary mask sampled in `divergence` and `project`.
+- A tank rendered with `FluidRefractionRenderer` still runs the dye pass every
+  frame even though nothing reads the result. Skipping it for clear-medium
+  levels is a real saving; left as its own issue so it can be done and
+  measured separately.
