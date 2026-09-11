@@ -12,6 +12,9 @@ A 2D game about floaty eye thingies, in a painterly style. Godot 4.4.
 - `core/motion/` — device tilt and jog behind a port, so the controls can be
   developed on a desktop and tested in CI. See its
   [README](core/motion/README.md).
+- `core/audio/` — the audio foundation: bus layout, `AudioManager`, and a
+  manual demo scene to prove it makes a sound. See its
+  [README](core/audio/README.md).
 - `autoload/` — global singletons (`EventBus`, `GameState`, `AudioManager`,
   `SaveManager`).
 - `addons/` — vendored third-party code; see [addons/README.md](addons/README.md).
