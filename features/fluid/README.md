@@ -202,8 +202,9 @@ The readback is the expensive part per frame, not the solve; see above.
 
 ## Known gaps
 
-- The demo eye (`demo/eye.gdshader`, `demo/floaty_eye.gd`) is placeholder art
-  so the tank has something visibly reacting in it. The parts worth keeping are
-  the squash-along-motion and the gaze; both read straight off the fluid.
+- The secret eye level (`features/levels/secret_eyes/`) uses this tank with
+  placeholder art (`eye.gdshader`, `floaty_eye.gd`) so it has something
+  visibly reacting in it. The parts worth keeping are the squash-along-motion
+  and the gaze; both read straight off the fluid.
 - Bodies do not displace the fluid geometrically — they only push it. Solid
   obstacles would need a boundary mask sampled in `divergence` and `project`.
