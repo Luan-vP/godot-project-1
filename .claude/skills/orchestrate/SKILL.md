@@ -82,8 +82,15 @@ For each open PR, determine which issue it belongs to and its CI status.
 **Then trigger unblocked issues**, in parallel:
 
 ```
-gh issue comment <N> --body "@claude please implement"
+gh issue comment <N> --body "@claude please implement this issue, then open a
+pull request against main with \`gh pr create\` when the work is pushed."
 ```
+
+Asking for the PR explicitly matters. Left to itself the bot pushes a
+`claude/issue-<N>-*` branch and posts a *link* to open a PR, which no
+unattended run will ever click — so the work lands on a branch and the
+orchestrator waits forever for a PR that is never created. If you find such a
+branch with no PR, open it yourself rather than re-triggering the issue.
 
 Never trigger a `human`-labelled issue. Assign it instead:
 
