@@ -9,9 +9,16 @@ A 2D game about floaty eye thingies, in a painterly style. Godot 4.4.
   See its [README](features/fluid/README.md).
 - `features/levels/secret_eyes/` — a secret level built on the fluid: a tank
   full of floaty eyes. See its [README](features/levels/secret_eyes/README.md).
+- `features/levels/panorama/` — the main level's core mechanic: a camera at
+  the centre of a look-around panoramic background. See its
+  [README](features/levels/panorama/README.md).
+- `features/player/` — `PanoramaLookCamera`, the camera the panorama level
+  looks around with.
 - `core/motion/` — device tilt and jog behind a port, so the controls can be
   developed on a desktop and tested in CI. See its
   [README](core/motion/README.md).
+- `core/look/` — camera look input (mouse, gamepad) behind a port, the same
+  shape as `core/motion`. See its [README](core/look/README.md).
 - `autoload/` — global singletons (`EventBus`, `GameState`, `AudioManager`,
   `SaveManager`).
 - `addons/` — vendored third-party code; see [addons/README.md](addons/README.md).
