@@ -8,7 +8,7 @@ extends FluidBody
 ## keeping are the squash-along-motion and the gaze, both of which read
 ## directly off the fluid.
 
-const EYE_SHADER := preload("res://features/fluid/demo/eye.gdshader")
+const EYE_SHADER := preload("res://features/levels/secret_eyes/eye.gdshader")
 
 ## How much of the sprite's half-extent the body fills. Matches the radius the
 ## shader draws at, so [member radius] means what it says.

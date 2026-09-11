@@ -7,6 +7,8 @@ A 2D game about floaty eye thingies, in a painterly style. Godot 4.4.
 - `features/fluid/` — the fluid the eyes float in: GPU simulation, painterly
   rendering, and the coupling that lets bodies drift on it and stir it back.
   See its [README](features/fluid/README.md).
+- `features/levels/secret_eyes/` — a secret level built on the fluid: a tank
+  full of floaty eyes. See its [README](features/levels/secret_eyes/README.md).
 - `core/motion/` — device tilt and jog behind a port, so the controls can be
   developed on a desktop and tested in CI. See its
   [README](core/motion/README.md).
@@ -15,10 +17,9 @@ A 2D game about floaty eye thingies, in a painterly style. Godot 4.4.
 - `addons/` — vendored third-party code; see [addons/README.md](addons/README.md).
 - `tests/` — GUT suite.
 
-Pressing play runs `features/fluid/demo/fluid_demo.tscn`: drag to stir and
-paint, arrows to tilt, `Space` to jog, `C` to recalibrate, `R` to empty the
-tank, `B` to make everyone blink. On a device with sensors the arrows and
-space give way to the real accelerometer with no code change.
+Pressing play currently runs the secret eye level, since there is no main
+level yet — see [its README](features/levels/secret_eyes/README.md) for
+controls and how it stays secret once a main level exists.
 
 ## Running the tests
 
