@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://5vs3o8gf6ekc"
+path="res://.godot/imported/divergence.glsl-0214cf995522f425ad578b65aab66042.res"
+
+[deps]
+
+source_file="res://features/fluid/shaders/compute/divergence.glsl"
+dest_files=["res://.godot/imported/divergence.glsl-0214cf995522f425ad578b65aab66042.res"]
+
+[params]
+

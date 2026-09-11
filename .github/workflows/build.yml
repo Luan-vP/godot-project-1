@@ -28,6 +28,30 @@ jobs:
           mkdir -v -p ~/.local/share/godot/export_templates/
           mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
 
+      # The fluid solve runs as compute shaders, and Godot compiles .glsl to
+      # SPIR-V through a real rendering device. A headless import cannot do it
+      # ("Cannot import custom .glsl shaders when running in headless mode")
+      # and silently leaves the project with no solve at all. lavapipe gives
+      # the container a software Vulkan device to compile against.
+      - name: Install a software Vulkan device
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq mesa-vulkan-drivers xvfb
+
+      - name: Import project
+        run: xvfb-run -a godot --import || true
+
+      # An unimported .glsl leaves a valid=false stub and no .res, which no
+      # later step notices — the build succeeds and ships a dead tank.
+      - name: Verify the compute shaders compiled
+        run: |
+          count=$(ls .godot/imported/ | grep -c '\.glsl-.*\.res$' || true)
+          if [ "$count" -lt 6 ]; then
+            echo "Expected 6 compiled compute shaders in .godot/imported/, found $count."
+            exit 1
+          fi
+          echo "Compiled $count compute shaders."
+
       - name: Export
         run: |
           mkdir -v -p build/linux
@@ -55,6 +79,30 @@ jobs:
         run: |
           mkdir -v -p ~/.local/share/godot/export_templates/
           mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+
+      # The fluid solve runs as compute shaders, and Godot compiles .glsl to
+      # SPIR-V through a real rendering device. A headless import cannot do it
+      # ("Cannot import custom .glsl shaders when running in headless mode")
+      # and silently leaves the project with no solve at all. lavapipe gives
+      # the container a software Vulkan device to compile against.
+      - name: Install a software Vulkan device
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq mesa-vulkan-drivers xvfb
+
+      - name: Import project
+        run: xvfb-run -a godot --import || true
+
+      # An unimported .glsl leaves a valid=false stub and no .res, which no
+      # later step notices — the build succeeds and ships a dead tank.
+      - name: Verify the compute shaders compiled
+        run: |
+          count=$(ls .godot/imported/ | grep -c '\.glsl-.*\.res$' || true)
+          if [ "$count" -lt 6 ]; then
+            echo "Expected 6 compiled compute shaders in .godot/imported/, found $count."
+            exit 1
+          fi
+          echo "Compiled $count compute shaders."
 
       - name: Export
         run: |

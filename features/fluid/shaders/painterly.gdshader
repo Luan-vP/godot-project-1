@@ -14,7 +14,7 @@ render_mode blend_disabled, unshaded;
 
 uniform sampler2D dye_tex : filter_linear, repeat_disable, hint_default_black;
 uniform sampler2D velocity_tex : filter_linear, repeat_disable, hint_default_black;
-uniform vec2 texel_size = vec2(1.0 / 256.0);
+uniform vec2 texel_size = vec2(0.00390625);  // 1/256, replaced by the real size each frame.
 
 group_uniforms pigment;
 uniform vec3 paper_color : source_color = vec3(0.129, 0.156, 0.219);

@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://bjdyqc8awklbq"
+path="res://.godot/imported/velocity.glsl-fc17a4f518cb5b2d22c44692d78b3768.res"
+
+[deps]
+
+source_file="res://features/fluid/shaders/compute/velocity.glsl"
+dest_files=["res://.godot/imported/velocity.glsl-fc17a4f518cb5b2d22c44692d78b3768.res"]
+
+[params]
+

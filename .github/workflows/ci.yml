@@ -43,12 +43,22 @@ jobs:
         with:
           lfs: true
 
+      # The fluid solve runs as compute shaders, and Godot compiles .glsl to
+      # SPIR-V through a real rendering device. A headless import cannot do it
+      # ("Cannot import custom .glsl shaders when running in headless mode")
+      # and silently leaves the project with no solve at all. lavapipe gives
+      # the container a software Vulkan device to compile against.
+      - name: Install a software Vulkan device
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq mesa-vulkan-drivers xvfb
+
       # GUT resolves its own types (GutTest, GutUtils, ...) through Godot's
       # global class_name registry, which only exists once the project has been
       # imported. Without this it aborts before collecting a single test — and
       # Godot still exits 0, so the job reports green having tested nothing.
       - name: Import project
-        run: godot --headless --import || true
+        run: xvfb-run -a godot --import || true
 
       - name: Verify the import produced a class cache
         run: |
@@ -57,6 +67,17 @@ jobs:
             echo "GUT would abort before running any tests."
             exit 1
           fi
+
+      # An unimported .glsl leaves a valid=false stub and no .res, which no
+      # later step notices — the build succeeds and ships a dead tank.
+      - name: Verify the compute shaders compiled
+        run: |
+          count=$(ls .godot/imported/ | grep -c '\.glsl-.*\.res$' || true)
+          if [ "$count" -lt 6 ]; then
+            echo "Expected 6 compiled compute shaders in .godot/imported/, found $count."
+            exit 1
+          fi
+          echo "Compiled $count compute shaders."
 
       - name: Run GUT test suite
         run: |
