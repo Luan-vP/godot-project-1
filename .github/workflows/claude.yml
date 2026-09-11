@@ -39,6 +39,14 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
+          # The scheduled orchestrator (orchestrate-schedule.yml) comments
+          # "@claude please implement" as the Claude app, not as a person, and
+          # the action refuses bot-initiated events by default:
+          #   "Workflow initiated by non-human actor: claude (type: Bot)."
+          # That guard exists to stop a bot triggering itself in a loop, so this
+          # names the one bot we want rather than using '*'.
+          allowed_bots: 'claude'
+
           # This is an optional setting that allows Claude to read CI results on PRs
           additional_permissions: |
             actions: read
