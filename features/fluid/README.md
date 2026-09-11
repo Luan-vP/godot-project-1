@@ -17,7 +17,7 @@ wakes that push each other around. Nothing in here knows what an eye is.
 | `fluid_body.gd` | `FluidBody` — something that floats, and stirs. |
 | `fluid_config.gd` | `FluidConfig` — how the water moves. |
 | `painterly_style.gd` | `PainterlyStyle` — how it looks. |
-| `fluid_pass.gd` | `FluidPass` — one shader step and its render target. |
+| `fluid_gpu.gd` | `FluidGPU` — the device resources and the compute dispatch. |
 
 `FluidConfig` and `PainterlyStyle` are separate resources on purpose: retuning
 the palette should never be able to change the physics.
@@ -53,11 +53,10 @@ var current: Vector2 = tank.sample_velocity(global_position)   # pixels/second
 
 ## How the solve is put together
 
-Each frame runs the usual stable-fluids sequence, one full-screen shader pass
-each:
+Each frame runs the usual stable-fluids sequence as one compute list:
 
 ```
-velocity -> divergence -> pressure x N -> project -> readback -> dye advect -> dye store
+velocity -> divergence -> pressure x N -> project -> dye -> downsample
 ```
 
 1. **velocity** — advect the field along itself, apply vorticity confinement
@@ -65,27 +64,46 @@ velocity -> divergence -> pressure x N -> project -> readback -> dye advect -> d
 2. **divergence** — measure how much that field compresses
 3. **pressure** — N Jacobi relaxations of the resulting Poisson equation
 4. **project** — subtract the pressure gradient, leaving a divergence-free field
-5. **readback** — downsample to the CPU grid
-6. **dye** — carry pigment on the projected field, then store it for next frame
+5. **dye** — carry pigment on the projected field
+6. **downsample** — resample onto the CPU grid
 
-The passes are chained by **nesting** each pass's `SubViewport` inside the next
-one's. Godot renders a child viewport before its parent, so nesting is what
-makes the whole solve land within a single frame and in the right order. Laying
-the viewports out as siblings would leave the order undefined and the tank
-would advance one stage per frame instead of one step.
+Every field is a **pair** of textures that take turns being read and written,
+because a pass has to read last frame's field while writing this frame's and no
+shader may do both to one texture. `FluidGPU` gives each pair fixed roles where
+it can — advection writes the velocity scratch, projection writes the field
+everything else reads — so the texture handed to the renderer never changes
+identity. The dye has only one stage, so it writes a scratch and the result is
+copied home.
 
 Two loops read last frame's result on purpose:
 
 - `velocity` reads `project` — that edge *is* the time step
-- `pressure[0]` reads `pressure[N-1]` — so pressure keeps converging across
-  frames rather than restarting from zero every step
+- the pressure pair is never cleared between frames, so pressure keeps
+  converging rather than restarting from zero every step
 
-Both are between distinct viewports, which is what keeps them legal; a viewport
-may not sample its own texture. That restriction is also why the dye field
-needs two passes rather than one.
+Passes are separated by explicit barriers, since each one reads what the one
+before it wrote.
 
-All targets are `use_hdr_2d`. Velocity is signed and pigment density runs well
+This used to be a chain of nested `SubViewport`s, one full-screen canvas shader
+each, relying on Godot rendering a child viewport before its parent. It ordered
+the passes correctly but the cross-frame reads came back empty, so no field ever
+carried forward: a velocity impulse of peak 555 collapsed to zero within four
+frames instead of decaying over hundreds, and pigment never accumulated past a
+single frame's deposit. Owning the targets is what fixes it.
+
+All targets are 16-bit float. Velocity is signed and pigment density runs well
 past 1.0, so an 8-bit target would clamp the simulation into uselessness.
+
+### Building the shaders
+
+The passes are `.glsl` compute shaders under `shaders/compute/`, sharing one
+push constant block through `fluid_params.glslinc`. Godot compiles them to
+SPIR-V **at import**, and that needs a real rendering device — a headless import
+prints `Cannot import custom .glsl shaders when running in headless mode`,
+leaves a `valid=false` stub with no `.res`, and nothing downstream notices. CI
+installs lavapipe and imports under `xvfb` for exactly this reason; see
+`.github/workflows/ci.yml`. Keep these files **ASCII** — the importer rejects
+non-ASCII bytes, em dashes included.
 
 ## Units
 
@@ -124,13 +142,11 @@ apply device tilt and jog:
 
 ## Emptying the tank
 
-`reset()` does not clear the render targets, because that does not work here:
-every pass repaints its target in full from its source in the same frame, and
-each source is cleared later in the nested chain, so the old field is simply
-redrawn. Instead every pass is told to write zeros for one frame — they all
-blank together, so the next frame reads zeros from all of its sources. The same
-mechanism makes the first frame well-defined without trusting whatever the
-driver left in a freshly allocated target.
+`reset()` asks for a clear, and the next frame zeroes every target on the device
+before the solve runs. The current bias survives it: that belongs to whoever set
+it — a player holding a steady tilt is still holding it afterwards, and a steady
+hold emits no fresh signal, so clearing it would leave tilt inert until they
+moved.
 
 ## Reading the fluid from gameplay
 
@@ -138,9 +154,12 @@ The simulation lives on the GPU, which GDScript cannot read. `FluidSimulation`
 copies a small grid (`readback_resolution`, default 64²) back into a
 `FluidField` every `readback_interval` frames, and everything else samples that.
 
-This readback is **synchronous** — it is the one place the CPU waits on the
-GPU, and the reason the grid is kept small and the interval configurable. For a
-purely decorative tank, set `readback_enabled = false` and it costs nothing.
+Pulling the grid off the device is the one place anything waits on the GPU, and
+the reason the grid is kept small and the interval configurable. It happens on
+the render thread and arrives on the main thread deferred, so the mirror is a
+frame behind the field it came from — fine for drifting, wrong if you ever need
+the current a body is in *this* instant. For a purely decorative tank, set
+`readback_enabled = false` and it costs nothing.
 
 ## Tuning
 
@@ -174,10 +193,12 @@ of 2. If it needs to be cheaper, that constant is the dial.
 
 ## Cost
 
-At the defaults (256² grid, 12 pressure iterations) the solve is 19 viewports
-of 256², which is a small amount of GPU work but a lot of draw calls. If it
-needs to come down, `pressure_iterations` is the first thing to cut — the
-painterly pass hides a surprising amount of a coarse solve.
+At the defaults (256² grid, 12 pressure iterations) the solve is 17 compute
+dispatches over a 256² grid, in one compute list. If it needs to come down,
+`pressure_iterations` is the first thing to cut — the painterly pass hides a
+surprising amount of a coarse solve.
+
+The readback is the expensive part per frame, not the solve; see above.
 
 ## Known gaps
 
@@ -186,6 +207,3 @@ painterly pass hides a surprising amount of a coarse solve.
   the squash-along-motion and the gaze; both read straight off the fluid.
 - Bodies do not displace the fluid geometrically — they only push it. Solid
   obstacles would need a boundary mask sampled in `divergence` and `project`.
-- If the pipeline ever needs more than one solve step per frame, the viewport
-  chain is the wrong shape for it and it should move to `RenderingDevice`
-  compute shaders.

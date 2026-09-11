@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://1b3g627weu12"
+path="res://.godot/imported/pressure.glsl-51a25a7abd6d97627f38a2139151d8b7.res"
+
+[deps]
+
+source_file="res://features/fluid/shaders/compute/pressure.glsl"
+dest_files=["res://.godot/imported/pressure.glsl-51a25a7abd6d97627f38a2139151d8b7.res"]
+
+[params]
+

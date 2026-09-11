@@ -1,0 +1,46 @@
+// Shared declarations for the solve. Every pass takes the same push constant
+// block and the same splat buffer layout, so FluidGPU can pack one set of
+// parameters per frame and hand it to all of them.
+//
+// Included, not compiled on its own -- see the passes beside it.
+
+#define TAU 6.283185307179586
+
+// One stirrer or one dab of paint. The two fields mean different things to the
+// velocity and dye passes, which is why they are named by position rather than
+// by what they carry:
+//
+//   velocity  slot = (centre UV, impulse in cells/second)
+//             shape = (radius in tank heights, in-use flag, 0, 0)
+//   dye       slot = (centre UV, radius in tank heights, in-use flag)
+//             shape = (pigment RGB, density laid down)
+struct Splat {
+	vec4 slot;
+	vec4 shape;
+};
+
+layout(push_constant, std430) uniform Params {
+	vec2 texel_size;
+	vec2 splat_aspect;
+	vec2 ambient_drift;
+	vec2 uniform_impulse;
+	float time_step;
+	float dissipation;
+	float vorticity_strength;
+	float ambient_strength;
+	float ambient_scale;
+	float elapsed;
+	float max_density;
+	int splat_count;
+	ivec2 size;
+	ivec2 pad;
+} params;
+
+// Cell centre of an integer coordinate, in UV space.
+vec2 cell_uv(ivec2 coord) {
+	return (vec2(coord) + 0.5) / vec2(params.size);
+}
+
+bool out_of_bounds(ivec2 coord) {
+	return coord.x >= params.size.x || coord.y >= params.size.y;
+}
