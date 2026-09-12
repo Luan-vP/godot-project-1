@@ -74,3 +74,27 @@ func test_reset_clears_pending_requests_and_the_bar_baseline() -> void:
 	# would otherwise read as a new bar.
 	var changes := _scheduler.update(2.1)
 	assert_true(changes.is_empty(), "Reset should have discarded the pending request")
+
+
+## Regression: without rebasing, a tempo change swaps in a clock with a
+## different seconds-per-bar scale but leaves _last_bar computed under the
+## old one. The next update() then compares a new-clock bar against an
+## old-clock bar - two different tempos rarely agree on which bar a given
+## position falls in, so the mismatch reads as a crossing and releases
+## anything pending immediately, mid-bar, rather than waiting for a real one.
+func test_set_clock_rebases_the_baseline_without_releasing_pending() -> void:
+	_scheduler.update(0.0)  # Establish bar 0 under the original 120 BPM clock.
+	_scheduler.request("bass", true)
+
+	# 240 BPM halves the bar to 1 second. At the same 1.5s playback position
+	# that is mid-bar-1 under the new clock too, not a crossing.
+	var faster_clock := MusicClock.new(240.0, _CLOCK_BEATS_PER_BAR)
+	_scheduler.set_clock(faster_clock, 1.5)
+	var immediately_after_swap := _scheduler.update(1.5)
+	assert_true(
+		immediately_after_swap.is_empty(),
+		"Swapping clocks must not itself look like crossing a bar boundary"
+	)
+
+	var changes := _scheduler.update(2.1)  # Bar 2 under the new clock: a real crossing.
+	assert_eq(changes, {"bass": true})

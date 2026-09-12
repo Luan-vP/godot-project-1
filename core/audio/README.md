@@ -91,11 +91,29 @@ playback crosses a bar boundary — is hand-rolled as
 access), so a test can "advance" them with an arbitrary seconds value instead
 of waiting on real playback.
 
-The classic trap this had to avoid: `AudioStreamPlayer.get_playback_position()`
-only updates once per mix buffer, which reads fine in the editor and loose on
-other hardware. `AudioManager._get_loop_playback_seconds()` corrects it with
-`AudioServer.get_time_since_last_mix()` and `AudioServer.get_output_latency()`,
-as Godot's own docs recommend.
+The scheduler's clock is *not* `AudioStreamPlayer.get_playback_position()`,
+which was the first thing tried and is wrong here for a reason specific to
+looping streams: position is measured within the stream's own buffer, so it
+wraps back to the loop point every time playback loops instead of continuing
+to climb. A bar longer than the loop then never arrives, since `MusicClock`
+keeps being handed a position from earlier in the same loop cycle and the
+scheduler sits in bar 0 forever. `AudioManager._get_loop_playback_seconds()`
+instead runs its own monotonic clock, started in `play_loops()` via
+`Time.get_ticks_usec()`, which has no such ceiling. The trade-off is losing
+the mix-buffer-accurate correction `get_time_since_last_mix()` and
+`get_output_latency()` would give a position-based clock — negligible at
+musical-bar granularity, and moot since `AudioStreamSynchronized` already
+guarantees the layers themselves share one playback position regardless of
+what the scheduler measures against.
+
+A second, subtler version of the same "which clock" question: changing tempo
+mid-playback swaps in a new `MusicClock` with a different seconds-per-bar
+scale, so the bar number a given playback position maps to changes too.
+`LoopLayerScheduler.set_clock()` rebases its notion of the current bar onto
+the new clock at the moment of the swap — without that, the next `update()`
+compares a new-clock bar against an old-clock one, the mismatch reads as a
+boundary crossing, and anything pending releases immediately instead of
+waiting for a real bar to pass.
 
 ### Using it
 

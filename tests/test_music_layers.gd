@@ -63,3 +63,26 @@ func test_layer_requested_while_playing_lands_on_a_later_bar_not_immediately() -
 func test_unknown_layer_does_not_crash() -> void:
 	AudioManager.set_layer_active("nonexistent", true)
 	assert_false(AudioManager.is_layer_active("nonexistent"))
+
+
+## Regression: the clock originally read AudioStreamPlayer.get_playback_position(),
+## which wraps back to 0 every time the underlying stream loops. A bar longer
+## than the loop then never arrived, since the scheduler kept being handed a
+## position from earlier in the same loop cycle. Configure the inverse of
+## before_each's setup - a loop much shorter than the bar - so several loop
+## wraps must pass before the first bar does.
+func test_bar_advances_past_several_stream_loop_wraps() -> void:
+	var short_loop := LoopLayer.new()
+	short_loop.layer_name = "short"
+	var stream := AudioTestTone.generate(440.0, 0.05, 0.3)
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = stream.data.size() / 2
+	short_loop.stream = stream
+	var layers: Array[LoopLayer] = [short_loop]
+	AudioManager.configure_loop_layers(layers)
+	AudioManager.set_tempo(200.0, 1)  # 0.3s per bar: six loop wraps first.
+
+	AudioManager.play_loops()
+	var reached_bar_one := func(): return AudioManager.get_current_bar() >= 1
+	var arrived: bool = await wait_until(reached_bar_one, FRAME_TIMEOUT)
+	assert_true(arrived, "Bar should advance past 0 despite the stream looping many times first")

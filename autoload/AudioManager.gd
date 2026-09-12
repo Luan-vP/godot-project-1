@@ -24,7 +24,7 @@ extends Node
 ## playback clock and cannot drift apart the way separate
 ## [AudioStreamPlayer]s could. [method set_layer_active] queues its change on
 ## a [LoopLayerScheduler] and releases it on the next bar boundary, computed
-## by a [MusicClock] from an [AudioServer]-corrected playback position (see
+## by a [MusicClock] from a monotonic session clock (see
 ## [method _get_loop_playback_seconds]).
 
 ## Emitted whenever a bus's volume changes, including on load. Carries the
@@ -74,6 +74,7 @@ var _loop_layers: Dictionary = {}  # layer_name -> {index: int, volume_db: float
 var _loop_active_states: Dictionary = {}  # layer_name -> bool
 var _loop_clock: MusicClock
 var _loop_scheduler: LoopLayerScheduler
+var _loop_start_usec: int = 0
 
 
 func _ready() -> void:
@@ -147,11 +148,14 @@ func is_music_playing() -> bool:
 
 ## Sets the tempo and bar length the loop layer clock schedules against.
 ## Configurable rather than baked in; safe to call before or during
-## playback, though it does not retroactively move a bar boundary a change
-## has already been scheduled against.
+## playback. Rebases the scheduler's notion of "the current bar" onto the new
+## clock at the moment of the change, so a request already pending is not
+## mistaken for having crossed a boundary and released early — see
+## [method LoopLayerScheduler.set_clock].
 func set_tempo(tempo_bpm: float, beats_per_bar: int = 4) -> void:
+	var seconds := _get_loop_playback_seconds()
 	_loop_clock = MusicClock.new(tempo_bpm, beats_per_bar)
-	_loop_scheduler.set_clock(_loop_clock)
+	_loop_scheduler.set_clock(_loop_clock, seconds)
 
 
 ## Declares the set of loops available to layer together, as data (see
@@ -186,6 +190,7 @@ func configure_loop_layers(layers: Array[LoopLayer]) -> void:
 func play_loops() -> void:
 	if _loop_player.playing:
 		return
+	_loop_start_usec = Time.get_ticks_usec()
 	_loop_player.play()
 	_loop_scheduler.reset()
 
@@ -249,19 +254,20 @@ func _apply_layer_active(layer_name: String, active: bool) -> void:
 	)
 
 
-## [AudioStreamPlayer.get_playback_position] only updates once per mix
-## buffer, so scheduling against it directly is fine in the editor and
-## audibly loose on other hardware — the classic trap. Correcting it with
-## [method AudioServer.get_time_since_last_mix] and
-## [method AudioServer.get_output_latency] is the fix Godot's own docs
-## recommend for exactly this.
+## Seconds since [method play_loops] started, from a monotonic wall clock
+## rather than [method AudioStreamPlayer.get_playback_position].
+##
+## That was the first thing tried, and it is wrong for a looping stream:
+## position is measured within the stream's own buffer, so it wraps back
+## every time playback loops instead of continuing to climb. A bar longer
+## than the loop then never arrives — [MusicClock.bar_at] keeps reading a
+## position from earlier in the same loop cycle and the scheduler sits in
+## bar 0 forever. A session clock started once in [method play_loops] has no
+## such ceiling.
 func _get_loop_playback_seconds() -> float:
 	if not _loop_player.playing:
 		return 0.0
-	var time := _loop_player.get_playback_position()
-	time += AudioServer.get_time_since_last_mix()
-	time -= AudioServer.get_output_latency()
-	return maxf(time, 0.0)
+	return (Time.get_ticks_usec() - _loop_start_usec) / 1_000_000.0
 
 
 ## Sets a bus's volume from a linear fraction in [0, 1], converting to

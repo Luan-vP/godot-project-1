@@ -19,10 +19,18 @@ func _init(clock: MusicClock) -> void:
 	_clock = clock
 
 
-## Swaps in a new clock, e.g. after a tempo change. Does not affect any
-## requests already pending.
-func set_clock(clock: MusicClock) -> void:
+## Swaps in a new clock, e.g. after a tempo change, and rebases the current
+## bar onto it from [param seconds] (the playback position at the moment of
+## the swap). Without the rebase, the next [method update] would compare a
+## bar number computed under the new clock's scale against [member _last_bar]
+## from the old one — two different tempos rarely agree on which bar a given
+## position falls in, so the mismatch reads as a boundary crossing and
+## releases anything pending immediately, mid-bar, rather than waiting for a
+## real one. Does not itself release or discard anything pending.
+func set_clock(clock: MusicClock, seconds: float = 0.0) -> void:
 	_clock = clock
+	if _last_bar != -1:
+		_last_bar = _clock.bar_at(seconds)
 
 
 ## Forgets where "the last bar" was and any pending requests. Call when
