@@ -168,7 +168,7 @@ func _receive_dye_bytes(bytes: PackedByteArray) -> void:
 ## World position of the centre of simulation cell [param coord], for landing
 ## a splat squarely inside a single cell instead of straddling several.
 func _cell_center_world(coord: Vector2i, size: Vector2i) -> Vector2:
-	var uv := (Vector2(coord) + Vector2(0.5)) / Vector2(size)
+	var uv := (Vector2(coord) + Vector2(0.5, 0.5)) / Vector2(size)
 	return _simulation.get_field().uv_to_world(uv)
 
 
