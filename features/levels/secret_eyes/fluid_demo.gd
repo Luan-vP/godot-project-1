@@ -13,6 +13,7 @@ extends Node2D
 
 const EYE_COUNT := 7
 const SEED_BLOBS := 5
+const FLOATER_COUNT := 70
 
 ## Mouse motion is a speed; the tank wants an acceleration. This bridges them.
 const STIR_GAIN := 9.0
@@ -64,6 +65,11 @@ func _ready() -> void:
 
 	for i in EYE_COUNT:
 		add_child(_make_eye(i, extent))
+
+	var floaters := FloaterField.new()
+	floaters.name = "Floaters"
+	floaters.count = FLOATER_COUNT
+	add_child(floaters)
 
 	# A tank that starts as flat colour looks like a bug. Seed it.
 	for i in SEED_BLOBS:
