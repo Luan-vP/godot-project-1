@@ -65,6 +65,8 @@ var _velocity: Array[RID] = []
 var _pressure: Array[RID] = []
 var _dye: Array[RID] = []
 var _divergence := RID()
+var _obstacle := RID()
+var _obstacle_walls := PackedByteArray()
 var _readback := RID()
 var _sampler := RID()
 var _velocity_splat_buffer := RID()
@@ -164,7 +166,14 @@ func _build_resources() -> void:
 	_dye = [_make_texture(_size, rgba), _make_texture(_size, rgba)]
 	_pressure = [_make_texture(_size, scalar), _make_texture(_size, scalar)]
 	_divergence = _make_texture(_size, scalar)
+	_obstacle = _make_texture(_size, scalar)
 	_readback = _make_texture(_readback_size, rgba)
+
+	# The only obstacle today is the tank itself. Baked once and re-stamped
+	# after every clear, since nothing else writes into the mask yet -- a body
+	# stamping itself in is deliberate follow-up work.
+	_obstacle_walls = _make_wall_mask(_size)
+	_rd.texture_update(_obstacle, 0, _obstacle_walls)
 
 	_velocity_splat_buffer = _rd.storage_buffer_create(MAX_SPLATS * SPLAT_BYTES)
 	_dye_splat_buffer = _rd.storage_buffer_create(MAX_SPLATS * SPLAT_BYTES)
@@ -191,6 +200,7 @@ func _build_resources() -> void:
 		[
 			_sampler_uniform(0, _velocity[1]),
 			_image_uniform(1, _divergence),
+			_sampler_uniform(2, _obstacle),
 		]
 	)
 	# One set per parity of the relaxation, so nothing is allocated per frame.
@@ -218,6 +228,7 @@ func _build_resources() -> void:
 			_sampler_uniform(0, _velocity[1]),
 			_image_uniform(1, _velocity[0]),
 			_sampler_uniform(2, _pressure[_iterations % 2]),
+			_sampler_uniform(3, _obstacle),
 		]
 	)
 	_sets["dye"] = _make_set(
@@ -250,8 +261,11 @@ func _run_step(frame: Dictionary) -> void:
 	if _rd == null:
 		return
 	if frame.get("clear", false):
-		for texture in _velocity + _dye + _pressure + [_divergence, _readback]:
+		for texture in _velocity + _dye + _pressure + [_divergence, _obstacle, _readback]:
 			_rd.texture_clear(texture, Color(0.0, 0.0, 0.0, 0.0), 0, 1, 0, 1)
+		# The clear wipes the mask along with everything else; the walls are the
+		# only thing in it, so they are the only thing that needs putting back.
+		_rd.texture_update(_obstacle, 0, _obstacle_walls)
 
 	_rd.buffer_update(_velocity_splat_buffer, 0, MAX_SPLATS * SPLAT_BYTES, frame["velocity_splats"])
 	_rd.buffer_update(_dye_splat_buffer, 0, MAX_SPLATS * SPLAT_BYTES, frame["dye_splats"])
@@ -302,7 +316,7 @@ func _free_resources() -> void:
 		_free(pipeline)
 	for shader in _shaders:
 		_free(shader)
-	for texture in _velocity + _dye + _pressure + [_divergence, _readback]:
+	for texture in _velocity + _dye + _pressure + [_divergence, _obstacle, _readback]:
 		_free(texture)
 	_free(_velocity_splat_buffer)
 	_free(_dye_splat_buffer)
@@ -358,6 +372,20 @@ func _make_texture(size: Vector2i, format: int) -> RID:
 	var texture := _rd.texture_create(format_info, RDTextureView.new(), [])
 	_rd.texture_clear(texture, Color(0.0, 0.0, 0.0, 0.0), 0, 1, 0, 1)
 	return texture
+
+
+## A single-channel R16F mask, 1.0 where a cell is solid and 0.0 where it is
+## fluid. The tank walls are the outermost ring of cells -- one boundary
+## concept for [code]divergence.glsl[/code] and [code]project.glsl[/code] to
+## read instead of each hardcoding "the edge of the texture".
+func _make_wall_mask(size: Vector2i) -> PackedByteArray:
+	var bytes := PackedByteArray()
+	bytes.resize(size.x * size.y * 2)
+	for y in size.y:
+		for x in size.x:
+			var wall := x == 0 or y == 0 or x == size.x - 1 or y == size.y - 1
+			bytes.encode_half((y * size.x + x) * 2, 1.0 if wall else 0.0)
+	return bytes
 
 
 func _sampler_uniform(binding: int, texture: RID) -> RDUniform:

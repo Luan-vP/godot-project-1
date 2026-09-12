@@ -200,11 +200,21 @@ surprising amount of a coarse solve.
 
 The readback is the expensive part per frame, not the solve; see above.
 
+## Obstacles
+
+`divergence` and `project` both sample a single-channel obstacle mask at
+simulation resolution: a masked cell is free-slip in `divergence` (its normal
+component mirrors, exactly like the old border check) and hard-zeroed in
+`project`. The tank walls are the only thing stamped into it today — the
+outermost ring of cells, baked once and re-stamped after every `reset()` —
+so there is one boundary concept instead of a hardcoded edge test living in
+two shaders.
+
 ## Known gaps
 
 - The secret eye level (`features/levels/secret_eyes/`) uses this tank with
   placeholder art (`eye.gdshader`, `floaty_eye.gd`) so it has something
   visibly reacting in it. The parts worth keeping are the squash-along-motion
   and the gaze; both read straight off the fluid.
-- Bodies do not displace the fluid geometrically — they only push it. Solid
-  obstacles would need a boundary mask sampled in `divergence` and `project`.
+- Bodies do not displace the fluid geometrically — they only push it. The
+  mask the solve now reads exists; nothing stamps a body into it yet.
