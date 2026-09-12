@@ -38,6 +38,21 @@ extends Resource
 ## syrupy drift; high values give a churning, restless medium.
 @export_range(0.0, 80.0, 0.5) var vorticity: float = 24.0
 
+## Kinematic viscosity in [b]pixels squared per second[/b]: how far momentum
+## spreads into the surrounding fluid, so how thick the medium is. Zero is
+## inviscid and skips the diffusion passes entirely. Where
+## [member velocity_dissipation] makes all motion fade, this makes sharp
+## motion smear out — a thick fluid carries a stir as one slow sheet instead of
+## a thin jet, and drags along the walls.
+@export_range(0.0, 20000.0, 10.0, "or_greater") var viscosity: float = 0.0
+
+## Jacobi iterations spent on viscous diffusion per frame, when
+## [member viscosity] is above zero. Too few under-diffuses a very thick fluid:
+## each iteration only spreads momentum about one cell further, so the
+## effective thickness tops out around this many cells. Each is a full-grid
+## pass. Read when the tank is built; changing it later has no effect.
+@export_range(1, 64) var viscosity_iterations: int = 20
+
 ## A slow standing swell, so the tank never settles into dead water.
 @export_range(0.0, 60.0, 0.5) var ambient_current: float = 12.0
 
@@ -79,3 +94,16 @@ func cell_size() -> Vector2:
 ## and a 144 Hz display, and that is not visible by reading the shader.
 static func retention_over(per_second: float, delta: float) -> float:
 	return pow(clampf(per_second, 0.0, 1.0), maxf(delta, 0.0))
+
+
+## The implicit diffusion coefficient [code]nu * dt / h^2[/code] per axis for a
+## step of [param delta] seconds, where [code]h[/code] is the cell's width or
+## height in pixels. Separate axes because cells are only square when the tank
+## is, and viscosity is specified in world units so it thickens the fluid
+## evenly on screen and does not change with [member simulation_resolution].
+func viscous_coefficients(delta: float) -> Vector2:
+	var cell := cell_size()
+	if viscosity <= 0.0 or delta <= 0.0 or cell.x <= 0.0 or cell.y <= 0.0:
+		return Vector2.ZERO
+	var spread := viscosity * delta
+	return Vector2(spread / (cell.x * cell.x), spread / (cell.y * cell.y))

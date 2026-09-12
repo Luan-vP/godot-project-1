@@ -56,16 +56,18 @@ var current: Vector2 = tank.sample_velocity(global_position)   # pixels/second
 Each frame runs the usual stable-fluids sequence as one compute list:
 
 ```
-velocity -> divergence -> pressure x N -> project -> dye -> downsample
+velocity -> [viscosity x N] -> divergence -> pressure x N -> project -> dye -> downsample
 ```
 
 1. **velocity** — advect the field along itself, apply vorticity confinement
    and the ambient swell, add this frame's impulses
-2. **divergence** — measure how much that field compresses
-3. **pressure** — N Jacobi relaxations of the resulting Poisson equation
-4. **project** — subtract the pressure gradient, leaving a divergence-free field
-5. **dye** — carry pigment on the projected field
-6. **downsample** — resample onto the CPU grid
+2. **viscosity** — N Jacobi relaxations of implicit viscous diffusion; skipped
+   outright when `viscosity` is zero
+3. **divergence** — measure how much that field compresses
+4. **pressure** — N Jacobi relaxations of the resulting Poisson equation
+5. **project** — subtract the pressure gradient, leaving a divergence-free field
+6. **dye** — carry pigment on the projected field
+7. **downsample** — resample onto the CPU grid
 
 Every field is a **pair** of textures that take turns being read and written,
 because a pass has to read last frame's field while writing this frame's and no
@@ -73,7 +75,10 @@ shader may do both to one texture. `FluidGPU` gives each pair fixed roles where
 it can — advection writes the velocity scratch, projection writes the field
 everything else reads — so the texture handed to the renderer never changes
 identity. The dye has only one stage, so it writes a scratch and the result is
-copied home.
+copied home. Viscosity gets its own pair rather than relaxing in place, because
+every iteration solves against the advected field and that has to stay intact;
+which of the pair the last iteration lands in is fixed when the tank is built,
+so `divergence` and `project` each have a second uniform set that reads it.
 
 Two loops read last frame's result on purpose:
 
@@ -166,6 +171,8 @@ the current a body is in *this* instant. For a purely decorative tank, set
 The controls that actually change the feel, roughly in order of how much:
 
 - `vorticity` — 0 gives smooth syrupy drift, 40+ gives a restless churn
+- `viscosity` — pixels²/second; 0 is thin water, higher smears stirs into slow
+  sheets; see [Viscosity](#viscosity)
 - `velocity_dissipation` — fraction surviving one *second*; below ~0.6 the
   water goes still fast
 - `stroke_size` (style) — the strongest control over how abstract it looks
@@ -193,12 +200,36 @@ of 2. If it needs to be cheaper, that constant is the dial.
 
 ## Cost
 
-At the defaults (256² grid, 12 pressure iterations) the solve is 17 compute
-dispatches over a 256² grid, in one compute list. If it needs to come down,
+At the defaults (256² grid, 12 pressure iterations, inviscid) the solve is 17
+compute dispatches over a 256² grid, in one compute list. A viscous tank adds
+`viscosity_iterations` more (20 by default). If it needs to come down,
 `pressure_iterations` is the first thing to cut — the painterly pass hides a
 surprising amount of a coarse solve.
 
 The readback is the expensive part per frame, not the solve; see above.
+
+## Viscosity
+
+`FluidConfig.viscosity` is kinematic viscosity in **pixels² per second**: how
+far momentum spreads into the fluid around it. It is different in kind from
+`velocity_dissipation`, which fades all motion evenly — viscosity leaves slow,
+broad motion alone and smears sharp motion out, so a stir travels as one slow
+sheet instead of a thin jet, and fluid drags along the walls (a masked
+neighbour is no-slip in the diffusion pass, where `divergence` treats it as
+free-slip).
+
+It is solved implicitly, `(I - ν·dt·∇²) u = u_advected`, so no value is too
+thick to be stable. The coefficient `ν·dt/h²` is computed per axis in
+`FluidConfig.viscous_coefficients` from the cell's width and height in
+pixels: cells are only square when the tank is, and specifying it in world
+units keeps it isotropic on screen and independent of `simulation_resolution`.
+
+The catch is iteration count. Jacobi only spreads momentum about one cell
+further per iteration, so with `viscosity_iterations` fixed (default 20) a
+very large `viscosity` under-diffuses rather than blowing up — it tops out
+around that many cells of spread per frame. For thick-but-lively, pair a
+moderate `viscosity` with a low `vorticity`; confinement exists to fight
+numerical diffusion and will otherwise fight this too.
 
 ## Obstacles
 

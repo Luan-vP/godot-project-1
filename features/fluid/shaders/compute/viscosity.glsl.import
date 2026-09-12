@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://cux2fbfsfc06b"
+path="res://.godot/imported/viscosity.glsl-5a694779f08134efe69b1c74a8ec7a98.res"
+
+[deps]
+
+source_file="res://features/fluid/shaders/compute/viscosity.glsl"
+dest_files=["res://.godot/imported/viscosity.glsl-5a694779f08134efe69b1c74a8ec7a98.res"]
+
+[params]
+
