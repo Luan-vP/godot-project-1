@@ -57,9 +57,7 @@ func _make_floater(rect: Rect2) -> Floater:
 ## A radius drawn from [param radius_range], skewed towards the low end by
 ## [param skew] (1 is uniform, higher pushes the distribution smaller). Kept
 ## pure and static so the distribution can be checked without a scene tree.
-static func sampled_radius(
-	rng: RandomNumberGenerator, radius_range: Vector2, skew: float
-) -> float:
+static func sampled_radius(rng: RandomNumberGenerator, radius_range: Vector2, skew: float) -> float:
 	return lerpf(radius_range.x, radius_range.y, pow(rng.randf(), skew))
 
 
