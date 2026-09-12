@@ -61,21 +61,34 @@ var _time_since_input: float = 0.0
 ## if [member target] is set, writes it to [member target].[member property].
 func advance(delta: float, input: Variant) -> float:
 	var mapped_target: float
+	# How much of delta actually happens after the timeout boundary, so a
+	# call that starts mid-hold and ends past it only decays for the part
+	# beyond the boundary - not the whole step. Without this, one big
+	# overdue delta (a hitch, or an infrequent caller) decays far more than
+	# the same span covered by many small deltas, even though both cross the
+	# boundary by the same amount - the frame-rate independence [method
+	# advance] promises elsewhere would quietly stop holding right at the
+	# timeout.
+	var decay_delta := delta
 	if input != null:
 		_time_since_input = 0.0
 		mapped_target = _map(input)
 	else:
+		var was_holding := _has_current and _time_since_input < input_timeout
 		_time_since_input += delta
 		if _has_current and _time_since_input < input_timeout:
 			mapped_target = _current
+			decay_delta = 0.0
 		else:
 			mapped_target = rest_value
+			if was_holding:
+				decay_delta = _time_since_input - input_timeout
 
 	if not _has_current:
 		_current = mapped_target
 		_has_current = true
 	else:
-		var retention := pow(clampf(retention_per_second, 0.0, 1.0), maxf(delta, 0.0))
+		var retention := pow(clampf(retention_per_second, 0.0, 1.0), maxf(decay_delta, 0.0))
 		_current = lerpf(mapped_target, _current, retention)
 
 	if target != null:
