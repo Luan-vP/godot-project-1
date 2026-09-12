@@ -17,8 +17,10 @@ extends Resource
 @export_range(16, 128, 8) var readback_resolution: int = 64
 
 ## Jacobi iterations per frame. More means a stricter incompressibility solve
-## and tighter, longer-lived vortices; each one costs a full-grid pass.
-@export_range(1, 32) var pressure_iterations: int = 12
+## and tighter, longer-lived vortices; each one costs a full-grid pass. Too few
+## leaves the fluid slightly compressible, and a big stir then rings off the
+## walls and sloshes back — see the fluid README's Viscosity section.
+@export_range(1, 128) var pressure_iterations: int = 12
 
 ## The slab of world the tank covers, in pixels.
 @export var world_size: Vector2 = Vector2(1920.0, 1080.0)
@@ -52,6 +54,14 @@ extends Resource
 ## effective thickness tops out around this many cells. Each is a full-grid
 ## pass. Read when the tank is built; changing it later has no effect.
 @export_range(1, 64) var viscosity_iterations: int = 20
+
+## How much the tank walls drag on a viscous fluid, from 0 (free-slip: the
+## fluid slides along them and they take no momentum out) to 1 (no-slip: the
+## fluid at the wall is held still, the physically correct boundary). With a
+## high [member viscosity] in a small tank, no-slip drains a stir into the
+## walls within a fraction of a second; lower this for a thick fluid that
+## still coasts. Only the viscosity pass reads it.
+@export_range(0.0, 1.0, 0.01) var wall_friction: float = 1.0
 
 ## A slow standing swell, so the tank never settles into dead water.
 @export_range(0.0, 60.0, 0.5) var ambient_current: float = 12.0

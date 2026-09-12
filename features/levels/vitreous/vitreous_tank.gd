@@ -8,8 +8,12 @@ extends Node2D
 ## Drag to push the gel. Arrows tilt, space jogs, C recalibrates, R stills the
 ## gel, +/- adds or removes floaters, F toggles the out-of-focus look.
 
-const STIR_GAIN := 9.0
-const STIR_RADIUS := 120.0
+## A push spreads over a broad, soft footprint and moves a whole region of the
+## gel at once. That broadness used to come from a very high viscosity, which
+## also stopped every push dead; putting it in the input instead leaves the
+## fluid free to coast.
+const STIR_GAIN := 6.0
+const STIR_RADIUS := 300.0
 
 const COUNT_STEP := 40
 const MAX_COUNT := 400
@@ -49,23 +53,25 @@ func _ready() -> void:
 	_last_mouse = get_global_mouse_position()
 
 
-## The vitreous as a fluid: thick enough that a stir moves a broad sheet with
-## no eddies in it, and the tank walls drag it to a stop.
+## The vitreous as a fluid: a push moves a broad region smoothly, with no
+## eddies, then keeps its momentum and fades slowly through the whole volume
+## instead of bouncing off the walls and sloshing back.
 ##
-## Viscosity saturates at a fixed iteration count, so the thickness here comes
-## as much from the coarse grid and the iterations as from [member
-## FluidConfig.viscosity] — see the fluid README's Viscosity section for the
-## measurements. 128² with 40 diffusion iterations costs less than the default
-## 256² water solve.
+## Each setting answers a measured failure; see the level README:
+## - converged pressure, because an under-relaxed solve is springy and sloshes
+## - free-slip walls, because no-slip walls drain a viscous stir in half a second
+## - only a little viscosity, since viscosity damps the tank-wide motion too
 static func make_gel_config(world_size: Vector2) -> FluidConfig:
 	var config := FluidConfig.new()
 	config.world_size = world_size
 	config.simulation_resolution = 128
-	config.viscosity = 80000.0
-	config.viscosity_iterations = 40
+	config.pressure_iterations = 100
+	config.viscosity = 1000.0
+	config.viscosity_iterations = 20
+	config.wall_friction = 0.0
 	# Confinement puts swirl back in; a gel should have none.
 	config.vorticity = 0.0
-	config.velocity_dissipation = 0.95
+	config.velocity_dissipation = 0.98
 	# The gel barely moves on its own.
 	config.ambient_current = 2.0
 	return config
