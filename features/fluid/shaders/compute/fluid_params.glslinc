@@ -36,6 +36,10 @@ layout(push_constant, std430) uniform Params {
 	// nu * dt / cell_width^2 and nu * dt / cell_height^2: the viscous diffusion
 	// coefficient per axis, zero when the fluid is inviscid.
 	vec2 viscous_alpha;
+	// 0 lets fluid slide along walls in the viscosity pass; 1 is no-slip.
+	float wall_friction;
+	float pad_a;
+	vec2 pad_b;
 } params;
 
 // Cell centre of an integer coordinate, in UV space.
