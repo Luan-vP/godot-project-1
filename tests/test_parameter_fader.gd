@@ -149,6 +149,41 @@ func test_fresh_input_resets_the_timeout_clock() -> void:
 	)
 
 
+## Regression: decay used to run for the whole delta of whichever advance()
+## call happened to cross the timeout boundary, rather than just the portion
+## of that delta past it. A single overdue call (a hitch, or an infrequent
+## caller) would then decay far more than the same span covered by many
+## small calls - exactly the frame-rate dependence advance() otherwise
+## guards against. Both paths here cross the boundary by the same amount
+## (0.1s past a 0.5s timeout) and must land at (almost) the same value.
+func test_decay_past_the_timeout_matches_regardless_of_call_granularity() -> void:
+	var one_big_call := ParameterFader.new()
+	one_big_call.output_min = 0.0
+	one_big_call.output_max = 1.0
+	one_big_call.retention_per_second = 0.5
+	one_big_call.rest_value = 0.0
+	one_big_call.input_timeout = 0.5
+	one_big_call.advance(0.016, 1.0)
+	var big_result := one_big_call.advance(0.6, null)
+
+	var many_small_calls := ParameterFader.new()
+	many_small_calls.output_min = 0.0
+	many_small_calls.output_max = 1.0
+	many_small_calls.retention_per_second = 0.5
+	many_small_calls.rest_value = 0.0
+	many_small_calls.input_timeout = 0.5
+	many_small_calls.advance(0.016, 1.0)
+	var small_result := 0.0
+	for _i in 60:
+		small_result = many_small_calls.advance(0.01, null)
+
+	assert_almost_eq(
+		big_result, small_result, 0.01, "Same time past the timeout should decay the same amount"
+	)
+	# Only 0.1s (0.6 - the 0.5s timeout) should actually have decayed.
+	assert_almost_eq(big_result, pow(0.5, 0.1), 0.01, "Decay matches the time past the boundary")
+
+
 func test_reset_forgets_state_so_the_next_reading_snaps() -> void:
 	var fader := ParameterFader.new()
 	fader.output_min = 0.0
