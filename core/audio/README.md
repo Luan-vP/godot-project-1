@@ -51,3 +51,84 @@ runtime rather than shipped as a binary asset — through the SFX and Music
 buses, with a slider and mute box per bus and a focus-mute toggle. Move a
 slider, hear the level change; mute a bus, hear it stop; alt-tab away and
 back, if focus-mute is on, to hear it recover.
+
+## Loop layering
+
+The playback machinery generated music runs on (#31): loops that stay
+phase-locked with each other, layers that fade in and out on a bar boundary
+instead of clicking in immediately, and a musical clock #34's composition
+rules can schedule against. This is mechanism only — what the loops *are* is
+#28's decision, and this works whatever that answer is; a "loop" is just
+whatever `AudioStream` a [`LoopLayer`](loop_layer.gd) resource points at.
+
+### Why `AudioStreamSynchronized`, not the other two
+
+Godot 4 ships three stream types worth checking before hand-rolling this:
+
+- **`AudioStreamPlaylist`** plays a list of streams one after another. It has
+  no concept of simultaneous layers, so it does not fit "loops locked
+  together" at all.
+- **`AudioStreamInteractive`** has built-in bar/beat-aligned transitions,
+  which sounds like a match for "changes land on musical boundaries" — but it
+  transitions *between* clips, one active clip at a time. It has no way to
+  keep several independently-toggleable layers all live in the mix at once,
+  so it doesn't cover "layers that come and go" while others keep playing. It
+  may be worth revisiting for section-to-section transitions once #34 needs
+  those, but it doesn't solve layering.
+- **`AudioStreamSynchronized`** plays up to 32 sub-streams from a single
+  shared playback position and lets each one's volume
+  (`set_sync_stream_volume`) be changed independently at runtime. That shared
+  position is what makes "no drift over ten minutes" true by construction —
+  there is one playback clock, not N separate `AudioStreamPlayer`s that could
+  each round their mix buffers slightly differently. This is what
+  `AudioManager`'s loop layer stack is built on.
+
+What none of the three do is decide *when* a volume change should land.
+That part — queuing a layer's on/off request and releasing it only once
+playback crosses a bar boundary — is hand-rolled as
+[`LoopLayerScheduler`](loop_layer_scheduler.gd), driven by a
+[`MusicClock`](music_clock.gd). Both are deliberately pure (no `AudioServer`
+access), so a test can "advance" them with an arbitrary seconds value instead
+of waiting on real playback.
+
+The classic trap this had to avoid: `AudioStreamPlayer.get_playback_position()`
+only updates once per mix buffer, which reads fine in the editor and loose on
+other hardware. `AudioManager._get_loop_playback_seconds()` corrects it with
+`AudioServer.get_time_since_last_mix()` and `AudioServer.get_output_latency()`,
+as Godot's own docs recommend.
+
+### Using it
+
+```gdscript
+AudioManager.set_tempo(96.0, 4)  # BPM, beats per bar — configurable, not baked in.
+
+var bass := LoopLayer.new()
+bass.layer_name = "bass"
+bass.stream = preload("res://assets/audio/bass_loop.ogg")
+
+var pad := LoopLayer.new()
+pad.layer_name = "pad"
+pad.stream = preload("res://assets/audio/pad_loop.ogg")
+
+var layers: Array[LoopLayer] = [bass, pad]
+AudioManager.configure_loop_layers(layers)  # Loops are data, not hardcoded paths.
+AudioManager.set_layer_active("bass", true)  # Not playing yet: takes effect immediately.
+AudioManager.play_loops()
+
+AudioManager.set_layer_active("pad", true)  # Already playing: lands on the next bar.
+
+AudioManager.get_current_bar()   # Readable musical clock for #34 to schedule against.
+AudioManager.get_current_beat()
+```
+
+### What is left to manual verification
+
+This issue is labelled `manual_verification`: "no drift over ten minutes" and
+"no clicks" are properties of real audio hardware over real time, not
+something a headless GUT run can prove. `tests/test_music_clock.gd` and
+`tests/test_loop_layer_scheduler.gd` cover the bar/beat math and the
+scheduling logic deterministically; `tests/test_music_layers.gd` covers the
+`AudioManager` wiring with an artificially fast tempo so a bar boundary
+passes within the test timeout. Actually leaving two layered loops running
+for ten minutes and listening for drift or clicks — ideally through
+`audio_demo.tscn` or a similar scene — is still worth doing by ear.
