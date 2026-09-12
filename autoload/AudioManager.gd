@@ -18,6 +18,11 @@ extends Node
 ## [SaveManager] and reloaded in [method _ready]. Nothing here knows about
 ## floaters, edges, or any other game concept — it is equally usable by a
 ## menu, a level, or a test.
+##
+## [method add_bus_effect] and [method get_bus_effect] hand out effect
+## instances for a caller to drive directly — typically through a
+## [ParameterFader], which smooths a per-frame value into an effect's
+## property instead of assigning it straight and producing zipper noise.
 
 ## Emitted whenever a bus's volume changes, including on load. Carries the
 ## linear fraction, not decibels, so a slider can be driven directly.
@@ -145,6 +150,39 @@ func is_bus_mute(bus_name: String) -> bool:
 func set_mute_on_focus_loss(enabled: bool) -> void:
 	mute_on_focus_loss = enabled
 	SaveManager.set_value(_SETTINGS_SECTION, _FOCUS_SETTING_KEY, enabled)
+
+
+## Adds an effect to a bus and returns its index in that bus's effect chain,
+## for later use with [method get_bus_effect] — e.g. to hand the instance to a
+## [ParameterFader]. Returns -1 for an unknown bus.
+func add_bus_effect(bus_name: String, effect: AudioEffect) -> int:
+	var index := AudioServer.get_bus_index(bus_name)
+	if index == -1:
+		push_warning("AudioManager: unknown bus '%s'" % bus_name)
+		return -1
+	AudioServer.add_bus_effect(index, effect)
+	return AudioServer.get_bus_effect_count(index) - 1
+
+
+## Returns the effect instance at [param effect_index] on a bus, so its
+## parameters can be read or driven directly — e.g. by a [ParameterFader].
+## Returns null for an unknown bus or effect index.
+func get_bus_effect(bus_name: String, effect_index: int) -> AudioEffect:
+	var index := AudioServer.get_bus_index(bus_name)
+	if index == -1:
+		return null
+	if effect_index < 0 or effect_index >= AudioServer.get_bus_effect_count(index):
+		return null
+	return AudioServer.get_bus_effect(index, effect_index)
+
+
+## Removes an effect from a bus, e.g. one added by [method add_bus_effect] for
+## a demo that should not leave it behind.
+func remove_bus_effect(bus_name: String, effect_index: int) -> void:
+	var index := AudioServer.get_bus_index(bus_name)
+	if index == -1:
+		return
+	AudioServer.remove_bus_effect(index, effect_index)
 
 
 func _load_settings() -> void:
