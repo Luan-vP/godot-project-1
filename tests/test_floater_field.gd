@@ -156,10 +156,16 @@ func test_turning_defocus_off_shows_bands_sharp() -> void:
 	)
 	var composites := field.find_children("*", "Sprite2D", false, false)
 	var near: ShaderMaterial = composites[2].material
-	assert_almost_eq(near.get_shader_parameter("radius_px"), 14.0, 0.001, "Near band blurred")
+	assert_almost_eq(near.get_shader_parameter("radius_px"), 16.0, 0.001, "Near band blurred")
 	field.defocus_enabled = false
 	assert_eq(near.get_shader_parameter("radius_px"), 0.0, "Sharp with defocus off")
 	assert_eq(near.get_shader_parameter("gain"), 1.0, "No coverage boost when sharp")
+
+
+func test_every_vitreous_band_is_out_of_focus() -> void:
+	# Real floaters sit too close to the retina to ever be crisp.
+	for band in FloaterDepth.vitreous_bands():
+		assert_gt(band.blur_px, 4.0, "No band should read as sharp")
 
 
 ## A field in the tree over a real tank, configured by [param setup] before it
