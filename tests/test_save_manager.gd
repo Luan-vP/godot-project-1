@@ -19,9 +19,7 @@ func after_each() -> void:
 
 func test_round_trips_a_value() -> void:
 	SaveManager.set_value("audio", "master_volume", 0.75)
-	assert_almost_eq(
-		float(SaveManager.get_value("audio", "master_volume", 1.0)), 0.75, 0.0001
-	)
+	assert_almost_eq(float(SaveManager.get_value("audio", "master_volume", 1.0)), 0.75, 0.0001)
 
 
 func test_missing_key_returns_the_default() -> void:

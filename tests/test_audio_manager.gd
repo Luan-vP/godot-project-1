@@ -71,9 +71,7 @@ func test_mute_is_independent_of_volume() -> void:
 func test_volume_and_mute_changes_persist_through_save_manager() -> void:
 	AudioManager.set_bus_volume_linear(AudioManager.MUSIC_BUS, 0.3)
 	AudioManager.set_bus_mute(AudioManager.MUSIC_BUS, true)
-	assert_almost_eq(
-		float(SaveManager.get_value("audio", "music_volume", 1.0)), 0.3, 0.001
-	)
+	assert_almost_eq(float(SaveManager.get_value("audio", "music_volume", 1.0)), 0.3, 0.001)
 	assert_true(SaveManager.get_value("audio", "music_muted", false))
 
 

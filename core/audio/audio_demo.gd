@@ -31,9 +31,7 @@ func _ready() -> void:
 
 	var sfx_button := Button.new()
 	sfx_button.text = "Play SFX test tone"
-	sfx_button.pressed.connect(
-		func(): AudioManager.play_sfx(AudioTestTone.generate(880.0, 0.25))
-	)
+	sfx_button.pressed.connect(func(): AudioManager.play_sfx(AudioTestTone.generate(880.0, 0.25)))
 	root.add_child(sfx_button)
 
 	_music_button = Button.new()

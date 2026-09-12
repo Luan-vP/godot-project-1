@@ -7,7 +7,6 @@ extends RefCounted
 ## through [AudioManager]: hearing it prove that buses, volume conversion and
 ## playback are actually wired up, not just declared.
 
-
 const _MIX_RATE := 44100
 
 ## Length of the fade in and out, in seconds. Without one, a tone that starts
