@@ -35,6 +35,10 @@ const JET_ACCEL := Vector2(0.0, 1500.0)
 const JET_RADIUS := 8.0
 const JET_SIDE_OFFSET := 3
 
+const WALL_FLOW_RADIUS := 20.0
+const WALL_FLOW_FRAMES := 3
+const WALL_SLIP_RATIO := 1.5
+
 var _simulation: FluidSimulation
 var _dye_bytes := PackedByteArray()
 var _velocity_bytes: Array = []
@@ -183,6 +187,51 @@ func test_viscosity_spreads_a_jet_into_the_fluid_beside_it() -> void:
 		(
 			"The fluid beside the jet should move with it more when viscous: %.1f vs inviscid %.1f"
 			% [thick_beside.y, thin_beside.y]
+		)
+	)
+
+
+## A no-slip wall holds the fluid beside it still in the viscosity pass, so a
+## flow running along the wall is dragged down; a free-slip wall mirrors the
+## fluid instead and takes no momentum out. Same viscous tank twice, same flow
+## along the left wall, read back together.
+func test_free_slip_walls_do_not_drag_a_viscous_flow() -> void:
+	if not FluidGPU.is_available():
+		pending("No rendering device available; the GPU solve cannot run headless here.")
+		return
+
+	var tanks: Array = []
+	for friction in [1.0, 0.0]:
+		var config: FluidConfig = _simulation.config.duplicate()
+		config.viscosity = VISCOUS_NU
+		config.wall_friction = friction
+		var tank := FluidSimulation.new()
+		tank.config = config
+		add_child_autofree(tank)
+		tanks.append(tank)
+	var built: bool = await wait_until(
+		func(): return tanks.all(func(t): return t.get_velocity_texture() != null), FRAME_TIMEOUT
+	)
+	assert_true(built, "Both viscous tanks should finish building")
+	await _step_frames(1)
+
+	var size := _simulation.config.simulation_size()
+	var row := size.y / 2
+	var along_wall := _cell_center_world(Vector2i(2, row), size)
+	for tank in tanks:
+		tank.add_velocity_impulse(along_wall, JET_ACCEL, WALL_FLOW_RADIUS, IMPULSE_DURATION)
+	await _step_frames(WALL_FLOW_FRAMES)
+
+	var images := await _velocity_images(tanks)
+	var sticky := _pixel_velocity(images[0], Vector2i(1, row))
+	var slippery := _pixel_velocity(images[1], Vector2i(1, row))
+	assert_gt(slippery.y, 0.0, "The flow should reach the wall cell's neighbour, got %s" % slippery)
+	assert_gt(
+		slippery.y,
+		sticky.y * WALL_SLIP_RATIO,
+		(
+			"Fluid beside a free-slip wall should keep far more of its speed: %.1f vs no-slip %.1f"
+			% [slippery.y, sticky.y]
 		)
 	)
 

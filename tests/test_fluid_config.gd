@@ -88,6 +88,7 @@ func test_defaults_are_usable() -> void:
 	assert_gt(_config.pressure_iterations, 0, "The pressure solve needs iterations")
 	assert_eq(_config.viscosity, 0.0, "Existing tanks should stay inviscid unless they opt in")
 	assert_gt(_config.viscosity_iterations, 0, "The diffusion solve needs iterations")
+	assert_eq(_config.wall_friction, 1.0, "Walls stay no-slip unless a tank opts out")
 	assert_gt(_config.readback_interval, 0, "A zero interval would never read back")
 	assert_gt(_config.world_size.x, 0.0, "The tank needs width")
 	assert_gt(_config.world_size.y, 0.0, "The tank needs height")

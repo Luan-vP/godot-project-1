@@ -10,9 +10,12 @@
 // square grid has wider cells than tall ones, and the fluid should thicken the
 // same in every direction on screen, not in every direction on the grid.
 //
-// A masked neighbour is no-slip: it holds zero velocity, so fluid drags along
-// a wall instead of sliding past it. That drag is what viscosity *is* at a
-// boundary.
+// A masked neighbour is blended by wall_friction between free-slip, where it
+// mirrors this cell so the wall takes no momentum out, and no-slip, where it
+// holds zero velocity and drags the fluid along it. No-slip is what viscosity
+// does at a real boundary, and exactly why a thick fluid in a small tank stops
+// dead: every bit of momentum diffuses into the walls. The normal component is
+// zeroed at the wall by project either way.
 
 #include "fluid_params.glslinc"
 
@@ -28,9 +31,9 @@ bool is_obstacle(ivec2 coord) {
 	return texelFetch(obstacle_tex, clamp(coord, ivec2(0), params.size - 1), 0).x > 0.5;
 }
 
-vec2 guess_at(ivec2 coord) {
+vec2 guess_at(ivec2 coord, vec2 centre) {
 	if (is_obstacle(coord)) {
-		return vec2(0.0);
+		return centre * (1.0 - params.wall_friction);
 	}
 	return texelFetch(guess_tex, clamp(coord, ivec2(0), params.size - 1), 0).xy;
 }
@@ -46,8 +49,9 @@ void main() {
 	}
 
 	vec2 alpha = params.viscous_alpha;
-	vec2 horizontal = guess_at(coord + ivec2(1, 0)) + guess_at(coord - ivec2(1, 0));
-	vec2 vertical = guess_at(coord + ivec2(0, 1)) + guess_at(coord - ivec2(0, 1));
+	vec2 centre = texelFetch(guess_tex, coord, 0).xy;
+	vec2 horizontal = guess_at(coord + ivec2(1, 0), centre) + guess_at(coord - ivec2(1, 0), centre);
+	vec2 vertical = guess_at(coord + ivec2(0, 1), centre) + guess_at(coord - ivec2(0, 1), centre);
 	vec2 advected = texelFetch(advected_tex, coord, 0).xy;
 
 	vec2 velocity =

@@ -110,6 +110,14 @@ installs lavapipe and imports under `xvfb` for exactly this reason; see
 `.github/workflows/ci.yml`. Keep these files **ASCII** — the importer rejects
 non-ASCII bytes, em dashes included.
 
+The importer also does not track `#include`. Changing `fluid_params.glslinc`
+reimports nothing, and every pass keeps its old push constant layout — Godot
+then reports `This compute pipeline requires (80) bytes of push constant data,
+supplied: (96)` every frame and the solve silently does nothing. Touching the
+`.glsl` files is not enough either, since reimport is keyed on content; delete
+`.godot/imported/*.glsl-*` and import again. CI imports from scratch, so it
+never sees this.
+
 ## Units
 
 Three coordinate systems, and `FluidField` is the only thing that has to know
@@ -214,9 +222,11 @@ The readback is the expensive part per frame, not the solve; see above.
 far momentum spreads into the fluid around it. It is different in kind from
 `velocity_dissipation`, which fades all motion evenly — viscosity leaves slow,
 broad motion alone and smears sharp motion out, so a stir travels as one slow
-sheet instead of a thin jet, and fluid drags along the walls (a masked
-neighbour is no-slip in the diffusion pass, where `divergence` treats it as
-free-slip).
+sheet instead of a thin jet. At the walls, `wall_friction` blends a masked
+neighbour in the diffusion pass between no-slip (1, the default: it holds zero
+velocity and drags the fluid along it) and free-slip (0: it mirrors the fluid
+beside it and takes no momentum out). `divergence` treats walls as free-slip
+either way.
 
 It is solved implicitly, `(I - ν·dt·∇²) u = u_advected`, so no value is too
 thick to be stable. The coefficient `ν·dt/h²` is computed per axis in
@@ -248,6 +258,27 @@ fine eddies for the extra resolution to resolve. 128² with 40 iterations is
 cheaper than the default 256² water solve. In a closed tank the no-slip walls,
 not `velocity_dissipation`, then set how fast a stir stops: 0.95 and 0.99
 retention measured identically.
+
+### Thick, but still coasting
+
+A thick tank tuned that way has two faults that look like one: a stir **stops
+dead** and **sloshes back**. They have separate causes. Measured with a single
+stir, tracking how much of the flow half a second later is still lined up with
+it (negative means it reversed):
+
+- **The slosh is the pressure solve.** Warm-started Jacobi with too few
+  iterations leaves the fluid slightly compressible, so a big stir rings off
+  the walls. At 128² with free-slip walls, 12 and 30 iterations reversed the
+  flow hard (−0.59, −0.67), 50 barely (−0.04), 100 not at all.
+- **The dead stop is viscosity reaching the walls.** With pressure converged,
+  80 000 px²/s under no-slip walls kept 7% of its energy after half a second.
+  Free-slip walls help, but viscosity damps tank-wide motion as well as sharp
+  motion, so even free-slip 80 000 kept only 2% after a second.
+
+So a thick fluid that coasts wants converged pressure, free-slip walls, and
+only a little viscosity — with the broad, heavy response to input coming from
+a wider, softer stir rather than from the fluid itself. See the vitreous level
+for numbers.
 
 ## Obstacles
 
