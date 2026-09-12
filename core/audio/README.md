@@ -36,6 +36,50 @@ losing the level a player dialled in. `mute_on_focus_loss` (on by default)
 mutes the Master bus while the window is unfocused and restores whatever it
 was before — a player's own mute choices on other buses are left alone.
 
+`add_bus_effect` / `get_bus_effect` / `remove_bus_effect` hand out an effect
+instance already sitting on a bus, so a caller can drive one of its properties
+directly without needing to talk to `AudioServer` itself:
+
+```gdscript
+var filter := AudioEffectLowPassFilter.new()
+var index := AudioManager.add_bus_effect(AudioManager.SFX_BUS, filter)
+# ... later, e.g. once per frame ...
+AudioManager.get_bus_effect(AudioManager.SFX_BUS, index).cutoff_hz = some_value
+```
+
+## `ParameterFader`
+
+Setting a bus volume or an effect parameter straight from a per-frame value —
+the naive version — produces stepping and zipper noise, because the value
+changes once per frame while the audio is mixed in much finer blocks.
+[`ParameterFader`](parameter_fader.gd) smooths a float into any object's
+property instead, and maps a configurable input range onto a configurable
+output range so a caller passes "0.3 of the way", not a cutoff in hertz:
+
+```gdscript
+var fader := ParameterFader.new()
+fader.target = AudioManager.get_bus_effect(AudioManager.SFX_BUS, index)
+fader.property = &"cutoff_hz"
+fader.output_min = 200.0
+fader.output_max = 6000.0
+fader.retention_per_second = 0.01  # fraction of the gap left after one second
+# every frame:
+fader.advance(delta, some_0_to_1_value)
+```
+
+Smoothing is frame-rate independent — `retention_per_second` closes the same
+fraction of the gap every second regardless of `delta`, the same
+`pow(rate, delta)` shape [`FluidConfig.retention_over`](../../features/fluid/fluid_config.gd)
+uses for the fluid's dissipation. A fixed per-frame factor would close the gap
+roughly twice as fast at 144 fps as at 30.
+
+If the input stops arriving — pass `null` to `advance` instead of a float —
+the fader holds its last value briefly, then eases towards `rest_value` after
+`input_timeout` seconds, so a level ending or a pause settles somewhere
+sensible instead of holding the last value forever. `ParameterFader` knows
+nothing about gameplay, or even audio: `target`/`property` can be any object
+with a settable property, not necessarily an `AudioEffect`.
+
 ## Persistence
 
 Bus volumes, mutes, and the focus-mute preference are saved through
@@ -51,3 +95,9 @@ runtime rather than shipped as a binary asset — through the SFX and Music
 buses, with a slider and mute box per bus and a focus-mute toggle. Move a
 slider, hear the level change; mute a bus, hear it stop; alt-tab away and
 back, if focus-mute is on, to hear it recover.
+
+The same scene also sweeps a low-pass filter on SFX and a reverb wet mix on
+Music from the same value, through a `ParameterFader`. Play the looping
+filtered tone and the looping music, then uncheck "Smooth" — the sweep is
+identical, but now assigned directly every frame instead of through the
+fader, and audibly steps and zippers where it was smooth a moment before.

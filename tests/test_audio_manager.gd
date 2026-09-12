@@ -93,3 +93,26 @@ func test_unknown_bus_names_do_not_crash() -> void:
 	AudioManager.set_bus_mute("Nonexistent", true)
 	assert_eq(AudioManager.get_bus_volume_linear("Nonexistent"), 0.0)
 	assert_false(AudioManager.is_bus_mute("Nonexistent"))
+
+
+func test_add_and_get_bus_effect_round_trips_the_same_instance() -> void:
+	var filter := AudioEffectLowPassFilter.new()
+	var index := AudioManager.add_bus_effect(AudioManager.SFX_BUS, filter)
+	assert_ne(index, -1, "A known bus should accept the effect")
+	assert_eq(AudioManager.get_bus_effect(AudioManager.SFX_BUS, index), filter)
+	AudioManager.remove_bus_effect(AudioManager.SFX_BUS, index)
+
+
+func test_get_bus_effect_is_null_for_an_unknown_bus_or_index() -> void:
+	assert_null(AudioManager.get_bus_effect("Nonexistent", 0))
+	assert_null(AudioManager.get_bus_effect(AudioManager.SFX_BUS, 999))
+
+
+func test_add_bus_effect_on_an_unknown_bus_does_not_crash() -> void:
+	assert_eq(AudioManager.add_bus_effect("Nonexistent", AudioEffectLowPassFilter.new()), -1)
+
+
+func test_remove_bus_effect_actually_removes_it() -> void:
+	var index := AudioManager.add_bus_effect(AudioManager.SFX_BUS, AudioEffectReverb.new())
+	AudioManager.remove_bus_effect(AudioManager.SFX_BUS, index)
+	assert_null(AudioManager.get_bus_effect(AudioManager.SFX_BUS, index))
