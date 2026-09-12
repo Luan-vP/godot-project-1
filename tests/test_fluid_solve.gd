@@ -181,7 +181,9 @@ func _velocity_cell(coord: Vector2i) -> Vector2:
 	RenderingServer.call_on_render_thread(
 		func(): _receive_velocity_bytes.call_deferred(rd.texture_get_data(rid, 0))
 	)
-	var arrived: bool = await wait_until(func(): return not _velocity_bytes.is_empty(), FRAME_TIMEOUT)
+	var arrived: bool = await wait_until(
+		func(): return not _velocity_bytes.is_empty(), FRAME_TIMEOUT
+	)
 	assert_true(arrived, "Expected the velocity texture readback to arrive")
 
 	var size: Vector2i = _simulation.config.simulation_size()
