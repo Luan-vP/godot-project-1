@@ -4,9 +4,10 @@ extends RefCounted
 ##
 ## Each frame the whole step is dispatched in one compute list:
 ## [codeblock lang=text]
-## velocity -> divergence -> pressure x N -> project -> dye -> downsample
+## velocity -> [viscosity x N] -> divergence -> pressure x N -> project -> dye -> downsample
 ## [/codeblock]
-## advect each field along itself and add this frame's impulses, measure how
+## advect each field along itself and add this frame's impulses, diffuse the
+## momentum if the fluid is viscous, measure how
 ## much the result is compressing, relax that away, subtract the correction,
 ## carry the pigment on what comes out, then resample a small grid for the CPU.
 ##
@@ -45,6 +46,7 @@ const MAX_DYE_DENSITY := 6.0
 const MIN_PRESSURE_PASSES := 2
 
 const VELOCITY_SHADER := preload("res://features/fluid/shaders/compute/velocity.glsl")
+const VISCOSITY_SHADER := preload("res://features/fluid/shaders/compute/viscosity.glsl")
 const DIVERGENCE_SHADER := preload("res://features/fluid/shaders/compute/divergence.glsl")
 const PRESSURE_SHADER := preload("res://features/fluid/shaders/compute/pressure.glsl")
 const PROJECT_SHADER := preload("res://features/fluid/shaders/compute/project.glsl")
@@ -55,6 +57,7 @@ var _rd: RenderingDevice
 var _size := Vector2i.ZERO
 var _readback_size := Vector2i.ZERO
 var _iterations: int = MIN_PRESSURE_PASSES
+var _viscosity_iterations: int = 1
 var _groups := Vector2i.ZERO
 var _readback_groups := Vector2i.ZERO
 
@@ -63,6 +66,9 @@ var _readback_groups := Vector2i.ZERO
 # never changes identity.
 var _velocity: Array[RID] = []
 var _pressure: Array[RID] = []
+# Viscous diffusion's ping-pong pair. The advected field it solves against has
+# to stay intact for every iteration, so it cannot relax in place.
+var _viscous: Array[RID] = []
 var _dye: Array[RID] = []
 var _divergence := RID()
 var _obstacle := RID()
@@ -108,6 +114,7 @@ func build(config: FluidConfig) -> void:
 	_size = config.simulation_size()
 	_readback_size = config.readback_size()
 	_iterations = maxi(config.pressure_iterations, MIN_PRESSURE_PASSES)
+	_viscosity_iterations = maxi(config.viscosity_iterations, 1)
 	_groups = _group_count(_size)
 	_readback_groups = _group_count(_readback_size)
 	RenderingServer.call_on_render_thread(_build_resources)
@@ -165,6 +172,7 @@ func _build_resources() -> void:
 	_velocity = [_make_texture(_size, rgba), _make_texture(_size, rgba)]
 	_dye = [_make_texture(_size, rgba), _make_texture(_size, rgba)]
 	_pressure = [_make_texture(_size, scalar), _make_texture(_size, scalar)]
+	_viscous = [_make_texture(_size, rgba), _make_texture(_size, rgba)]
 	_divergence = _make_texture(_size, scalar)
 	_obstacle = _make_texture(_size, scalar)
 	_readback = _make_texture(_readback_size, rgba)
@@ -179,6 +187,7 @@ func _build_resources() -> void:
 	_dye_splat_buffer = _rd.storage_buffer_create(MAX_SPLATS * SPLAT_BYTES)
 
 	_make_pass("velocity", VELOCITY_SHADER)
+	_make_pass("viscosity", VISCOSITY_SHADER)
 	_make_pass("divergence", DIVERGENCE_SHADER)
 	_make_pass("pressure", PRESSURE_SHADER)
 	_make_pass("project", PROJECT_SHADER)
@@ -195,14 +204,19 @@ func _build_resources() -> void:
 			_buffer_uniform(2, _velocity_splat_buffer),
 		]
 	)
-	_sets["divergence"] = _make_set(
-		"divergence",
-		[
-			_sampler_uniform(0, _velocity[1]),
-			_image_uniform(1, _divergence),
-			_sampler_uniform(2, _obstacle),
-		]
-	)
+	# Viscous diffusion: the first iteration starts its guess from the advected
+	# field itself, then the pair ping-pongs, always solving against [1]. Three
+	# sets cover any iteration count, so nothing is allocated per frame.
+	_sets["viscosity"] = [
+		_viscosity_set(_velocity[1], _viscous[0]),
+		_viscosity_set(_viscous[0], _viscous[1]),
+		_viscosity_set(_viscous[1], _viscous[0]),
+	]
+	# Which of the pair the last iteration lands in is fixed at build time, so
+	# downstream passes get a second set reading it rather than a copy home.
+	var diffused := _viscous[(_viscosity_iterations - 1) % 2]
+	_sets["divergence"] = _divergence_set(_velocity[1])
+	_sets["divergence_viscous"] = _divergence_set(diffused)
 	# One set per parity of the relaxation, so nothing is allocated per frame.
 	_sets["pressure"] = [
 		_make_set(
@@ -222,15 +236,8 @@ func _build_resources() -> void:
 			]
 		),
 	]
-	_sets["project"] = _make_set(
-		"project",
-		[
-			_sampler_uniform(0, _velocity[1]),
-			_image_uniform(1, _velocity[0]),
-			_sampler_uniform(2, _pressure[_iterations % 2]),
-			_sampler_uniform(3, _obstacle),
-		]
-	)
+	_sets["project"] = _project_set(_velocity[1])
+	_sets["project_viscous"] = _project_set(diffused)
 	_sets["dye"] = _make_set(
 		"dye",
 		[
@@ -251,6 +258,41 @@ func _build_resources() -> void:
 	_publish.call_deferred()
 
 
+func _viscosity_set(guess: RID, output: RID) -> RID:
+	return _make_set(
+		"viscosity",
+		[
+			_sampler_uniform(0, guess),
+			_image_uniform(1, output),
+			_sampler_uniform(2, _velocity[1]),
+			_sampler_uniform(3, _obstacle),
+		]
+	)
+
+
+func _divergence_set(velocity: RID) -> RID:
+	return _make_set(
+		"divergence",
+		[
+			_sampler_uniform(0, velocity),
+			_image_uniform(1, _divergence),
+			_sampler_uniform(2, _obstacle),
+		]
+	)
+
+
+func _project_set(velocity: RID) -> RID:
+	return _make_set(
+		"project",
+		[
+			_sampler_uniform(0, velocity),
+			_image_uniform(1, _velocity[0]),
+			_sampler_uniform(2, _pressure[_iterations % 2]),
+			_sampler_uniform(3, _obstacle),
+		]
+	)
+
+
 func _publish() -> void:
 	_velocity_texture.texture_rd_rid = _velocity[0]
 	_dye_texture.texture_rd_rid = _dye[0]
@@ -261,7 +303,9 @@ func _run_step(frame: Dictionary) -> void:
 	if _rd == null:
 		return
 	if frame.get("clear", false):
-		for texture in _velocity + _dye + _pressure + [_divergence, _obstacle, _readback]:
+		for texture in (
+			_velocity + _dye + _pressure + _viscous + [_divergence, _obstacle, _readback]
+		):
 			_rd.texture_clear(texture, Color(0.0, 0.0, 0.0, 0.0), 0, 1, 0, 1)
 		# The clear wipes the mask along with everything else; the walls are the
 		# only thing in it, so they are the only thing that needs putting back.
@@ -276,12 +320,22 @@ func _run_step(frame: Dictionary) -> void:
 	var pigment := _pack_params(frame, _size, frame["dye_dissipation"], frame["dye_splat_count"])
 	var resample := _pack_params(frame, _readback_size, 1.0, 0)
 
+	# An inviscid tank skips diffusion outright rather than paying for passes
+	# that would solve to the identity.
+	var viscous_alpha: Vector2 = frame["viscous_alpha"]
+	var viscous := viscous_alpha.x > 0.0 or viscous_alpha.y > 0.0
+	var suffix := "_viscous" if viscous else ""
+
 	var list := _rd.compute_list_begin()
 	_dispatch(list, "velocity", _sets["velocity"], solve, _groups)
-	_dispatch(list, "divergence", _sets["divergence"], solve, _groups)
+	if viscous:
+		for i in _viscosity_iterations:
+			var parity := 0 if i == 0 else 1 + (i - 1) % 2
+			_dispatch(list, "viscosity", _sets["viscosity"][parity], solve, _groups)
+	_dispatch(list, "divergence", _sets["divergence" + suffix], solve, _groups)
 	for i in _iterations:
 		_dispatch(list, "pressure", _sets["pressure"][i % 2], solve, _groups)
-	_dispatch(list, "project", _sets["project"], solve, _groups)
+	_dispatch(list, "project", _sets["project" + suffix], solve, _groups)
 	_dispatch(list, "dye", _sets["dye"], pigment, _groups)
 	_dispatch(list, "downsample", _sets["downsample"], resample, _readback_groups)
 	_rd.compute_list_end()
@@ -316,7 +370,7 @@ func _free_resources() -> void:
 		_free(pipeline)
 	for shader in _shaders:
 		_free(shader)
-	for texture in _velocity + _dye + _pressure + [_divergence, _obstacle, _readback]:
+	for texture in _velocity + _dye + _pressure + _viscous + [_divergence, _obstacle, _readback]:
 		_free(texture)
 	_free(_velocity_splat_buffer)
 	_free(_dye_splat_buffer)
@@ -328,6 +382,7 @@ func _free_resources() -> void:
 	_velocity.clear()
 	_dye.clear()
 	_pressure.clear()
+	_viscous.clear()
 	_rd = null
 
 
@@ -422,6 +477,7 @@ func _pack_params(
 	var aspect: Vector2 = frame["splat_aspect"]
 	var drift: Vector2 = frame["ambient_drift"]
 	var impulse: Vector2 = frame["uniform_impulse"]
+	var viscous_alpha: Vector2 = frame["viscous_alpha"]
 	var bytes := PackedByteArray()
 	bytes.resize(PARAM_BYTES)
 	bytes.encode_float(0, texel.x)
@@ -442,4 +498,6 @@ func _pack_params(
 	bytes.encode_s32(60, splat_count)
 	bytes.encode_s32(64, size.x)
 	bytes.encode_s32(68, size.y)
+	bytes.encode_float(72, viscous_alpha.x)
+	bytes.encode_float(76, viscous_alpha.y)
 	return bytes

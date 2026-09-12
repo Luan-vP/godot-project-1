@@ -33,7 +33,9 @@ layout(push_constant, std430) uniform Params {
 	float max_density;
 	int splat_count;
 	ivec2 size;
-	ivec2 pad;
+	// nu * dt / cell_width^2 and nu * dt / cell_height^2: the viscous diffusion
+	// coefficient per axis, zero when the fluid is inviscid.
+	vec2 viscous_alpha;
 } params;
 
 // Cell centre of an integer coordinate, in UV space.
