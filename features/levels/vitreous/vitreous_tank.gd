@@ -15,14 +15,16 @@ extends Node2D
 const STIR_GAIN := 6.0
 const STIR_RADIUS := 300.0
 
-const COUNT_STEP := 40
+const COUNT_STEP := 5
 const MAX_COUNT := 400
 
 var _simulation: FluidSimulation
 var _motion: MotionInput
 var _floaters: FloaterField
 var _last_mouse := Vector2.ZERO
-var _count := 220
+## Only a few: one or two drifting through at a time reads as a real floater,
+## a crowd reads as dust.
+var _count := 15
 var _defocus := true
 
 
@@ -94,9 +96,9 @@ func _spawn_floaters() -> void:
 	_floaters = FloaterField.new()
 	_floaters.name = "Floaters"
 	_floaters.count = _count
-	# Straightish threads and the tiniest specks; no cobwebs.
-	_floaters.shape_weights = Vector3(3.0, 2.0, 0.0)
-	_floaters.dot_radius_range = Vector2(0.7, 1.6)
+	# Straightish threads only. Specks spread over the blurriest band's disc
+	# fall to about 1% coverage — present but invisible — so none are spawned.
+	_floaters.shape_weights = Vector3(0.0, 1.0, 0.0)
 	_floaters.strand_radius_range = Vector2(8.0, 34.0)
 	_floaters.size_skew = 1.7
 	_floaters.strand_wander = 0.12
@@ -106,7 +108,9 @@ func _spawn_floaters() -> void:
 	# Embedded in the gel: carried by it exactly, and settling only slowly.
 	_floaters.drag = 12.0
 	_floaters.buoyancy = 3.0
-	_floaters.depths = FloaterDepth.vitreous_bands()
+	# Only the very blurriest band: nothing in this tank is ever near focus.
+	var blurriest: Array[FloaterDepth] = [FloaterDepth.vitreous_bands().back()]
+	_floaters.depths = blurriest
 	_floaters.defocus_enabled = _defocus
 	add_child(_floaters)
 
