@@ -114,7 +114,10 @@ func test_masked_wall_cells_zero_velocity_and_neighbours_slide() -> void:
 	assert_eq(
 		wall_velocity,
 		Vector2.ZERO,
-		"Velocity seeded in a masked wall cell should be zero after projection, got %s" % wall_velocity
+		(
+			"Velocity seeded in a masked wall cell should be zero after projection, got %s"
+			% wall_velocity
+		)
 	)
 
 	var beside_velocity := await _velocity_cell(Vector2i(1, row))
