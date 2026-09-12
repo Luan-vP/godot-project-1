@@ -11,6 +11,8 @@ vitreous humour that drift across your vision. This is their behaviour in the
 | `floater.gd` | `Floater` — a [`FluidBody`](../fluid/fluid_body.gd) that sinks and wraps at the edge instead of bouncing. |
 | `floater_shape.gd` | `FloaterShape` — a shape family as data: dots and strands, not a scene. |
 | `floater_field.gd` | `FloaterField` — drops a configurable population of floaters into a tank. |
+| `floater_depth.gd` | `FloaterDepth` — one depth band: its share of the population and how out of focus it is. |
+| `shaders/bokeh.gdshader` | The disc blur a depth band is shown through. |
 
 ## Using it
 
@@ -59,6 +61,47 @@ a difference in those numbers, produced by a static factory
 (`FloaterShape.make_dot/make_strand/make_cobweb`), not a different scene or
 node type. `Floater._draw()` reads whatever shape it is handed, so a new
 family is a new factory function, not a new class.
+
+## Per-family look
+
+A few `FloaterField` exports exist because one shared setting could not
+describe a real population. All of them default to the old behaviour.
+
+- `dot_radius_range`, `strand_radius_range`, `cobweb_radius_range` — a family's
+  own size range, falling back to `radius_range` when left at zero. This is what
+  allows the tiniest specks next to long threads.
+- `line_width_px` — strands and cobweb arms at a constant thickness in pixels,
+  instead of a proportion of their radius that makes long strands fat.
+- `strand_wander` — how straight strands are.
+- `random_rotation` — every `FloaterShape` is built lying left to right, so
+  without this a population of strands reads as hatching.
+- `drag`, `buoyancy`, `max_speed` — copied onto every floater; the defaults
+  match `Floater`'s own. A thick medium wants a higher `drag` so floaters ride
+  with it.
+
+## Depth of field
+
+Real floaters are shadows cast from slightly different distances in front of
+the retina, so each is out of focus by a different amount. Give a field some
+`depths` (`FloaterDepth.vitreous_bands()` is a tuned far/middle/near set) and
+the population is split across them:
+
+- each band is a transparent offscreen `SubViewport` its floaters draw into, at
+  their real positions — physics does not know or care
+- each band is shown back through `bokeh.gdshader`: a **disc** blur (a filled
+  circle of taps on a golden-angle spiral, slightly rim-weighted), which is what
+  makes a defocused speck a soft coin rather than a Gaussian smudge
+- `gain` puts back the coverage a tiny speck loses when spread over the disc,
+  `magnify` and `opacity` make nearer bands larger and fainter
+- `defocus_enabled` shows the same bands sharp, for comparison
+
+Only coverage is blurred; each band's colour is the field's `color`. The layers
+assume the field sits untransformed over the whole viewport, which holds for a
+screen-space overlay — what floaters are meant to be.
+
+Cost is 64 texture taps per pixel per blurred band. Three full-window bands are
+fine on a desktop GPU; for a phone, render the bands at half resolution, which
+softens them further for free.
 
 ## Size distribution
 

@@ -11,6 +11,8 @@ A 2D game about floaty eye thingies, in a painterly style. Godot 4.4.
   sink on the fluid. See its [README](features/floaters/README.md).
 - `features/levels/secret_eyes/` — a secret level built on the fluid: a tank
   full of floaty eyes. See its [README](features/levels/secret_eyes/README.md).
+- `features/levels/vitreous/` — out-of-focus eye floaters drifting in a pale,
+  gel-like vitreous. See its [README](features/levels/vitreous/README.md).
 - `features/levels/panorama/` — the main level's core mechanic: a camera at
   the centre of a look-around panoramic background. See its
   [README](features/levels/panorama/README.md).
