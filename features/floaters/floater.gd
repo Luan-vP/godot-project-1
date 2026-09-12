@@ -10,17 +10,41 @@ extends FluidBody
 ## at zero) or stain it ([member FluidBody.paint_amount] likewise) — real
 ## floaters are far too small to move the vitreous they sit in, and the medium
 ## is meant to stay clear.
+##
+## The look — translucent, soft-edged, faintly refractive glass rather than a
+## flat sprite — lives entirely in `floater.gdshader`. Every floater shares
+## one [ShaderMaterial] instance; only the baked shape mask ([member shape]
+## rasterized at [member radius]) and two per-instance shader parameters
+## (tint, blur) differ, which is what keeps N floaters cheap. See the shader
+## for how translucency, softness, refraction and blur are actually done, and
+## the PR this shipped in for why floaters are individual nodes rather than
+## one accumulated screen-space pass.
+
+const FLOATER_SHADER := preload("res://features/floaters/shaders/floater.gdshader")
+
+## Screen-space blur radius, in pixels, per pixel of [member radius] — a
+## floater's blur comes from sitting close to the lens and far from the
+## retina, not from how big it looks, so bigger floaters blur more.
+const BLUR_PER_RADIUS := 0.6
+
+static var _shared_material: ShaderMaterial
 
 ## What to draw. Shape is data so a shape family needs no scene of its own; see
 ## [FloaterShape].
 @export var shape: FloaterShape:
 	set = set_shape
 
-@export var color: Color = Color(0.13, 0.14, 0.17, 0.55)
+## Tint and translucency, handed straight to the shader as its "glass"
+## colour — alpha is how much of the background it replaces at the shape's
+## most opaque point, not a flat fill amount.
+@export var color: Color = Color(0.13, 0.14, 0.17, 0.55):
+	set = set_color
 
 ## Visible size in pixels, at the shape's own unit of [code]1.0[/code].
 @export var radius: float = 6.0:
 	set = set_radius
+
+var _texture: ImageTexture
 
 
 func _init() -> void:
@@ -36,6 +60,12 @@ func _init() -> void:
 	# Walls wrap instead of bounce, so leaving the tank recycles the floater
 	# rather than losing it or making it bounce like a solid body.
 	contained = false
+	# One shader instance for every floater in the game — see the class
+	# docstring on why this is the whole cost story.
+	if _shared_material == null:
+		_shared_material = ShaderMaterial.new()
+		_shared_material.shader = FLOATER_SHADER
+	material = _shared_material
 
 
 func _physics_process(delta: float) -> void:
@@ -47,27 +77,26 @@ func _physics_process(delta: float) -> void:
 
 
 func _draw() -> void:
-	if shape == null:
+	if _texture == null:
 		return
-	for dot in shape.dots:
-		draw_circle(Vector2(dot.x, dot.y) * radius, dot.z * radius, color)
-	for strand in shape.strands:
-		var scaled := PackedVector2Array()
-		scaled.resize(strand.size())
-		for i in strand.size():
-			scaled[i] = strand[i] * radius
-		if scaled.size() > 1:
-			draw_polyline(scaled, color, shape.strand_width * radius, true)
+	var extent := Vector2(_texture.get_size()) * 0.5
+	draw_texture_rect(_texture, Rect2(-extent, extent * 2.0), false)
 
 
 func set_shape(value: FloaterShape) -> void:
 	shape = value
-	queue_redraw()
+	_rebuild_texture()
 
 
 func set_radius(value: float) -> void:
 	radius = value
-	queue_redraw()
+	set_instance_shader_parameter("blur_px", radius * BLUR_PER_RADIUS)
+	_rebuild_texture()
+
+
+func set_color(value: Color) -> void:
+	color = value
+	set_instance_shader_parameter("tint", color)
 
 
 ## A position that has drifted outside [param rect] reappears from the
@@ -86,3 +115,14 @@ static func recycled_position(position: Vector2, rect: Rect2) -> Vector2:
 	elif result.y > limit.y:
 		result.y = rect.position.y
 	return result
+
+
+## Re-bakes [member _texture] from [member shape] at [member radius]. Cheap
+## enough to call on every edit in the editor, but still only on a change —
+## never per frame — since it walks every pixel of a small image on the CPU.
+func _rebuild_texture() -> void:
+	if shape == null:
+		_texture = null
+	else:
+		_texture = ImageTexture.create_from_image(shape.rasterize(radius))
+	queue_redraw()
