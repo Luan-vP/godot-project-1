@@ -144,7 +144,9 @@ func test_fresh_input_resets_the_timeout_clock() -> void:
 	fader.advance(0.09, null)
 	fader.advance(0.05, 1.0)
 	var still_at_target := fader.advance(0.09, null)
-	assert_almost_eq(still_at_target, 1.0, EPSILON, "Timeout must not accumulate across fresh input")
+	assert_almost_eq(
+		still_at_target, 1.0, EPSILON, "Timeout must not accumulate across fresh input"
+	)
 
 
 func test_reset_forgets_state_so_the_next_reading_snaps() -> void:
