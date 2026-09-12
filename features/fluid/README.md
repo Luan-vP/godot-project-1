@@ -231,6 +231,24 @@ around that many cells of spread per frame. For thick-but-lively, pair a
 moderate `viscosity` with a low `vorticity`; confinement exists to fight
 numerical diffusion and will otherwise fight this too.
 
+Measured on a 1152×648 tank with one 120 px stir, reading the coherence
+length √(energy / enstrophy) half a second later:
+
+| grid | iterations | viscosity | coherence |
+| --- | --- | --- | --- |
+| 256² | 20 | 15 000 | 152 px |
+| 256² | 20 | 40 000 | 154 px — saturated |
+| 256² | 60 | 40 000 | 210 px |
+| 256² | 60 | 120 000 | 221 px — saturated again |
+
+So past a point, raise `viscosity_iterations`, not `viscosity`. For a genuinely
+gel-like tank, **drop `simulation_resolution`** as well: at 128² each iteration
+spreads twice as far in pixels and costs a quarter as much, and a gel has no
+fine eddies for the extra resolution to resolve. 128² with 40 iterations is
+cheaper than the default 256² water solve. In a closed tank the no-slip walls,
+not `velocity_dissipation`, then set how fast a stir stops: 0.95 and 0.99
+retention measured identically.
+
 ## Obstacles
 
 `divergence` and `project` both sample a single-channel obstacle mask at
