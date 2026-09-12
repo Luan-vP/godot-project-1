@@ -1,0 +1,23 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://features/levels/panorama/panorama_level.gd" id="1_level"]
+[ext_resource type="Script" path="res://features/player/panorama_look_camera.gd" id="2_camera"]
+
+[sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_1"]
+
+[sub_resource type="Sky" id="Sky_1"]
+sky_material = SubResource("PanoramaSkyMaterial_1")
+
+[sub_resource type="Environment" id="Environment_1"]
+background_mode = 2
+sky = SubResource("Sky_1")
+
+[node name="PanoramaLevel" type="Node3D"]
+script = ExtResource("1_level")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_1")
+
+[node name="PanoramaLookCamera" type="Camera3D" parent="."]
+script = ExtResource("2_camera")
+current = true
