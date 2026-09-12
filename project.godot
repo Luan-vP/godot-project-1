@@ -26,6 +26,10 @@ GameState="*res://autoload/GameState.gd"
 AudioManager="*res://autoload/AudioManager.gd"
 SaveManager="*res://autoload/SaveManager.gd"
 
+[audio]
+
+buses/default_bus_layout="res://resources/audio/default_bus_layout.tres"
+
 [rendering]
 
 renderer/rendering_method="forward_plus"
