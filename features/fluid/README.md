@@ -130,8 +130,10 @@ Two things are deliberately **not** scaled by the rendered frame's delta:
 
 ## Being pushed from outside
 
-Two entry points exist for whole-tank forces, used by `FluidMotionDriver` to
-apply device tilt and jog:
+Two entry points exist for whole-tank forces. `FluidMotionDriver` uses them for
+device tilt and jog; `GazeFluidDriver` uses the same two for a look camera's
+angular velocity, so a flick of the view sweeps the floaters and a held turn
+leans the current — see its class doc for the mapping:
 
 - `set_current_bias(acceleration)` leans the ambient drift, continuously. It is
   a bias, not gravity — the tank leans, it does not pour, so what floats in it

@@ -13,6 +13,11 @@ extends Camera3D
 ## stop it drifting with float error over a long session, and un-wrapping it
 ## again just to keep accumulating would be pointless work this way avoids.
 
+## Nodes register here so a driver — [GazeFluidDriver], so far — can find the
+## camera without wiring, the same as [FluidSimulation]'s and [MotionInput]'s
+## groups.
+const GROUP_NAME := "panorama_look_camera"
+
 ## How far past level the camera may pitch. Short of 90 degrees, so the
 ## horizon cannot roll over the top of the view.
 @export_range(60.0, 89.9, 0.1) var max_pitch_degrees: float = 85.0
@@ -37,6 +42,7 @@ var _look: LookInput
 
 
 func _ready() -> void:
+	add_to_group(GROUP_NAME)
 	yaw = rotation.y
 	pitch = rotation.x
 	_look = LookInput.new()
