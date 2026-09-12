@@ -54,9 +54,7 @@ func test_a_velocity_impulse_survives_thirty_frames() -> void:
 		pending("No rendering device available; the GPU solve cannot run headless here.")
 		return
 
-	_simulation.add_velocity_impulse(
-		IMPULSE_POINT, IMPULSE_ACCEL, IMPULSE_RADIUS, IMPULSE_DURATION
-	)
+	_simulation.add_velocity_impulse(IMPULSE_POINT, IMPULSE_ACCEL, IMPULSE_RADIUS, IMPULSE_DURATION)
 	await _step_frames(1)
 	var peak := _simulation.get_field().sample_world(IMPULSE_POINT).length()
 	assert_gt(peak, 0.0, "The impulse should have produced velocity")
