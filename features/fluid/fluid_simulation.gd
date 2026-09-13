@@ -99,7 +99,8 @@ func get_field() -> FluidField:
 
 
 ## Pigment field, premultiplied: [code].rgb[/code] is pigment * density and
-## [code].a[/code] is density. This is what the painterly pass reads.
+## [code].a[/code] is density. This is what the painterly pass reads. Null if
+## [member FluidConfig.pigment_enabled] is off.
 func get_dye_texture() -> Texture2D:
 	return _gpu.dye_texture()
 
@@ -140,10 +141,13 @@ func add_velocity_impulse(
 ## [param duration] seconds, so a body that sits still keeps staining the water
 ## under it. As with [method add_velocity_impulse], the duration is the
 ## caller's own delta.
+##
+## A no-op when [member FluidConfig.pigment_enabled] is off — there is nowhere
+## for the paint to go, and calling it anyway is not a bug.
 func add_paint(
 	world_position: Vector2, color: Color, amount: float, radius_pixels: float, duration: float
 ) -> void:
-	if not _configured or amount <= 0.0 or duration <= 0.0:
+	if not _configured or not config.pigment_enabled or amount <= 0.0 or duration <= 0.0:
 		return
 	var deposited := amount * duration
 	var uv := _field.world_to_uv(world_position)

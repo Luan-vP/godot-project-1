@@ -27,6 +27,9 @@ func _ready() -> void:
 
 	var config := FluidConfig.new()
 	config.world_size = extent
+	# FluidRefractionRenderer never reads the dye field, so there is nothing for
+	# it to lose here.
+	config.pigment_enabled = false
 	_simulation = FluidSimulation.new()
 	_simulation.name = "Fluid"
 	_simulation.config = config

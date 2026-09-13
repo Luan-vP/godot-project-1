@@ -56,6 +56,7 @@ const DOWNSAMPLE_SHADER := preload("res://features/fluid/shaders/compute/downsam
 var _rd: RenderingDevice
 var _size := Vector2i.ZERO
 var _readback_size := Vector2i.ZERO
+var _pigment_enabled: bool = true
 var _iterations: int = MIN_PRESSURE_PASSES
 var _viscosity_iterations: int = 1
 var _groups := Vector2i.ZERO
@@ -96,9 +97,10 @@ func is_built() -> bool:
 	return _built
 
 
-## Pigment field, premultiplied. Empty until the device has finished building.
+## Pigment field, premultiplied. Null until the device has finished building,
+## or always, if [member FluidConfig.pigment_enabled] was off when built.
 func dye_texture() -> Texture2DRD:
-	return _dye_texture if _built else null
+	return _dye_texture if _built and _pigment_enabled else null
 
 
 ## Divergence-free velocity field, in cells/second in red and green.
@@ -113,6 +115,7 @@ func build(config: FluidConfig) -> void:
 		return
 	_size = config.simulation_size()
 	_readback_size = config.readback_size()
+	_pigment_enabled = config.pigment_enabled
 	_iterations = maxi(config.pressure_iterations, MIN_PRESSURE_PASSES)
 	_viscosity_iterations = maxi(config.viscosity_iterations, 1)
 	_groups = _group_count(_size)
@@ -170,7 +173,8 @@ func _build_resources() -> void:
 	var rgba := RenderingDevice.DATA_FORMAT_R16G16B16A16_SFLOAT
 	var scalar := RenderingDevice.DATA_FORMAT_R16_SFLOAT
 	_velocity = [_make_texture(_size, rgba), _make_texture(_size, rgba)]
-	_dye = [_make_texture(_size, rgba), _make_texture(_size, rgba)]
+	if _pigment_enabled:
+		_dye = [_make_texture(_size, rgba), _make_texture(_size, rgba)]
 	_pressure = [_make_texture(_size, scalar), _make_texture(_size, scalar)]
 	_viscous = [_make_texture(_size, rgba), _make_texture(_size, rgba)]
 	_divergence = _make_texture(_size, scalar)
@@ -184,14 +188,16 @@ func _build_resources() -> void:
 	_rd.texture_update(_obstacle, 0, _obstacle_walls)
 
 	_velocity_splat_buffer = _rd.storage_buffer_create(MAX_SPLATS * SPLAT_BYTES)
-	_dye_splat_buffer = _rd.storage_buffer_create(MAX_SPLATS * SPLAT_BYTES)
+	if _pigment_enabled:
+		_dye_splat_buffer = _rd.storage_buffer_create(MAX_SPLATS * SPLAT_BYTES)
 
 	_make_pass("velocity", VELOCITY_SHADER)
 	_make_pass("viscosity", VISCOSITY_SHADER)
 	_make_pass("divergence", DIVERGENCE_SHADER)
 	_make_pass("pressure", PRESSURE_SHADER)
 	_make_pass("project", PROJECT_SHADER)
-	_make_pass("dye", DYE_SHADER)
+	if _pigment_enabled:
+		_make_pass("dye", DYE_SHADER)
 	_make_pass("downsample", DOWNSAMPLE_SHADER)
 
 	# Advection reads the projected field and writes the scratch; projection
@@ -238,15 +244,16 @@ func _build_resources() -> void:
 	]
 	_sets["project"] = _project_set(_velocity[1])
 	_sets["project_viscous"] = _project_set(diffused)
-	_sets["dye"] = _make_set(
-		"dye",
-		[
-			_sampler_uniform(0, _dye[0]),
-			_image_uniform(1, _dye[1]),
-			_sampler_uniform(2, _velocity[0]),
-			_buffer_uniform(3, _dye_splat_buffer),
-		]
-	)
+	if _pigment_enabled:
+		_sets["dye"] = _make_set(
+			"dye",
+			[
+				_sampler_uniform(0, _dye[0]),
+				_image_uniform(1, _dye[1]),
+				_sampler_uniform(2, _velocity[0]),
+				_buffer_uniform(3, _dye_splat_buffer),
+			]
+		)
 	_sets["downsample"] = _make_set(
 		"downsample",
 		[
@@ -295,7 +302,8 @@ func _project_set(velocity: RID) -> RID:
 
 func _publish() -> void:
 	_velocity_texture.texture_rd_rid = _velocity[0]
-	_dye_texture.texture_rd_rid = _dye[0]
+	if _pigment_enabled:
+		_dye_texture.texture_rd_rid = _dye[0]
 	_built = true
 
 
@@ -312,12 +320,12 @@ func _run_step(frame: Dictionary) -> void:
 		_rd.texture_update(_obstacle, 0, _obstacle_walls)
 
 	_rd.buffer_update(_velocity_splat_buffer, 0, MAX_SPLATS * SPLAT_BYTES, frame["velocity_splats"])
-	_rd.buffer_update(_dye_splat_buffer, 0, MAX_SPLATS * SPLAT_BYTES, frame["dye_splats"])
+	if _pigment_enabled:
+		_rd.buffer_update(_dye_splat_buffer, 0, MAX_SPLATS * SPLAT_BYTES, frame["dye_splats"])
 
 	var solve := _pack_params(
 		frame, _size, frame["velocity_dissipation"], frame["velocity_splat_count"]
 	)
-	var pigment := _pack_params(frame, _size, frame["dye_dissipation"], frame["dye_splat_count"])
 	var resample := _pack_params(frame, _readback_size, 1.0, 0)
 
 	# An inviscid tank skips diffusion outright rather than paying for passes
@@ -336,16 +344,19 @@ func _run_step(frame: Dictionary) -> void:
 	for i in _iterations:
 		_dispatch(list, "pressure", _sets["pressure"][i % 2], solve, _groups)
 	_dispatch(list, "project", _sets["project" + suffix], solve, _groups)
-	_dispatch(list, "dye", _sets["dye"], pigment, _groups)
+	if _pigment_enabled:
+		var pigment := _pack_params(frame, _size, frame["dye_dissipation"], frame["dye_splat_count"])
+		_dispatch(list, "dye", _sets["dye"], pigment, _groups)
 	_dispatch(list, "downsample", _sets["downsample"], resample, _readback_groups)
 	_rd.compute_list_end()
 
-	# The dye pass cannot read and write one texture, so it writes the scratch
-	# and the result is copied home. Keeping the field in a fixed texture is
-	# what lets the renderer hold one binding for the life of the tank.
-	_rd.texture_copy(
-		_dye[1], _dye[0], Vector3.ZERO, Vector3.ZERO, Vector3(_size.x, _size.y, 1), 0, 0, 0, 0
-	)
+	if _pigment_enabled:
+		# The dye pass cannot read and write one texture, so it writes the scratch
+		# and the result is copied home. Keeping the field in a fixed texture is
+		# what lets the renderer hold one binding for the life of the tank.
+		_rd.texture_copy(
+			_dye[1], _dye[0], Vector3.ZERO, Vector3.ZERO, Vector3(_size.x, _size.y, 1), 0, 0, 0, 0
+		)
 
 	if frame.get("readback", false):
 		# The one place the CPU waits on the GPU, which is why it runs over the
