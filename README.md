@@ -31,14 +31,17 @@ A 2D game about floaty eye thingies, in a painterly style. Godot 4.4.
 - `addons/` — vendored third-party code; see [addons/README.md](addons/README.md).
 - `tests/` — GUT suite.
 
-Pressing play currently runs the secret eye level, since there is no main
-level yet — see [its README](features/levels/secret_eyes/README.md) for
-controls and how it stays secret once a main level exists.
+Pressing play opens a demo menu, since there is no main level yet: click into
+any level or demo, and press `Backspace` (or `Select` on a gamepad) to come
+back. The secret eye level is listed there for now — see
+[its README](features/levels/secret_eyes/README.md) for how it stays secret
+once a main level exists.
 
 ## Running a level
 
 ```sh
 scripts/run.sh             # list the levels and demos, with their controls
+scripts/run.sh menu        # the clickable demo menu
 scripts/run.sh vitreous    # floaters in the vitreous gel
 scripts/run.sh eyes        # the secret eye tank
 scripts/run.sh panorama    # look-around camera (no panorama image yet)

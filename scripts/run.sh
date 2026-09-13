@@ -23,6 +23,7 @@ usage() {
 	cat <<'USAGE'
 Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
 
+  menu       Click into any of the demos below; Backspace comes back.
   eyes       Secret level: the eye tank. Drag to stir and paint, arrows tilt,
              Space jogs, B blinks, R empties the tank, C recalibrates.
   vitreous   Out-of-focus floaters drifting in a coasting gel. Drag to push,
@@ -45,8 +46,10 @@ Options:
 USAGE
 }
 
+# Keep in step with DemoMenu.DEMOS in features/ui/demo_menu/demo_menu.gd.
 scene_for() {
 	case "$1" in
+		menu) echo "res://features/ui/demo_menu/demo_menu.tscn" ;;
 		eyes | secret-eyes | fluid) echo "res://features/levels/secret_eyes/fluid_demo.tscn" ;;
 		vitreous | floaters) echo "res://features/levels/vitreous/vitreous_tank.tscn" ;;
 		panorama) echo "res://features/levels/panorama/panorama_level.tscn" ;;

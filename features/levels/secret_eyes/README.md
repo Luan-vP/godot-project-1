@@ -21,10 +21,12 @@ the arrows and space give way to the real accelerometer with no code change.
 **Decision:** once a main level exists, this scene is reached by holding
 `Shift` while starting the game, rather than through any in-game menu.
 
-`project.godot`'s `run/main_scene` still points directly at
-[`fluid_demo.tscn`](fluid_demo.tscn) for now — there is no main level yet to
-hide this behind, so wiring up the `Shift` check would have nothing to
-gate. That wiring is left for whichever issue adds the main level.
+There is no main level yet to hide this behind, so wiring up the `Shift`
+check would have nothing to gate; that is left for whichever issue adds the
+main level. Until then `run/main_scene` is the development demo menu
+(`features/ui/demo_menu/`), which lists this level alongside the rest. When
+the main level lands, it takes over `run/main_scene` and the menu either
+drops this entry or stops shipping, so the secret stays one.
 
 ## Pieces
 
