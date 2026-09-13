@@ -6,11 +6,12 @@ extends GutTest
 
 
 func test_contacts_for_edge_only_returns_that_edge() -> void:
-	var snapshot := ScoringSnapshot.new([
+	var contacts: Array[ScoringContact] = [
 		ScoringContact.new(1, 100, 0.25),
 		ScoringContact.new(2, 200, 0.75),
 		ScoringContact.new(1, 300, 0.5),
-	])
+	]
+	var snapshot := ScoringSnapshot.new(contacts)
 	var on_edge_one := snapshot.contacts_for_edge(1)
 	assert_eq(on_edge_one.size(), 2, "Only edge 1's contacts")
 	for contact in on_edge_one:
@@ -18,20 +19,22 @@ func test_contacts_for_edge_only_returns_that_edge() -> void:
 
 
 func test_count_for_edge_reflects_how_many_floaters_share_it() -> void:
-	var snapshot := ScoringSnapshot.new([
+	var contacts: Array[ScoringContact] = [
 		ScoringContact.new(1, 100, 0.1),
 		ScoringContact.new(1, 200, 0.9),
-	])
+	]
+	var snapshot := ScoringSnapshot.new(contacts)
 	assert_eq(snapshot.count_for_edge(1), 2)
 	assert_eq(snapshot.count_for_edge(2), 0, "An edge with no contacts")
 
 
 func test_active_edges_lists_each_edge_once() -> void:
-	var snapshot := ScoringSnapshot.new([
+	var contacts: Array[ScoringContact] = [
 		ScoringContact.new(1, 100, 0.1),
 		ScoringContact.new(1, 200, 0.2),
 		ScoringContact.new(2, 300, 0.3),
-	])
+	]
+	var snapshot := ScoringSnapshot.new(contacts)
 	var edges := snapshot.active_edges()
 	assert_eq(edges.size(), 2)
 	assert_true(edges.has(1))
@@ -65,9 +68,7 @@ func test_a_continuing_contact_is_not_reported_as_new() -> void:
 	var previous := ScoringSnapshot.new([ScoringContact.new(1, 100, 0.2)])
 	# Same floater, same edge, drifted position — a sustained contact.
 	var current := ScoringSnapshot.new([ScoringContact.new(1, 100, 0.4)])
-	assert_eq(
-		current.new_contacts(previous).size(), 0, "Drifting alone is not a new contact"
-	)
+	assert_eq(current.new_contacts(previous).size(), 0, "Drifting alone is not a new contact")
 
 
 func test_a_different_floater_arriving_on_the_same_edge_is_new() -> void:
@@ -79,10 +80,11 @@ func test_a_different_floater_arriving_on_the_same_edge_is_new() -> void:
 
 
 func test_ended_keys_reports_contacts_missing_from_the_current_snapshot() -> void:
-	var previous := ScoringSnapshot.new([
+	var previous_contacts: Array[ScoringContact] = [
 		ScoringContact.new(1, 100, 0.2),
 		ScoringContact.new(2, 200, 0.5),
-	])
+	]
+	var previous := ScoringSnapshot.new(previous_contacts)
 	var current := ScoringSnapshot.new([ScoringContact.new(1, 100, 0.3)])
 	var ended := current.ended_keys(previous)
 	assert_eq(ended.size(), 1)
