@@ -213,6 +213,7 @@ func _frame(step: float) -> Dictionary:
 		"dye_dissipation": FluidConfig.retention_over(config.dye_dissipation, step),
 		"vorticity": config.vorticity,
 		"viscous_alpha": config.viscous_coefficients(step),
+		"wall_friction": config.wall_friction,
 		"ambient_strength": config.ambient_current,
 		"ambient_scale": config.ambient_scale,
 		"elapsed": _elapsed,

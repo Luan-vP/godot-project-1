@@ -33,7 +33,7 @@ const MAX_SPLATS := 16
 const SPLAT_BYTES := 32
 
 ## The push constant block shared by every pass; see fluid_params.glslinc.
-const PARAM_BYTES := 80
+const PARAM_BYTES := 96
 
 ## Matches local_size_x/y in the shaders.
 const GROUP_SIZE := 8
@@ -500,4 +500,5 @@ func _pack_params(
 	bytes.encode_s32(68, size.y)
 	bytes.encode_float(72, viscous_alpha.x)
 	bytes.encode_float(76, viscous_alpha.y)
+	bytes.encode_float(80, frame["wall_friction"])
 	return bytes
