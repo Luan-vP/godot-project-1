@@ -13,7 +13,7 @@ config_version=5
 config/name="godot-project-1"
 config/features=PackedStringArray("4.4", "Forward Plus")
 config/version="0.1.0"
-run/main_scene="res://features/levels/secret_eyes/fluid_demo.tscn"
+run/main_scene="res://features/ui/demo_menu/demo_menu.tscn"
 
 [editor_plugins]
 
