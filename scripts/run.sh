@@ -32,6 +32,8 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
              is checked in yet, so the sky is empty.
   synth      Synth voices. A-K hold notes, Up/Down glide, 1/2/3 waveform,
              R plays a phrase, Space holds a high note.
+  groove     Floaty synthwave loop at 70 bpm: rendered drums plus live bass and
+             pads on the step grid. Space plays, 1/2 drum layers, B bass, P pads.
   audio      Audio foundation: bus sliders and mutes, loop layers, the
              smoothed effect fader.
 
@@ -47,6 +49,7 @@ scene_for() {
 		vitreous | floaters) echo "res://features/levels/vitreous/vitreous_tank.tscn" ;;
 		panorama) echo "res://features/levels/panorama/panorama_level.tscn" ;;
 		synth) echo "res://core/audio/synth_demo.tscn" ;;
+		groove) echo "res://core/audio/groove_demo.tscn" ;;
 		audio) echo "res://core/audio/audio_demo.tscn" ;;
 		*) return 1 ;;
 	esac
