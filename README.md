@@ -35,6 +35,25 @@ Pressing play currently runs the secret eye level, since there is no main
 level yet — see [its README](features/levels/secret_eyes/README.md) for
 controls and how it stays secret once a main level exists.
 
+## Running a level
+
+```sh
+scripts/run.sh             # list the levels and demos, with their controls
+scripts/run.sh vitreous    # floaters in the vitreous gel
+scripts/run.sh eyes        # the secret eye tank
+scripts/run.sh panorama    # look-around camera (no panorama image yet)
+scripts/run.sh synth       # play the synth voices from the keyboard
+scripts/run.sh audio       # buses, loop layers, the effect fader
+```
+
+It finds Godot from `$GODOT`, then `godot4`/`godot` on `PATH`, then
+`/Applications/Godot.app`. On first run it imports the project, and it
+recompiles the fluid's compute shaders whenever their sources are newer than
+the compiled copies — Godot misses edits to the shared
+`fluid_params.glslinc` on its own, and the fluid then silently stops moving.
+`--fresh` forces that recompile; anything after `--` goes to Godot, e.g.
+`scripts/run.sh eyes -- --resolution 1280x720`.
+
 ## Running the tests
 
 ```sh
