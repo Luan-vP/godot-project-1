@@ -39,6 +39,9 @@ func _ready() -> void:
 	_simulation = FluidSimulation.new()
 	_simulation.name = "Vitreous"
 	_simulation.config = VitreousTank.make_gel_config(size)
+	# The view is a window onto a larger body of gel: a turn carries the whole
+	# medium across it and out the far side, which walls would slosh back.
+	_simulation.config.wrap_edges = true
 	eye.add_child(_simulation)
 
 	var renderer := FluidRenderer.new()
@@ -102,6 +105,9 @@ func _make_floaters() -> FloaterField:
 	floaters.color = Color(0.22, 0.24, 0.28, 0.5)
 	floaters.drag = 12.0
 	floaters.buoyancy = 3.0
+	# A flick sweeps the gel far faster than anything in the vitreous tank does;
+	# the default cap would clip exactly the motion this demo is for.
+	floaters.max_speed = 1500.0
 	var blurriest: Array[FloaterDepth] = [FloaterDepth.vitreous_bands().back()]
 	floaters.depths = blurriest
 	return floaters

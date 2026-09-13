@@ -63,3 +63,29 @@ func test_jitter_below_the_deadzone_never_nudges() -> void:
 func test_a_flick_that_starts_outside_the_deadzone_still_nudges() -> void:
 	var nudge := GazeFluidDriver.flick_nudge(Vector2(3.0, 0.0), Vector2.ZERO, 0.05, 50.0)
 	assert_gt(nudge.x, 0.0, "A real flick should clear the deadzone and still nudge")
+
+
+func test_settling_pushes_against_the_drift() -> void:
+	var nudge := GazeFluidDriver.settle_nudge(Vector2(100.0, -40.0), 2.0, 0.1)
+	assert_lt(nudge.x, 0.0, "A rightward drift should be pushed left")
+	assert_gt(nudge.y, 0.0, "An upward drift should be pushed down")
+
+
+func test_settling_never_pushes_past_rest() -> void:
+	var drift := Vector2(100.0, 0.0)
+	var nudge := GazeFluidDriver.settle_nudge(drift, 20.0, 10.0)
+	assert_lt((drift + nudge).x, 1.0, "A long frame should settle nearly to rest")
+	assert_gte((drift + nudge).x, 0.0, "but never past it")
+
+
+func test_settling_is_independent_of_frame_rate() -> void:
+	var drift := Vector2(100.0, 0.0)
+	var one_step := drift + GazeFluidDriver.settle_nudge(drift, 2.0, 0.5)
+	var many_steps := drift
+	for i in 30:
+		many_steps += GazeFluidDriver.settle_nudge(many_steps, 2.0, 0.5 / 30.0)
+	_assert_vector(many_steps, one_step, "Thirty small steps should match one large one")
+
+
+func test_zero_settle_rate_leaves_the_drift_alone() -> void:
+	_assert_vector(GazeFluidDriver.settle_nudge(Vector2(50.0, 5.0), 0.0, 0.1), Vector2.ZERO, "Off")

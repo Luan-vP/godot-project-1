@@ -60,6 +60,7 @@ func _ready() -> void:
 	if config == null:
 		config = FluidConfig.new()
 	_field.configure_world(get_world_rect(), config.cell_size())
+	_field.wrap_edges = config.wrap_edges
 	_field.resize(config.readback_resolution, config.readback_resolution)
 	_gpu.readback_ready.connect(_on_readback)
 	_gpu.build(config)

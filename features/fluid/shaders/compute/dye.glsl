@@ -22,16 +22,13 @@ void main() {
 		return;
 	}
 	vec2 uv = cell_uv(coord);
-	vec2 half_texel = params.texel_size * 0.5;
 
 	vec2 velocity = texture(velocity_tex, uv).xy;
-	vec2 source_uv = clamp(
-		uv - velocity * params.time_step * params.texel_size, half_texel, vec2(1.0) - half_texel
-	);
+	vec2 source_uv = source_point(uv - velocity * params.time_step * params.texel_size);
 	vec4 dye = texture(dye_tex, source_uv) * params.dissipation;
 
 	for (int i = 0; i < params.splat_count; i++) {
-		vec2 offset = (uv - splat_buffer.splats[i].slot.xy) * params.splat_aspect;
+		vec2 offset = splat_offset(uv, splat_buffer.splats[i].slot.xy) * params.splat_aspect;
 		float radius = max(splat_buffer.splats[i].slot.z, 1e-4);
 		float falloff = exp(-dot(offset, offset) / (radius * radius));
 		float deposited = splat_buffer.splats[i].shape.a * falloff;

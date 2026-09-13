@@ -168,6 +168,24 @@ leans the current — see its class doc for the mapping:
   field is already divergence free, so the projection step leaves it alone
   except at the walls, which is where the sloshing comes from.
 
+Both are whole-tank forces, and a walled tank has nowhere to put a whole-tank
+flow: pressure cancels it, and all that is left is the ring off the walls.
+That is right for a jogged container. It is wrong for a view onto a larger
+body of fluid, where a push should carry the medium across the view and out
+the far side — the gel in front of a turning eye. `FluidConfig.wrap_edges`
+joins each edge to the opposite one for that: no wall ring in the obstacle
+mask, neighbour reads and advection wrap round, splats reach across the seam,
+and the CPU mirror samples the same way. A uniform push then keeps flowing
+until something damps it — `velocity_dissipation`, or the settling in
+`GazeFluidDriver`, which stands in for the eye's wall dragging the gel back
+to rest.
+
+Measured in the gaze demo with a 3 rad/s turn held for three seconds: in the
+walled gel the tank's mean drift swung between −860 and +400 px/s while the
+turn was held, sloshing about every 0.8 s, and never settled to a steady
+drift. With `wrap_edges` it swept to −770, levelled out at a steady −452,
+kicked back to +318 when the turn stopped, and was at rest a second later.
+
 ## Emptying the tank
 
 `reset()` asks for a clear, and the next frame zeroes every target on the device

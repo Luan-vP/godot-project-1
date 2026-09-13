@@ -40,6 +40,16 @@ extends Node
 ##   total shove than the same flick at a lower one. Summing a plain
 ##   frame-to-frame change avoids that — it telescopes to the same total
 ##   regardless of how many frames the turn was sampled over.
+##
+## Both of those move the medium as a whole, so the tank has to be built with
+## [member FluidConfig.wrap_edges]. In a walled tank the whole field has
+## nowhere to go: a flick rings off the walls for seconds and a held turn
+## barely drifts at all. What a wrapping tank lacks instead is anything to
+## bring that motion to rest, which the eye's own wall does for real — it
+## drags the gel round with it. [member settle_rate] stands in for that: every
+## frame the tank's mean flow is pushed back towards zero, so a held turn
+## levels out at a steady drift (bias balanced against settling) and the
+## overshoot after a flick dies away instead of coasting forever.
 
 ## Angular speed below this, in radians/second, is treated as holding still
 ## and produces no bias or nudge. Real look input never reads exactly zero —
@@ -55,6 +65,13 @@ extends Node
 ## Nudge speed added per radian/second of frame-to-frame change in turn rate,
 ## in pixels/second.
 @export_range(0.0, 20000.0, 50.0) var flick_sensitivity: float = 250.0
+
+## How quickly the eye's wall drags the medium's overall drift back to rest,
+## per second. The drift decays as [code]exp(-settle_rate * t)[/code], so
+## about [code]1 / settle_rate[/code] seconds is how long an overshoot lasts,
+## and a held turn levels out at [code]hold_sensitivity / settle_rate[/code]
+## pixels/second per radian/second.
+@export_range(0.0, 20.0, 0.1) var settle_rate: float = 2.0
 
 @export_group("Wiring")
 ## Tank to drive. Left empty, the first one in the scene is used.
@@ -75,13 +92,16 @@ func _ready() -> void:
 		push_warning("GazeFluidDriver found no PanoramaLookCamera; the medium will not swish.")
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if _simulation == null or _camera == null:
 		return
 	var velocity := _camera.angular_velocity
 	var deadzone := deadzone_rad_per_sec
 	_simulation.set_current_bias(hold_bias(velocity, deadzone, hold_sensitivity))
 	_simulation.nudge(flick_nudge(velocity, _previous_velocity, deadzone, flick_sensitivity))
+	var field := _simulation.get_field()
+	var drift := field.cell_to_world_velocity(field.mean_velocity())
+	_simulation.nudge(settle_nudge(drift, settle_rate, delta))
 	_previous_velocity = velocity
 
 
@@ -103,6 +123,14 @@ static func flick_nudge(
 	var now := MotionFilter.apply_deadzone(angular_velocity, deadzone)
 	var before := MotionFilter.apply_deadzone(previous_velocity, deadzone)
 	return (now - before) * sensitivity
+
+
+## The settling half: the one-frame push that takes [param drift], the
+## medium's mean flow in pixels/second, as far towards rest as [param rate]
+## allows over [param delta] seconds. Exponential rather than linear so it
+## neither overshoots past zero on a long frame nor depends on frame rate.
+static func settle_nudge(drift: Vector2, rate: float, delta: float) -> Vector2:
+	return -drift * (1.0 - exp(-maxf(rate, 0.0) * maxf(delta, 0.0)))
 
 
 func _resolve_simulation() -> FluidSimulation:

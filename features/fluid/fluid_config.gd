@@ -25,6 +25,16 @@ extends Resource
 ## The slab of world the tank covers, in pixels.
 @export var world_size: Vector2 = Vector2(1920.0, 1080.0)
 
+## Join each edge of the tank to the opposite one instead of walling it off.
+## In a closed tank the whole field cannot move one way — there is nowhere for
+## it to go — so a push on the entire tank ([method FluidSimulation.nudge],
+## [method FluidSimulation.set_current_bias]) only rings off the walls and
+## sloshes back. Wrapping lets that push carry the whole medium across the
+## view and out the far side, which is what a view onto a larger body of fluid
+## wants: the gel in front of a turning eye, say. Read when the tank is built;
+## changing it later has no effect.
+@export var wrap_edges: bool = false
+
 @export_group("Motion")
 ## Fraction of the velocity field surviving one [b]second[/b]. Applied as
 ## pow(value, delta) each step, so the water slows at the same rate whatever
