@@ -1,3 +1,7 @@
+# gdlint: disable=max-public-methods
+# AudioManager is the single owner of playback, routing and bus effects, so its
+# surface grows with each of those (loop layers #31, effects #32). New audio
+# features should land in their own classes rather than widen this further.
 extends Node
 ## Owns audio playback and bus routing. This is the only script allowed to
 ## talk to [AudioServer] directly — everything else asks it to play a sound,
