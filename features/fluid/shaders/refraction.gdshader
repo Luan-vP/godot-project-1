@@ -18,9 +18,10 @@ uniform sampler2D velocity_tex : filter_linear, repeat_disable, hint_default_bla
 uniform sampler2D screen_texture : hint_screen_texture, filter_linear, repeat_disable;
 uniform vec2 texel_size = vec2(0.00390625);  // 1/256, replaced by the real size each frame.
 
-// How far the background sample shifts, in UV. Tunable down to zero.
+// The most the background sample ever shifts, in UV. Tunable down to zero.
 uniform float strength : hint_range(0.0, 0.1) = 0.012;
-// Speed, in cells/second, at which the gradient reaches full strength.
+// Change in speed from one cell to the next, in cells/second, at which the
+// bend reaches half of `strength`.
 uniform float speed_reference : hint_range(1.0, 400.0) = 50.0;
 
 float speed_at(vec2 uv) {
@@ -33,15 +34,15 @@ void fragment() {
 	float up = speed_at(UV + vec2(0.0, texel_size.y));
 	float down = speed_at(UV - vec2(0.0, texel_size.y));
 
-	vec2 gradient = vec2(
-		(right - left) / (2.0 * max(texel_size.x, 1e-6)),
-		(up - down) / (2.0 * max(texel_size.y, 1e-6))
-	);
-	gradient /= max(speed_reference, 1e-5);
+	// Per cell, not per UV: dividing by the texel size instead multiplies the
+	// gradient by the grid resolution, and the ambient current's small eddies
+	// alone then saturate the bend, turning a tank at rest into static.
+	vec2 gradient = vec2(right - left, up - down) * 0.5 / max(speed_reference, 1e-5);
 	// A splat's leading edge can spike the gradient far past a "normal" swish.
-	// Clamping keeps that spike from ever reading as more than the configured
-	// strength, however hard the tank is shoved.
-	gradient = clamp(gradient, vec2(-1.0), vec2(1.0));
+	// Saturating it keeps that spike from ever bending more than `strength`,
+	// however hard the tank is shoved, without the hard edge a clamp leaves
+	// where the gradient crosses the limit.
+	gradient /= 1.0 + length(gradient);
 
 	// Clamped rather than wrapped or mirrored, so a sample pushed past the
 	// edge of the screen holds the edge pixel instead of tiling or seaming.

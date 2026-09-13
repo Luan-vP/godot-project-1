@@ -231,9 +231,13 @@ of a swish, where speed changes fastest across the screen. That gradient
 stands in for a normal map's height field and bends the `hint_screen_texture`
 sample instead of dragging it.
 
-The gradient is clamped before it is scaled by `strength`, so a splat's
-leading edge cannot spike the distortion past the configured maximum however
-hard the tank is shoved, and the final sample UV is clamped to `[0, 1]` rather
+The gradient is taken per simulation cell and divided by `speed_reference`.
+Taking it per UV instead multiplies it by the grid resolution, and then the
+ambient current's small eddies alone saturate the bend and a tank at rest
+reads as static. It is then soft-saturated (`g / (1 + |g|)`) before it is
+scaled by `strength`, so a splat's leading edge cannot spike the distortion
+past the configured maximum however hard the tank is shoved, and the final
+sample UV is clamped to `[0, 1]` rather
 than left to whatever `hint_screen_texture` does at the edge, so a sample
 pushed past the border holds the edge pixel instead of tiling or seaming.
 `RefractionStyle.strength` is tunable down to `0.0`, which turns the bend off
