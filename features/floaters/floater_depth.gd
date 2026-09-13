@@ -42,11 +42,13 @@ static func make(
 	return depth
 
 
-## Far, middle and near bands tuned against a pale background: a nearly sharp
-## back layer, a soft middle, and a ghostly near layer that is mostly smear.
+## Far, middle and near bands tuned against a pale background. Every band is
+## out of focus — real floaters sit too close to the retina to ever be crisp —
+## so depth reads as softer, larger and fainter towards the eye rather than
+## sharp at the back.
 static func vitreous_bands() -> Array[FloaterDepth]:
 	return [
-		make(0.35, 1.5, 1.2, 1.0, 1.0),
-		make(0.40, 5.0, 2.0, 1.3, 0.8),
-		make(0.25, 14.0, 2.2, 1.8, 0.6),
+		make(0.35, 6.0, 1.5, 1.2, 0.95),
+		make(0.40, 10.0, 2.0, 1.45, 0.8),
+		make(0.25, 16.0, 2.2, 1.8, 0.6),
 	]
