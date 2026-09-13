@@ -52,12 +52,24 @@ func _draw() -> void:
 	for dot in shape.dots:
 		draw_circle(Vector2(dot.x, dot.y) * radius, dot.z * radius, color)
 	for strand in shape.strands:
+		if strand.size() < 2:
+			continue
+		var widths := FloaterShape.strand_widths(strand, shape.strand_width * radius)
 		var scaled := PackedVector2Array()
 		scaled.resize(strand.size())
 		for i in strand.size():
 			scaled[i] = strand[i] * radius
-		if scaled.size() > 1:
-			draw_polyline(scaled, color, shape.strand_width * radius, true)
+		_draw_tapered(scaled, widths)
+
+
+## A strand as one antialiased line per segment, each as wide as the average
+## of its two ends. Filled polygons would taper more exactly, but they are not
+## antialiased: every part of a strand under a pixel wide would drop out, and a
+## population tuned on antialiased lines would lose half its weight.
+func _draw_tapered(points: PackedVector2Array, widths: PackedFloat32Array) -> void:
+	for i in points.size() - 1:
+		var width := (widths[i] + widths[i + 1]) * 0.5
+		draw_line(points[i], points[i + 1], color, width, true)
 
 
 func set_shape(value: FloaterShape) -> void:

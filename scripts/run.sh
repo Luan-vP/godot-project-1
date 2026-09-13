@@ -27,7 +27,8 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
   eyes       Secret level: the eye tank. Drag to stir and paint, arrows tilt,
              Space jogs, B blinks, R empties the tank, C recalibrates.
   vitreous   Out-of-focus floaters drifting in a coasting gel. Drag to push,
-             arrows tilt, Space jogs, +/- floaters, F toggles focus, R stills.
+             arrows tilt, Space jogs, +/- floaters, F toggles focus, B dark
+             background, R stills.
   panorama   Look-around camera on the panorama sky. Mouse or right stick to
              look, Esc frees the cursor, click to recapture. No panorama image
              is checked in yet, so the sky is empty.
