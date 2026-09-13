@@ -162,6 +162,37 @@ func test_turning_defocus_off_shows_bands_sharp() -> void:
 	assert_eq(near.get_shader_parameter("gain"), 1.0, "No coverage boost when sharp")
 
 
+func test_each_band_reads_a_fresh_copy_of_the_screen() -> void:
+	var field := _populate(
+		func(f: FloaterField):
+			f.count = 10
+			f.depths = FloaterDepth.vitreous_bands()
+	)
+	var children := field.get_children()
+	var composites := field.find_children("*", "Sprite2D", false, false)
+	assert_eq(composites.size(), 3, "One composite per band")
+	for composite in composites:
+		var before: Node = children[composite.get_index() - 1]
+		assert_true(before is BackBufferCopy, "A screen copy right before each composite")
+
+
+func test_refraction_reaches_every_band_and_can_be_turned_off() -> void:
+	var field := _populate(
+		func(f: FloaterField):
+			f.count = 10
+			f.depths = FloaterDepth.vitreous_bands()
+			f.refraction_px = 2.5
+	)
+	var composites := field.find_children("*", "Sprite2D", false, false)
+	for composite in composites:
+		var material: ShaderMaterial = composite.material
+		assert_eq(material.get_shader_parameter("refraction_px"), 2.5, "Configured bend")
+	field.refraction_px = 0.0
+	for composite in composites:
+		var material: ShaderMaterial = composite.material
+		assert_eq(material.get_shader_parameter("refraction_px"), 0.0, "Bend off")
+
+
 func test_every_vitreous_band_is_out_of_focus() -> void:
 	# Real floaters sit too close to the retina to ever be crisp.
 	for band in FloaterDepth.vitreous_bands():

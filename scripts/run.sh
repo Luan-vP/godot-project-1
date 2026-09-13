@@ -31,7 +31,8 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
   birds      Flocks of birds singing 3-against-4. B is a snare: tap a rhythm
              to favour its flocks; hold it and the others scatter.
   vitreous   Out-of-focus floaters drifting in a coasting gel. Drag to push,
-             WASD tilts, Space jogs, +/- floaters, F toggles focus, R stills.
+             WASD tilts, Space jogs, +/- floaters, F toggles focus, B dark
+             background, R stills.
   overcast   Panorama level: bright overcast sky, floaters unmissable. Mouse
              or right stick to look, Esc frees the cursor, click to recapture.
   interior   Panorama level: dim interior, floaters barely there. Same
