@@ -4,17 +4,37 @@ extends Control
 ## [AudioManager]: a slider and mute box per bus, a focus-mute toggle, two
 ## buttons that play a procedural [AudioTestTone] through SFX and Music, and a
 ## loop layering section (#31) that plays two phase-locked test-tone loops
-## and toggles them on a bar boundary.
+## and toggles them on a bar boundary, and a [ParameterFader] demo sweeping a
+## filter cutoff and a reverb wet mix.
 
 const _BUSES: Array[String] = [
 	AudioManager.MASTER_BUS, AudioManager.MUSIC_BUS, AudioManager.SFX_BUS
 ]
+
+## One full sweep, low to high and back, every this many seconds — fast enough
+## that a per-frame direct assignment audibly steps and zippers.
+const _SWEEP_PERIOD := 3.0
+
+const _CUTOFF_RANGE := Vector2(200.0, 6000.0)
 
 var _music_playing := false
 var _music_button: Button
 
 var _play_loops_button: Button
 var _bar_beat_label: Label
+
+var _sfx_loop_playing := false
+var _sfx_loop_button: Button
+
+var _smooth_check: CheckBox
+var _sweep_time := 0.0
+var _cutoff_effect: AudioEffectLowPassFilter
+var _cutoff_effect_index := -1
+var _cutoff_fader: ParameterFader
+var _wet_effect: AudioEffectReverb
+var _wet_effect_index := -1
+var _wet_fader: ParameterFader
+var _sfx_loop_player: AudioStreamPlayer
 
 
 func _ready() -> void:
@@ -44,10 +64,25 @@ func _ready() -> void:
 	_music_button.pressed.connect(_on_music_pressed)
 	root.add_child(_music_button)
 
+	root.add_child(_build_fader_demo_row())
 	root.add_child(_build_loop_layer_demo_section())
 
 
-func _process(_delta: float) -> void:
+func _exit_tree() -> void:
+	# Leave the buses as this demo found them rather than leaking a filter and
+	# a reverb into whatever runs after it in the same process.
+	if _cutoff_effect_index != -1:
+		AudioManager.remove_bus_effect(AudioManager.SFX_BUS, _cutoff_effect_index)
+	if _wet_effect_index != -1:
+		AudioManager.remove_bus_effect(AudioManager.MUSIC_BUS, _wet_effect_index)
+
+
+func _process(delta: float) -> void:
+	_update_bar_beat_label()
+	_advance_fader_sweep(delta)
+
+
+func _update_bar_beat_label() -> void:
 	if _bar_beat_label == null:
 		return
 	if not AudioManager.is_loops_playing():
@@ -56,6 +91,29 @@ func _process(_delta: float) -> void:
 	var bar := AudioManager.get_current_bar()
 	var beat := AudioManager.get_current_beat()
 	_bar_beat_label.text = "Bar %d, beat %.2f" % [bar, beat]
+
+
+func _advance_fader_sweep(delta: float) -> void:
+	if _cutoff_fader == null:
+		return
+
+	_sweep_time += delta
+	# A triangle wave in [0, 1]: linear, so the gap-closing shape in the
+	# smoothed curve is due to the fader, not to an easing already baked into
+	# the input.
+	var phase := fmod(_sweep_time / _SWEEP_PERIOD, 1.0)
+	var lfo_value := 1.0 - absf(phase * 2.0 - 1.0)
+
+	if _smooth_check.button_pressed:
+		_cutoff_fader.advance(delta, lfo_value)
+		_wet_fader.advance(delta, lfo_value)
+	else:
+		# The naive version this whole feature exists to replace: assign the
+		# mapped value directly, every frame.
+		_cutoff_effect.cutoff_hz = ParameterFader.remap(
+			lfo_value, 0.0, 1.0, _CUTOFF_RANGE.x, _CUTOFF_RANGE.y
+		)
+		_wet_effect.wet = ParameterFader.remap(lfo_value, 0.0, 1.0, 0.0, 1.0)
 
 
 ## Manual proof of #31: two procedural loops configured as [LoopLayer] data,
@@ -172,3 +230,64 @@ func _on_music_pressed() -> void:
 	else:
 		AudioManager.stop_music()
 		_music_button.text = "Play music test tone (loops)"
+
+
+## Adds a low-pass filter to SFX and a reverb to Music, each driven by a
+## [ParameterFader] from the same swept value in [method _process] — the
+## checkbox bypasses both faders at once so the naive and smoothed versions
+## are one toggle apart, everything else held equal.
+func _build_fader_demo_row() -> VBoxContainer:
+	var section := VBoxContainer.new()
+
+	var label := Label.new()
+	label.text = (
+		"ParameterFader demo: filter cutoff (SFX) + reverb wet (Music), swept every %.0fs"
+		% _SWEEP_PERIOD
+	)
+	section.add_child(label)
+
+	_smooth_check = CheckBox.new()
+	_smooth_check.text = "Smooth (uncheck to hear the naive per-frame jump)"
+	_smooth_check.button_pressed = true
+	section.add_child(_smooth_check)
+
+	_cutoff_effect = AudioEffectLowPassFilter.new()
+	_cutoff_effect_index = AudioManager.add_bus_effect(AudioManager.SFX_BUS, _cutoff_effect)
+	_cutoff_fader = ParameterFader.new()
+	_cutoff_fader.target = _cutoff_effect
+	_cutoff_fader.property = &"cutoff_hz"
+	_cutoff_fader.output_min = _CUTOFF_RANGE.x
+	_cutoff_fader.output_max = _CUTOFF_RANGE.y
+	_cutoff_fader.retention_per_second = 0.01
+	_cutoff_fader.rest_value = _CUTOFF_RANGE.y
+
+	_wet_effect = AudioEffectReverb.new()
+	_wet_effect_index = AudioManager.add_bus_effect(AudioManager.MUSIC_BUS, _wet_effect)
+	_wet_fader = ParameterFader.new()
+	_wet_fader.target = _wet_effect
+	_wet_fader.property = &"wet"
+	_wet_fader.output_min = 0.0
+	_wet_fader.output_max = 1.0
+	_wet_fader.retention_per_second = 0.01
+	_wet_fader.rest_value = 0.0
+
+	_sfx_loop_button = Button.new()
+	_sfx_loop_button.text = "Play looping filtered tone (SFX bus)"
+	_sfx_loop_button.pressed.connect(_on_sfx_loop_pressed)
+	section.add_child(_sfx_loop_button)
+
+	return section
+
+
+func _on_sfx_loop_pressed() -> void:
+	_sfx_loop_playing = not _sfx_loop_playing
+	if _sfx_loop_playing:
+		var tone := AudioTestTone.generate(440.0, 1.0, 0.5)
+		tone.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		tone.loop_end = tone.data.size() / 2
+		_sfx_loop_player = AudioManager.play_sfx(tone)
+		_sfx_loop_button.text = "Stop looping filtered tone"
+	else:
+		if _sfx_loop_player != null:
+			_sfx_loop_player.stop()
+		_sfx_loop_button.text = "Play looping filtered tone (SFX bus)"
