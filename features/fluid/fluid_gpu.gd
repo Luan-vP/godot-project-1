@@ -368,6 +368,7 @@ func _make_texture(size: Vector2i, format: int) -> RID:
 		| RenderingDevice.TEXTURE_USAGE_STORAGE_BIT
 		| RenderingDevice.TEXTURE_USAGE_CAN_COPY_FROM_BIT
 		| RenderingDevice.TEXTURE_USAGE_CAN_COPY_TO_BIT
+		| RenderingDevice.TEXTURE_USAGE_CAN_UPDATE_BIT
 	)
 	var texture := _rd.texture_create(format_info, RDTextureView.new(), [])
 	_rd.texture_clear(texture, Color(0.0, 0.0, 0.0, 0.0), 0, 1, 0, 1)
