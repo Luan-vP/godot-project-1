@@ -62,6 +62,12 @@ a difference in those numbers, produced by a static factory
 node type. `Floater._draw()` reads whatever shape it is handed, so a new
 family is a new factory function, not a new class.
 
+Strands are not drawn as even rods. `FloaterShape.strand_widths` tapers each
+one to nothing at both tips and lets its thickness wander by about 30% along
+the way, seeded from the strand's own points so a floater keeps its silhouette.
+The profile averages `strand_width`, so a population tuned on even strands
+(`line_width_px`) keeps the same weight.
+
 ## Per-family look
 
 A few `FloaterField` exports exist because one shared setting could not
@@ -99,9 +105,29 @@ Only coverage is blurred; each band's colour is the field's `color`. The layers
 assume the field sits untransformed over the whole viewport, which holds for a
 screen-space overlay — what floaters are meant to be.
 
-Cost is 64 texture taps per pixel per blurred band. Three full-window bands are
-fine on a desktop GPU; for a phone, render the bands at half resolution, which
-softens them further for free.
+A band is composited as glass rather than paint:
+
+- **Translucent, not a smudge.** The background behind a floater is
+  *multiplied* by the tint instead of mixed towards it, so the dimming scales
+  with how bright the background already is — plain against a bright sky,
+  nearly gone against a dark one, with no per-level art tweaks. Mixing towards
+  a dark tint does the opposite over black: it lightens into a grey smudge.
+- **Slightly refractive.** The disc taps already measure where a floater's
+  blurred coverage sits within the disc. That lean points up the coverage
+  slope, and the background is read displaced along it by up to
+  `FloaterField.refraction_px` (1.5 px by default): strongest at a floater's
+  soft rim, nothing at its flat core.
+
+Floaters in a field with no `depths` are drawn straight into the scene, sharp
+and without either of these.
+
+Cost is 64 texture taps per pixel per blurred band, plus one full-screen copy
+per band: each composite reads the screen behind it, and without a fresh copy
+(`BackBufferCopy`) a nearer band would read a screen missing the farther bands
+and paint over them. Three full-window bands are fine on a desktop GPU; for a
+phone, render the bands at half resolution, which softens them further for
+free, and drop the per-band copies if overlapping bands are rare enough not to
+matter.
 
 ## Size distribution
 

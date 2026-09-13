@@ -9,7 +9,8 @@ it hangs in.
 
 Drag to push the gel, arrows to tilt, `Space` to jog, `C` to recalibrate, `R`
 to still the gel, `+`/`-` to add or remove floaters, `F` to toggle the
-out-of-focus look.
+out-of-focus look, `B` to swap the bright field for a dark one — floaters
+should be plain against the first and nearly gone against the second.
 
 Not wired to `run/main_scene`; open `vitreous_tank.tscn` and run it directly
 (F6 in the editor).

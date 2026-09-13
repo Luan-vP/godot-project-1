@@ -7,6 +7,15 @@ extends Resource
 ## A shape family (dot, strand, cobweb) is a difference in these numbers, not a
 ## different scene or node type — [Floater] draws whatever it is handed.
 
+## How much a strand's thickness wanders along its length, as a fraction of its
+## width. A real collagen fibre is never an even rod.
+const UNEVENNESS := 0.3
+
+## Taper and unevenness change a strand's width point to point; this keeps its
+## average at [member strand_width], so a population tuned on even strands
+## keeps the same weight. The taper, sin(PI * t), averages 2 / PI.
+const TAPER_MEAN_SCALE := PI / 2.0
+
 ## Filled circles: [code]x[/code], [code]y[/code], radius.
 @export var dots: Array[Vector3] = []
 
@@ -54,3 +63,28 @@ static func make_cobweb(rng: RandomNumberGenerator, arms: int = 5) -> FloaterSha
 		shape.strands.append(PackedVector2Array([Vector2.ZERO, elbow, tip]))
 	shape.strand_width = 0.1
 	return shape
+
+
+## Full width at each point of [param points], for a strand whose average
+## width is [param width]: zero at both tips, fullest near the middle, and
+## wandering a little along the way. The wander is seeded from the strand's own
+## points, so a floater keeps the same silhouette every time it is redrawn.
+static func strand_widths(points: PackedVector2Array, width: float) -> PackedFloat32Array:
+	var widths := PackedFloat32Array()
+	widths.resize(points.size())
+	if points.size() < 2:
+		return widths
+	var lengths := PackedFloat32Array([0.0])
+	for i in range(1, points.size()):
+		lengths.append(lengths[i - 1] + points[i].distance_to(points[i - 1]))
+	var total := maxf(lengths[lengths.size() - 1], 1e-6)
+	var seed := points[0].x * 12.9898 + points[0].y * 78.233
+	for i in points.size():
+		var t := lengths[i] / total
+		var wander := 1.0 + UNEVENNESS * sin(t * 3.7 * PI + seed)
+		widths[i] = width * TAPER_MEAN_SCALE * sin(PI * t) * wander
+	# Exactly zero, not sin(PI)'s float residue: the drawing collapses a
+	# zero-width tip to one vertex, and a near-zero one would be a sliver.
+	widths[0] = 0.0
+	widths[widths.size() - 1] = 0.0
+	return widths

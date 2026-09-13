@@ -6,7 +6,8 @@ extends Node2D
 ## so the scene file stays a single node, the same as the secret eye level.
 ##
 ## Drag to push the gel. Arrows tilt, space jogs, C recalibrates, R stills the
-## gel, +/- adds or removes floaters, F toggles the out-of-focus look.
+## gel, +/- adds or removes floaters, F toggles the out-of-focus look, B swaps
+## the bright field for a dark one.
 
 ## A push spreads over a broad, soft footprint and moves a whole region of the
 ## gel at once. That broadness used to come from a very high viscosity, which
@@ -21,11 +22,13 @@ const MAX_COUNT := 400
 var _simulation: FluidSimulation
 var _motion: MotionInput
 var _floaters: FloaterField
+var _renderer: FluidRenderer
 var _last_mouse := Vector2.ZERO
 ## Only a few: one or two drifting through at a time reads as a real floater,
 ## a crowd reads as dust.
 var _count := 15
 var _defocus := true
+var _dark := false
 
 
 func _ready() -> void:
@@ -34,11 +37,11 @@ func _ready() -> void:
 	_simulation.config = make_gel_config(get_viewport_rect().size)
 	add_child(_simulation)
 
-	var renderer := FluidRenderer.new()
-	renderer.name = "FluidRenderer"
-	renderer.style = make_clear_style()
-	renderer.z_index = -100
-	add_child(renderer)
+	_renderer = FluidRenderer.new()
+	_renderer.name = "FluidRenderer"
+	_renderer.style = make_clear_style()
+	_renderer.z_index = -100
+	add_child(_renderer)
 
 	_motion = MotionInput.new()
 	_motion.name = "MotionInput"
@@ -90,6 +93,14 @@ static func make_clear_style() -> PainterlyStyle:
 	return style
 
 
+## The same field at night: what floaters should nearly vanish against.
+static func make_dark_style() -> PainterlyStyle:
+	var style := make_clear_style()
+	style.paper_color = Color(0.07, 0.07, 0.09)
+	style.deep_color = Color(0.03, 0.03, 0.05)
+	return style
+
+
 func _spawn_floaters() -> void:
 	if _floaters != null:
 		_floaters.queue_free()
@@ -119,8 +130,12 @@ func _build_hint() -> void:
 	var layer := CanvasLayer.new()
 	var hint := Label.new()
 	hint.position = Vector2(16.0, 12.0)
-	hint.add_theme_color_override("font_color", Color(0.2, 0.22, 0.26, 0.55))
-	hint.text = "drag push · arrows tilt · space jog · C calibrate · R still · +/- count · F focus"
+	# Mid grey, so the hint stays legible over both the bright and dark field.
+	hint.add_theme_color_override("font_color", Color(0.5, 0.52, 0.56, 0.7))
+	hint.text = (
+		"drag push · arrows tilt · space jog · C calibrate · R still · +/- count"
+		+ " · F focus · B dark"
+	)
 	layer.add_child(hint)
 	add_child(layer)
 
@@ -148,6 +163,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		KEY_F:
 			_defocus = not _defocus
 			_floaters.defocus_enabled = _defocus
+		KEY_B:
+			_dark = not _dark
+			_renderer.style = make_dark_style() if _dark else make_clear_style()
 		KEY_EQUAL, KEY_PLUS, KEY_KP_ADD:
 			_count = mini(_count + COUNT_STEP, MAX_COUNT)
 			_spawn_floaters()
