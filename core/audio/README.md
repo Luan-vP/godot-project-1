@@ -200,3 +200,97 @@ scheduling logic deterministically; `tests/test_music_layers.gd` covers the
 passes within the test timeout. Actually leaving two layered loops running
 for ten minutes and listening for drift or clicks — ideally through
 `audio_demo.tscn` or a similar scene — is still worth doing by ear.
+
+## Synth voices
+
+The other half of #28's "hybrid" decision (#56): continuous sine, saw and
+square tones generated at runtime, next to the recorded loops above.
+
+```gdscript
+var patch := SynthPatch.new()
+patch.waveform = SynthWavetable.Waveform.SAW
+patch.release_seconds = 0.4
+
+var synth := Synth.new()        # a pool of voices, on the Music bus by default
+synth.patch = patch
+add_child(synth)
+
+var voice := synth.note_on(220.0)
+voice.set_frequency(330.0)      # glides over patch.glide_seconds
+voice.note_off()                # fades over patch.release_seconds
+```
+
+Open `core/audio/synth_demo.tscn` and run it directly (F6) to play it from the
+keyboard.
+
+| Script | What it is |
+| --- | --- |
+| [`synth_wavetable.gd`](synth_wavetable.gd) | `SynthWavetable` — band-limited single-cycle tables, one per octave. |
+| [`synth_patch.gd`](synth_patch.gd) | `SynthPatch` — waveform, envelope, level and glide, as data. |
+| [`synth_voice.gd`](synth_voice.gd) | `SynthVoice` — one note: on, hold, glide, off. |
+| [`synth.gd`](synth.gd) | `Synth` — a capped pool of voices, with voice stealing. |
+
+These are their own classes, not more `AudioManager` methods. Voices play
+through a bus, so bus effects and a `ParameterFader` apply to them unchanged.
+
+### Why wavetables, not `AudioStreamGenerator`
+
+`AudioStreamGenerator` is the obvious choice, and both of its costs were
+measured rather than assumed:
+
+- One PolyBLEP saw voice filled from GDScript costs about **7 ms of main-thread
+  time per second of audio** on an M2 Max. That is fine on a desktop for a few
+  voices; a phone is plausibly 5–10× slower.
+- The buffer is filled from the main thread, so any long frame starves it and
+  the audio drops out.
+
+Instead each waveform is a set of one-cycle `AudioStreamWAV` loops, pitched
+with `pitch_scale`. No script runs per sample, so there are no underruns and
+voices cost almost nothing while they sound.
+
+### Staying clean at high pitch
+
+A naive saw table holds harmonics far past Nyquist once it is pitched up, and
+they fold back as grit. So there are ten bands, one per octave from 20 Hz, and
+each holds only the harmonics that stay under 45% of the output rate at the top
+of its octave (540 harmonics in the lowest saw band, 1 in the highest). A voice
+plays all of a waveform's bands phase-locked through one
+`AudioStreamSynchronized` and crossfades between the two around its pitch. The
+tables are built once per waveform — 41 ms for saw — when a voice is first set
+up, not on the first note.
+
+Recorded from the Music bus: a saw at 3 520 Hz puts **−50 dB** of its energy
+away from its harmonics, against **−11 dB** for a single full-harmonic table
+at the same pitch.
+
+### Clicks
+
+- **Envelope.** Attack and release are linear, and never shorter than 5 ms.
+- **Starting a note.** `play()` only takes effect on the audio thread's next
+  mix, so a voice holds its envelope at silence until playback has actually
+  started. Without that, a 10 ms attack had already finished by the time the
+  first sample was mixed and the note started at full level: measured as a
+  spike 27× the steady waveform's, and 1.1× with the fix.
+- **Retriggering** a sounding voice carries its envelope on rather than
+  restarting from silence.
+
+### Glide, and its limit
+
+A held note glides in log-frequency (each octave takes the same time), eased
+in and out, arriving exactly after `glide_seconds`. Eased on purpose: Godot
+applies `pitch_scale` once per mix block, about 10 ms, so what is heard is the
+largest step between blocks, and an exponential glide takes its biggest step
+right at the start. On a two-octave glide over 0.6 s, the largest step between
+cycles went from 8.7% (exponential) to 5.0% (eased).
+
+That per-block stepping is the real limit of this approach. It is inaudible on
+slow glides and noticeable as a slight staircase on fast, wide ones — roughly
+`1.5 × octaves ÷ glide_seconds × 10 ms` per step. If a sound needs fast, smooth
+sweeps, that voice is the case for an `AudioStreamGenerator` path.
+
+### Voices and level
+
+`Synth.polyphony` caps the pool (8 by default). A note past the cap steals an
+idle voice, else the quietest released one, else the oldest held one. Voices
+sum: eight saw voices at level 0.25 peaked at 0.97, so `SynthPatch.level`
+defaults to 0.15.
