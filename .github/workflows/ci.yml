@@ -73,8 +73,8 @@ jobs:
       - name: Verify the compute shaders compiled
         run: |
           count=$(ls .godot/imported/ | grep -c '\.glsl-.*\.res$' || true)
-          if [ "$count" -lt 6 ]; then
-            echo "Expected 6 compiled compute shaders in .godot/imported/, found $count."
+          if [ "$count" -lt 7 ]; then
+            echo "Expected 7 compiled compute shaders in .godot/imported/, found $count."
             exit 1
           fi
           echo "Compiled $count compute shaders."
