@@ -72,7 +72,9 @@ func keys() -> Array[String]:
 ## [param previous] may be [code]null[/code], in which case every contact
 ## here counts as new.
 func new_contacts(previous: ScoringSnapshot) -> Array[ScoringContact]:
-	var previous_keys: Array[String] = previous.keys() if previous != null else []
+	var previous_keys: Array[String] = []
+	if previous != null:
+		previous_keys = previous.keys()
 	var result: Array[ScoringContact] = []
 	for contact in contacts:
 		if not previous_keys.has(contact.key()):

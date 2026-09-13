@@ -65,7 +65,9 @@ func test_a_continuing_contact_is_not_reported_as_new() -> void:
 	var previous := ScoringSnapshot.new([ScoringContact.new(1, 100, 0.2)])
 	# Same floater, same edge, drifted position — a sustained contact.
 	var current := ScoringSnapshot.new([ScoringContact.new(1, 100, 0.4)])
-	assert_eq(current.new_contacts(previous).size(), 0, "Drifting alone is not a new contact")
+	assert_eq(
+		current.new_contacts(previous).size(), 0, "Drifting alone is not a new contact"
+	)
 
 
 func test_a_different_floater_arriving_on_the_same_edge_is_new() -> void:
