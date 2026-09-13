@@ -18,6 +18,14 @@ extends Node
 ## [SaveManager] and reloaded in [method _ready]. Nothing here knows about
 ## floaters, edges, or any other game concept — it is equally usable by a
 ## menu, a level, or a test.
+##
+## Loop layering (see core/audio/README.md for the reasoning) plays a set of
+## [LoopLayer]s through one [AudioStreamSynchronized], so they share a single
+## playback clock and cannot drift apart the way separate
+## [AudioStreamPlayer]s could. [method set_layer_active] queues its change on
+## a [LoopLayerScheduler] and releases it on the next bar boundary, computed
+## by a [MusicClock] from a monotonic session clock (see
+## [method _get_loop_playback_seconds]).
 
 ## Emitted whenever a bus's volume changes, including on load. Carries the
 ## linear fraction, not decibels, so a slider can be driven directly.
@@ -38,6 +46,17 @@ const _FOCUS_SETTING_KEY := "mute_on_focus_loss"
 ## cut off to make room for a new one.
 const _SFX_POOL_SIZE := 8
 
+## [AudioStreamSynchronized] supports at most this many simultaneous streams.
+const MAX_LOOP_LAYERS := 32
+
+## dB floor a loop layer fades to when switched off. Not -INF, so a fade has
+## a concrete value to tween from when the layer is switched back on.
+const _LAYER_SILENT_DB := -80.0
+
+## How long a layer's on/off volume change takes, so it is a short crossfade
+## rather than an instant, potentially clicky jump.
+const _LAYER_FADE_SECONDS := 0.05
+
 ## Whether losing window focus (alt-tab, minimizing) mutes the Master bus.
 ## Persisted like any other audio setting.
 @export var mute_on_focus_loss: bool = true
@@ -48,6 +67,14 @@ var _next_sfx_player := 0
 
 var _focus_muted := false
 var _master_mute_before_focus_loss := false
+
+var _loop_player: AudioStreamPlayer
+var _loop_stream: AudioStreamSynchronized
+var _loop_layers: Dictionary = {}  # layer_name -> {index: int, volume_db: float}
+var _loop_active_states: Dictionary = {}  # layer_name -> bool
+var _loop_clock: MusicClock
+var _loop_scheduler: LoopLayerScheduler
+var _loop_start_usec: int = 0
 
 
 func _ready() -> void:
@@ -63,7 +90,23 @@ func _ready() -> void:
 		add_child(player)
 		_sfx_players.append(player)
 
+	_loop_player = AudioStreamPlayer.new()
+	_loop_player.name = "LoopPlayer"
+	_loop_player.bus = MUSIC_BUS
+	add_child(_loop_player)
+	_loop_clock = MusicClock.new()
+	_loop_scheduler = LoopLayerScheduler.new(_loop_clock)
+
 	_load_settings()
+
+
+func _process(_delta: float) -> void:
+	if _loop_player == null or not _loop_player.playing:
+		return
+	var seconds := _get_loop_playback_seconds()
+	var changes := _loop_scheduler.update(seconds)
+	for layer_name: String in changes:
+		_apply_layer_active(layer_name, changes[layer_name])
 
 
 func _notification(what: int) -> void:
@@ -101,6 +144,130 @@ func stop_music() -> void:
 
 func is_music_playing() -> bool:
 	return _music_player.playing
+
+
+## Sets the tempo and bar length the loop layer clock schedules against.
+## Configurable rather than baked in; safe to call before or during
+## playback. Rebases the scheduler's notion of "the current bar" onto the new
+## clock at the moment of the change, so a request already pending is not
+## mistaken for having crossed a boundary and released early — see
+## [method LoopLayerScheduler.set_clock].
+func set_tempo(tempo_bpm: float, beats_per_bar: int = 4) -> void:
+	var seconds := _get_loop_playback_seconds()
+	_loop_clock = MusicClock.new(tempo_bpm, beats_per_bar)
+	_loop_scheduler.set_clock(_loop_clock, seconds)
+
+
+## Declares the set of loops available to layer together, as data (see
+## [LoopLayer]) rather than paths hardcoded into a script. Stops playback and
+## resets every layer to inactive; call [method play_loops] and
+## [method set_layer_active] afterwards to start again.
+func configure_loop_layers(layers: Array[LoopLayer]) -> void:
+	if layers.size() > MAX_LOOP_LAYERS:
+		var msg := "AudioManager: %d loop layers requested, only %d supported; the rest are dropped"
+		push_warning(msg % [layers.size(), MAX_LOOP_LAYERS])
+
+	stop_loops()
+	_loop_layers.clear()
+	_loop_active_states.clear()
+
+	var sync := AudioStreamSynchronized.new()
+	sync.stream_count = mini(layers.size(), MAX_LOOP_LAYERS)
+	for i in sync.stream_count:
+		var layer := layers[i]
+		sync.set_sync_stream(i, layer.stream)
+		sync.set_sync_stream_volume(i, _LAYER_SILENT_DB)
+		_loop_layers[layer.layer_name] = {"index": i, "volume_db": layer.volume_db}
+		_loop_active_states[layer.layer_name] = false
+
+	_loop_stream = sync
+	_loop_player.stream = _loop_stream
+
+
+## Starts the configured loop layers playing together. Layers switched on
+## before this call (while nothing was playing yet) are already audible from
+## the first frame; layers switched on afterwards fade in on the next bar.
+func play_loops() -> void:
+	if _loop_player.playing:
+		return
+	_loop_start_usec = Time.get_ticks_usec()
+	_loop_player.play()
+	_loop_scheduler.reset()
+
+
+## Stops loop playback entirely and discards any pending layer changes.
+func stop_loops() -> void:
+	_loop_player.stop()
+	_loop_scheduler.reset()
+
+
+func is_loops_playing() -> bool:
+	return _loop_player.playing
+
+
+## Turns a loop layer on or off. Before playback has started, this takes
+## effect immediately. Once loops are playing, the change is queued and only
+## lands on the next bar boundary — a layer requested mid-bar enters at the
+## next bar, not the instant it was asked for.
+func set_layer_active(layer_name: String, active: bool) -> void:
+	if not _loop_layers.has(layer_name):
+		push_warning("AudioManager: unknown loop layer '%s'" % layer_name)
+		return
+	if not _loop_player.playing:
+		_apply_layer_active(layer_name, active)
+		return
+	_loop_scheduler.request(layer_name, active)
+
+
+func is_layer_active(layer_name: String) -> bool:
+	return _loop_active_states.get(layer_name, false)
+
+
+## The bar currently playing, computed from an [AudioServer]-corrected
+## playback position. Bar 0 is the first bar; meaningless (0) while nothing
+## is playing.
+func get_current_bar() -> int:
+	return _loop_clock.bar_at(_get_loop_playback_seconds())
+
+
+## Position within the current bar, in beats, from 0 up to (not including)
+## the configured beats per bar.
+func get_current_beat() -> float:
+	return _loop_clock.beat_in_bar_at(_get_loop_playback_seconds())
+
+
+func get_seconds_until_next_bar() -> float:
+	return _loop_clock.seconds_until_next_bar(_get_loop_playback_seconds())
+
+
+func _apply_layer_active(layer_name: String, active: bool) -> void:
+	_loop_active_states[layer_name] = active
+	var info: Dictionary = _loop_layers[layer_name]
+	var index: int = info["index"]
+	var target_db: float = info["volume_db"] if active else _LAYER_SILENT_DB
+	var tween := create_tween()
+	tween.tween_method(
+		func(db: float): _loop_stream.set_sync_stream_volume(index, db),
+		_loop_stream.get_sync_stream_volume(index),
+		target_db,
+		_LAYER_FADE_SECONDS
+	)
+
+
+## Seconds since [method play_loops] started, from a monotonic wall clock
+## rather than [method AudioStreamPlayer.get_playback_position].
+##
+## That was the first thing tried, and it is wrong for a looping stream:
+## position is measured within the stream's own buffer, so it wraps back
+## every time playback loops instead of continuing to climb. A bar longer
+## than the loop then never arrives — [MusicClock.bar_at] keeps reading a
+## position from earlier in the same loop cycle and the scheduler sits in
+## bar 0 forever. A session clock started once in [method play_loops] has no
+## such ceiling.
+func _get_loop_playback_seconds() -> float:
+	if not _loop_player.playing:
+		return 0.0
+	return (Time.get_ticks_usec() - _loop_start_usec) / 1_000_000.0
 
 
 ## Sets a bus's volume from a linear fraction in [0, 1], converting to
