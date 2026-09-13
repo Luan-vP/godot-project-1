@@ -294,3 +294,82 @@ sweeps, that voice is the case for an `AudioStreamGenerator` path.
 idle voice, else the quietest released one, else the oldest held one. Voices
 sum: eight saw voices at level 0.25 peaked at 0.97, so `SynthPatch.level`
 defaults to 0.15.
+
+## Step grid, drums and musical time
+
+The machinery for music on a sixteenth-note grid, and a synthesised drum kit
+for the floaty-synthwave direction. `core/audio/groove_demo.tscn`
+(`scripts/run.sh groove`) plays all of it together at 70 bpm.
+
+| Script | What it is |
+| --- | --- |
+| [`time/music_time_source.gd`](time/music_time_source.gd) | `MusicTimeSource` — port: where musical time comes from. |
+| [`time/sources/wall_clock_music_time.gd`](time/sources/wall_clock_music_time.gd) | `WallClockMusicTime` — the current adapter: a session wall clock. |
+| [`time/sources/scripted_music_time.gd`](time/sources/scripted_music_time.gd) | `ScriptedMusicTime` — time moved by hand, for tests. |
+| [`music_clock.gd`](music_clock.gd) | `MusicClock` — now also steps: `step_at`, `seconds_per_step`, `steps_per_bar`. |
+| [`step_sequencer.gd`](step_sequencer.gd) | `StepSequencer` — pure: which steps have come due, each once, in order. |
+| [`step_clock.gd`](step_clock.gd) | `StepClock` — node emitting `step(index, bar, step_in_bar)` while music plays. |
+| [`drum_synth.gd`](drum_synth.gd) | `DrumSynth` — kick, snare, clap, closed and open hat, synthesised. |
+| [`step_pattern.gd`](step_pattern.gd) | `StepPattern` — a bar of drums, rendered sample-accurately into a loop. |
+
+### Musical time is a port
+
+`AudioManager` asks its `MusicTimeSource` what time it is, and nothing else
+does its own timekeeping: loop layers change on bars against it, and
+`StepClock` fires steps against it. Replacing the timing underneath — with a
+clock driven from the audio thread, say — is a new adapter and one call:
+
+```gdscript
+AudioManager.set_music_time_source(MyBetterClock.new())
+```
+
+`tests/test_music_time_sources.gd` drives both bar changes and steps from a
+`ScriptedMusicTime`, which is what proves nothing is reading a clock behind the
+port's back.
+
+### Two ways onto the grid
+
+**Rendered, for anything that must be tight.** A `StepPattern` mixes each hit
+in at its exact sample offset and renders the bar into a looping stream. Play
+it as a `LoopLayer` and it runs on the loop stack's shared playback position;
+switching patterns is toggling layers on a bar.
+
+```gdscript
+var beat := StepPattern.parse({
+	"kick":  "9.......9..5....",
+	"snare": "....9.......9...",
+	"hat":   "5.3.5.3.5.3.5.3.",
+})
+layer.stream = beat.render(70.0, 4, int(AudioServer.get_mix_rate()))
+```
+
+Digits are velocity out of 9, `x` is full, `.` is a rest. Tails wrap into the
+next bar, and a closed hat chokes an open one. Kit build 41 ms, one bar 26 ms,
+done before playback.
+
+**Live, for game-driven notes.** Connect to `StepClock.step` and play a synth
+note. Good enough, with some wonk — see below.
+
+### How tight, measured
+
+Recorded from the Music bus, onsets measured against the ideal grid:
+
+- **Script-triggered sixteenths** at 120 bpm (`play()` when the wall clock
+  crosses a step): 17.7 ms spread, every onset on a 512-sample mix-block
+  boundary. With `AudioServer.get_time_to_next_mix()` as lookahead: 10.3 ms —
+  one mix block, as tight as starting sound from script gets.
+- **Rendered drum loop** at 70 and 120 bpm: every kick within ±1 sample of
+  the grid.
+- **Live synth notes against that loop**, at 70 bpm: about 16–20 ms behind it,
+  with about 10 ms of spread. Keeping synth voices playing silently between
+  notes did not change that, so it was left out. This is the wonk a better
+  `MusicTimeSource` would remove.
+
+### The kit
+
+All synthesised, so there is no sample licence to sort out. Drum-machine
+shapes rather than acoustic ones: a kick swept from about 150 Hz to 45 Hz, a
+snare with a 185/330 Hz body under high-passed noise, a clap of three noise
+bursts and a tail, and hats built from the TR-808's six square-wave partials
+through a high-pass. Every hit is normalised to the same peak and built from a
+fixed noise seed, so it is identical every time.

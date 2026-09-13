@@ -29,7 +29,7 @@ extends Node
 ## [AudioStreamPlayer]s could. [method set_layer_active] queues its change on
 ## a [LoopLayerScheduler] and releases it on the next bar boundary, computed
 ## by a [MusicClock] from a monotonic session clock (see
-## [method _get_loop_playback_seconds]).
+## its [MusicTimeSource]; see [method set_music_time_source]).
 ##
 ## [method add_bus_effect] and [method get_bus_effect] hand out effect
 ## instances for a caller to drive directly — typically through a
@@ -83,7 +83,7 @@ var _loop_layers: Dictionary = {}  # layer_name -> {index: int, volume_db: float
 var _loop_active_states: Dictionary = {}  # layer_name -> bool
 var _loop_clock: MusicClock
 var _loop_scheduler: LoopLayerScheduler
-var _loop_start_usec: int = 0
+var _time_source: MusicTimeSource = WallClockMusicTime.new()
 
 
 func _ready() -> void:
@@ -199,7 +199,7 @@ func configure_loop_layers(layers: Array[LoopLayer]) -> void:
 func play_loops() -> void:
 	if _loop_player.playing:
 		return
-	_loop_start_usec = Time.get_ticks_usec()
+	_time_source.start()
 	_loop_player.play()
 	_loop_scheduler.reset()
 
@@ -207,6 +207,7 @@ func play_loops() -> void:
 ## Stops loop playback entirely and discards any pending layer changes.
 func stop_loops() -> void:
 	_loop_player.stop()
+	_time_source.stop()
 	_loop_scheduler.reset()
 
 
@@ -235,6 +236,31 @@ func is_layer_active(layer_name: String) -> bool:
 ## The bar currently playing, computed from an [AudioServer]-corrected
 ## playback position. Bar 0 is the first bar; meaningless (0) while nothing
 ## is playing.
+## The clock loop layers and the step grid run on. Replaced, not mutated, by
+## [method set_tempo], so hold on to it only for the current frame.
+func get_music_clock() -> MusicClock:
+	return _loop_clock
+
+
+## Where musical time comes from. Loop layers change bars and [StepClock]
+## fires steps on this and nothing else.
+func get_music_time_source() -> MusicTimeSource:
+	return _time_source
+
+
+## Replace where musical time comes from, e.g. with a more accurate clock or,
+## in a test, [ScriptedMusicTime]. Takes effect from the next
+## [method play_loops]; if loops are already playing, the new source is started
+## now.
+func set_music_time_source(source: MusicTimeSource) -> void:
+	var was_running := _time_source.is_running()
+	_time_source.stop()
+	_time_source = source
+	if was_running:
+		_time_source.start()
+	_loop_scheduler.reset()
+
+
 func get_current_bar() -> int:
 	return _loop_clock.bar_at(_get_loop_playback_seconds())
 
@@ -263,20 +289,13 @@ func _apply_layer_active(layer_name: String, active: bool) -> void:
 	)
 
 
-## Seconds since [method play_loops] started, from a monotonic wall clock
-## rather than [method AudioStreamPlayer.get_playback_position].
-##
-## That was the first thing tried, and it is wrong for a looping stream:
-## position is measured within the stream's own buffer, so it wraps back
-## every time playback loops instead of continuing to climb. A bar longer
-## than the loop then never arrives — [MusicClock.bar_at] keeps reading a
-## position from earlier in the same loop cycle and the scheduler sits in
-## bar 0 forever. A session clock started once in [method play_loops] has no
-## such ceiling.
+## Musical seconds since [method play_loops], from the [MusicTimeSource]. See
+## [WallClockMusicTime] for why that is a session clock and not the player's
+## playback position.
 func _get_loop_playback_seconds() -> float:
 	if not _loop_player.playing:
 		return 0.0
-	return (Time.get_ticks_usec() - _loop_start_usec) / 1_000_000.0
+	return _time_source.get_seconds()
 
 
 ## Sets a bus's volume from a linear fraction in [0, 1], converting to

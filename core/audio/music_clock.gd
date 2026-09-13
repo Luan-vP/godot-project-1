@@ -18,10 +18,14 @@ extends RefCounted
 var tempo_bpm: float
 var beats_per_bar: int
 
+## Grid steps per beat. 4 is a sixteenth-note grid in 4/4.
+var steps_per_beat: int
 
-func _init(p_tempo_bpm: float = 120.0, p_beats_per_bar: int = 4) -> void:
+
+func _init(p_tempo_bpm: float = 120.0, p_beats_per_bar: int = 4, p_steps_per_beat: int = 4) -> void:
 	tempo_bpm = p_tempo_bpm
 	beats_per_bar = p_beats_per_bar
+	steps_per_beat = p_steps_per_beat
 
 
 func seconds_per_beat() -> float:
@@ -41,6 +45,25 @@ func bar_at(seconds: float) -> int:
 ## [member beats_per_bar] (exclusive).
 func beat_in_bar_at(seconds: float) -> float:
 	return fposmod(seconds, seconds_per_bar()) / seconds_per_beat()
+
+
+func seconds_per_step() -> float:
+	return seconds_per_beat() / steps_per_beat
+
+
+func steps_per_bar() -> int:
+	return beats_per_bar * steps_per_beat
+
+
+## The grid step containing [param seconds], counted from the start of
+## playback. Step 0 is the first sixteenth of bar 0.
+func step_at(seconds: float) -> int:
+	return int(floor(seconds / seconds_per_step()))
+
+
+## When grid step [param step] begins, in seconds from the start of playback.
+func seconds_at_step(step: int) -> float:
+	return step * seconds_per_step()
 
 
 ## How many seconds remain until the next bar boundary strictly after

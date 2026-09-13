@@ -44,3 +44,19 @@ func test_tempo_and_bar_length_are_configurable() -> void:
 	# 240 BPM, 3 beats/bar => 0.75 seconds per bar.
 	assert_almost_eq(fast_clock.seconds_per_bar(), 0.75, 0.001)
 	assert_eq(fast_clock.bar_at(0.8), 1)
+
+
+func test_sixteenth_steps_at_seventy_bpm() -> void:
+	var clock := MusicClock.new(70.0, 4)
+	var step := 60.0 / 70.0 / 4.0
+	assert_almost_eq(clock.seconds_per_step(), step, 0.000001, "A sixteenth")
+	assert_eq(clock.steps_per_bar(), 16, "Sixteen per bar in 4/4")
+	assert_eq(clock.step_at(0.0), 0, "First step")
+	assert_eq(clock.step_at(step * 0.999), 0, "Still the first step")
+	assert_eq(clock.step_at(step * 17.001), 17, "Second bar, second step")
+	assert_almost_eq(clock.seconds_at_step(16), 60.0 / 70.0 * 4.0, 0.000001, "Bar 1 starts")
+
+
+func test_steps_per_beat_is_configurable() -> void:
+	var triplets := MusicClock.new(70.0, 4, 3)
+	assert_eq(triplets.steps_per_bar(), 12, "Eighth-note triplets")
