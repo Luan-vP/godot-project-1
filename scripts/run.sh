@@ -30,6 +30,8 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
   panorama   Look-around camera on the panorama sky. Mouse or right stick to
              look, Esc frees the cursor, click to recapture. No panorama image
              is checked in yet, so the sky is empty.
+  refraction Clear medium over a checkerboard: only the bend shows. Drag to
+             stir, +/- tune strength down to zero, R stills.
   synth      Synth voices. A-K hold notes, Up/Down glide, 1/2/3 waveform,
              R plays a phrase, Space holds a high note.
   groove     Floaty synthwave loop at 70 bpm: rendered drums plus live bass and
@@ -48,6 +50,7 @@ scene_for() {
 		eyes | secret-eyes | fluid) echo "res://features/levels/secret_eyes/fluid_demo.tscn" ;;
 		vitreous | floaters) echo "res://features/levels/vitreous/vitreous_tank.tscn" ;;
 		panorama) echo "res://features/levels/panorama/panorama_level.tscn" ;;
+		refraction) echo "res://features/fluid/refraction_demo.tscn" ;;
 		synth) echo "res://core/audio/synth_demo.tscn" ;;
 		groove) echo "res://core/audio/groove_demo.tscn" ;;
 		audio) echo "res://core/audio/audio_demo.tscn" ;;
