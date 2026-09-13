@@ -69,10 +69,16 @@ static func make_cobweb(rng: RandomNumberGenerator, arms: int = 5) -> FloaterSha
 ## width is [param width]: zero at both tips, fullest near the middle, and
 ## wandering a little along the way. The wander is seeded from the strand's own
 ## points, so a floater keeps the same silhouette every time it is redrawn.
+##
+## A two-point strand has no middle to be fullest at — tapering both of its
+## points to zero would erase it — so it keeps an even [param width].
 static func strand_widths(points: PackedVector2Array, width: float) -> PackedFloat32Array:
 	var widths := PackedFloat32Array()
 	widths.resize(points.size())
 	if points.size() < 2:
+		return widths
+	if points.size() == 2:
+		widths.fill(width)
 		return widths
 	var lengths := PackedFloat32Array([0.0])
 	for i in range(1, points.size()):

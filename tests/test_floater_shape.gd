@@ -73,3 +73,9 @@ func test_strand_thickness_wanders_along_its_length() -> void:
 func test_strand_widths_are_stable_for_the_same_points() -> void:
 	var points := FloaterShape.make_strand(RandomNumberGenerator.new(), 6, 0.3).strands[0]
 	assert_eq(FloaterShape.strand_widths(points, 0.2), FloaterShape.strand_widths(points, 0.2))
+
+
+func test_a_two_point_strand_keeps_its_width_instead_of_vanishing() -> void:
+	var points := PackedVector2Array([Vector2(-1.0, 0.0), Vector2(1.0, 0.0)])
+	var widths := FloaterShape.strand_widths(points, 0.2)
+	assert_eq(widths, PackedFloat32Array([0.2, 0.2]), "Nothing to taper towards")
