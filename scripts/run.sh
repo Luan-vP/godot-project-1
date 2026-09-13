@@ -28,9 +28,10 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
              Space jogs, B blinks, R empties the tank, C recalibrates.
   vitreous   Out-of-focus floaters drifting in a coasting gel. Drag to push,
              arrows tilt, Space jogs, +/- floaters, F toggles focus, R stills.
-  panorama   Look-around camera on the panorama sky. Mouse or right stick to
-             look, Esc frees the cursor, click to recapture. No panorama image
-             is checked in yet, so the sky is empty.
+  overcast   Panorama level: bright overcast sky, floaters unmissable. Mouse
+             or right stick to look, Esc frees the cursor, click to recapture.
+  interior   Panorama level: dim interior, floaters barely there. Same
+             controls as overcast.
   refraction Clear medium over a checkerboard: only the bend shows. Drag to
              stir, +/- tune strength down to zero, R stills.
   synth      Synth voices. A-K hold notes, Up/Down glide, 1/2/3 waveform,
@@ -52,7 +53,8 @@ scene_for() {
 		menu) echo "res://features/ui/demo_menu/demo_menu.tscn" ;;
 		eyes | secret-eyes | fluid) echo "res://features/levels/secret_eyes/fluid_demo.tscn" ;;
 		vitreous | floaters) echo "res://features/levels/vitreous/vitreous_tank.tscn" ;;
-		panorama) echo "res://features/levels/panorama/panorama_level.tscn" ;;
+		overcast | panorama) echo "res://features/levels/panorama/overcast_sky.tscn" ;;
+		interior) echo "res://features/levels/panorama/dim_interior.tscn" ;;
 		refraction) echo "res://features/fluid/refraction_demo.tscn" ;;
 		synth) echo "res://core/audio/synth_demo.tscn" ;;
 		groove) echo "res://core/audio/groove_demo.tscn" ;;
