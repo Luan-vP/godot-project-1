@@ -39,6 +39,9 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
              pads on the step grid. Space plays, 1/2 drum layers, B bass, P pads.
   audio      Audio foundation: bus sliders and mutes, loop layers, the
              smoothed effect fader.
+  arrangement Scoring drives the layer stack (#34): drums join in stages as a
+             soft pad bed. +/- simulated floaters, C toggles clustered vs
+             scattered scoring.
 
 Options:
   --fresh    Delete compiled compute shaders and reimport before running.
@@ -57,6 +60,7 @@ scene_for() {
 		synth) echo "res://core/audio/synth_demo.tscn" ;;
 		groove) echo "res://core/audio/groove_demo.tscn" ;;
 		audio) echo "res://core/audio/audio_demo.tscn" ;;
+		arrangement) echo "res://core/audio/arrangement_demo.tscn" ;;
 		*) return 1 ;;
 	esac
 }
