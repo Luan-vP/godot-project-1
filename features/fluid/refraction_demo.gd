@@ -80,6 +80,9 @@ func _build_readout() -> void:
 	_readout = Label.new()
 	_readout.position = Vector2(16.0, 12.0)
 	_readout.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.85))
+	_readout.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_readout.size = Vector2(SafeArea.line_width(get_viewport(), _readout.position.x), 0.0)
+	SafeArea.offset_layer(layer, get_viewport())
 	layer.add_child(_readout)
 	add_child(layer)
 

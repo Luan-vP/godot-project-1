@@ -117,6 +117,7 @@ func _build_readout() -> void:
 	_readout.position = Vector2(16.0, 12.0)
 	_readout.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.65))
 	layer.add_child(_readout)
+	SafeArea.offset_layer(layer, get_viewport())
 	add_child(layer)
 	_motion.source_changed.connect(_on_source_changed)
 	_on_source_changed(_motion.get_source_description())

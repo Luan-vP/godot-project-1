@@ -50,8 +50,26 @@ func test_demo_names_are_unique() -> void:
 
 
 func test_there_is_a_button_per_demo() -> void:
-	var buttons := _menu.find_children("*", "Button", true, false)
+	var cards := _menu.find_child("Cards", true, false)
+	assert_not_null(cards, "The card grid exists")
+	var buttons := cards.find_children("*", "Button", false, false)
 	assert_eq(buttons.size(), DemoMenu.DEMOS.size(), "One card per demo")
+
+
+func test_cards_stack_in_one_column_when_the_screen_is_narrow() -> void:
+	assert_eq(DemoMenu.columns_for_width(1152.0), 2, "Desktop window")
+	assert_eq(DemoMenu.columns_for_width(DemoMenu.TWO_COLUMN_MIN_WIDTH), 2, "Right at the edge")
+	assert_eq(DemoMenu.columns_for_width(540.0), 1, "Phone in portrait")
+
+
+func test_the_corner_button_goes_back_without_taking_focus() -> void:
+	var back := _menu.find_child("BackToMenu", true, false) as Button
+	assert_not_null(back, "There is a tappable way back")
+	assert_eq(back.focus_mode, Control.FOCUS_NONE, "Space in a demo must not press it")
+	_menu.open_demo(STAND_IN_PATH)
+	back.pressed.emit()
+	assert_false(_menu.is_demo_open(), "Tapping it closes the demo")
+	assert_true(_menu.visible, "and shows the menu")
 
 
 func test_backspace_and_select_go_back_but_other_input_does_not() -> void:

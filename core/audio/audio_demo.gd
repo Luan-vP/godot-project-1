@@ -39,6 +39,8 @@ var _sfx_loop_player: AudioStreamPlayer
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# Clear of the Dynamic Island and home indicator on a phone.
+	SafeArea.fit_control(self)
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
