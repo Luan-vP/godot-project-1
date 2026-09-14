@@ -39,12 +39,15 @@ asks which OS it is on.
 | Key | Type | Meaning |
 | --- | --- | --- |
 | `state` | int | `0` UNAVAILABLE (no hardware / not supported), `1` STOPPED, `2` STARTING (camera or permission pending), `3` PERMISSION_DENIED, `4` NO_FACE, `5` TRACKING, `6` FAILED (see `message`) |
-| `gaze_yaw`, `gaze_pitch` | float, radians | Gaze direction relative to the **screen**, including head pose. Yaw positive towards the screen's right as the player sees it; pitch positive towards the top of the screen. Zero is along the screen normal through the front camera. |
+| `gaze_yaw`, `gaze_pitch` | float, radians | Gaze direction relative to the **screen**, including head pose. Yaw positive towards the screen's right as the player sees it; pitch positive towards the top of the screen. Zero is perpendicular to the screen, so a look at the middle of the screen from a normal grip is not zero — calibration takes care of that. |
 | `head_yaw`, `head_pitch` | float, radians | Head orientation relative to the screen, same convention. Informational. |
 | `confidence` | float 0..1 | How far the backend trusts this gaze. |
-| `blink` | float 0..1 | How closed the eyes are (mean of both). |
+| `blink` | float 0..1 | How closed the more-closed eye is. |
 | `timestamp` | float, seconds | Monotonic capture time of the camera frame. Unchanged means no new frame. |
 | `message` | String | Detail for a debug readout. |
+
+Backends: [iOS (ARKit)](../../../native/ios/eye_gaze/README.md). Android
+follows the same contract.
 
 Screen-relative, not head-relative, because on a phone what the game can
 respond to is where on the screen the player is looking, and the phone moves

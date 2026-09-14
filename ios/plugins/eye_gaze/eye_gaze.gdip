@@ -1,0 +1,16 @@
+[config]
+
+name="EyeGaze"
+binary="eye_gaze.a"
+initialization="eye_gaze_plugin_init"
+deinitialization="eye_gaze_plugin_deinit"
+
+[dependencies]
+
+linked=[]
+embedded=[]
+system=["ARKit.framework", "AVFoundation.framework"]
+capabilities=[]
+files=[]
+
+[plist]

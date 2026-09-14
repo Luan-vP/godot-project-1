@@ -35,6 +35,8 @@ var _camera_button: Button
 var _running: bool = false
 var _frame_times: Array[float] = []
 var _last_timestamp: float = NAN
+var _logged_state: int = -1
+var _logged_at: float = -INF
 
 
 func _ready() -> void:
@@ -57,6 +59,7 @@ func _process(delta: float) -> void:
 	_heading.x = wrapf(_heading.x - turn.x, -PI, PI)
 	_heading.y = clampf(_heading.y - turn.y, -deg_to_rad(85.0), deg_to_rad(85.0))
 	_count_frame(_source.last_sample.timestamp)
+	_log_reading(_source.last_sample)
 	_readout.text = _describe()
 	queue_redraw()
 
@@ -122,6 +125,8 @@ func _build_ui() -> void:
 		margin.add_theme_constant_override("margin_" + side, 24)
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(margin)
+	# Clear of the Dynamic Island and home indicator on a phone.
+	SafeArea.fit_control(margin)
 
 	var column := VBoxContainer.new()
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -195,6 +200,33 @@ func _count_frame(timestamp: float) -> void:
 		_frame_times.append(now)
 	while not _frame_times.is_empty() and now - _frame_times[0] > 1.0:
 		_frame_times.pop_front()
+
+
+## A line per tracking state change, and one a second while tracking, so a
+## device log shows the tracker coming alive, finding a face, the gaze moving
+## and the turn it makes, without anyone reading the screen.
+func _log_reading(sample: EyeGazeSample) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	var periodic := sample.is_tracking() and now - _logged_at >= 1.0
+	if sample.state == _logged_state and not periodic:
+		return
+	_logged_state = sample.state
+	_logged_at = now
+	print(
+		(
+			"[eye gaze] %s via %s, gaze %s, head %s, confidence %.2f, blink %.2f, turn %s/s %s"
+			% [
+				EyeGazeSample.state_name(sample.state),
+				_source.describe(),
+				_degrees(sample.gaze),
+				_degrees(sample.head),
+				sample.confidence,
+				sample.blink,
+				_degrees(_source.filter.rate),
+				sample.message,
+			]
+		)
+	)
 
 
 func _describe() -> String:

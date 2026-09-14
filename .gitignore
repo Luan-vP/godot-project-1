@@ -19,3 +19,6 @@ Thumbs.db
 
 # GUT test output
 gut_results.xml
+
+# Native plugin build products (rebuilt by native/*/build.sh)
+ios/plugins/*/*.a

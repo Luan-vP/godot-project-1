@@ -11,8 +11,9 @@ extends RefCounted
 ##
 ## Angles are radians relative to the screen, not the head: a tracker reports
 ## where the player is looking, and on a phone that is the thing the game can
-## respond to. Zero is along the screen's normal through the front camera,
-## which is not the middle of the screen — the reason calibration exists.
+## respond to. Zero is perpendicular to the screen, which is not where a
+## player looking at the middle of it is looking — the reason calibration
+## exists.
 
 ## Where the tracker is in its life. Numbered explicitly because native code
 ## sends these as plain integers.
