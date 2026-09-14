@@ -23,7 +23,7 @@ func test_base_edge_source_also_has_no_edges() -> void:
 func test_one_polyline_produces_one_edge_with_one_point_per_vertex() -> void:
 	var source := ManualEdgeSource.new()
 	source.edges_degrees = [
-		PackedVector2Array([Vector2(-10.0, 0.0), Vector2(0.0, 0.0), Vector2(10.0, 0.0)])
+		PackedVector2Array([Vector2(-10.0, 0.0), Vector2(0.0, 0.0), Vector2(10.0, 0.0)]),
 	]
 	var edges := source.get_edges()
 	assert_eq(edges.size(), 1)
@@ -47,7 +47,7 @@ func test_edge_id_is_the_polyline_index_and_stable_across_calls() -> void:
 func test_directions_are_unit_length() -> void:
 	var source := ManualEdgeSource.new()
 	source.edges_degrees = [
-		PackedVector2Array([Vector2(-30.0, 45.0), Vector2(0.0, 10.0), Vector2(60.0, -20.0)])
+		PackedVector2Array([Vector2(-30.0, 45.0), Vector2(0.0, 10.0), Vector2(60.0, -20.0)]),
 	]
 	for point in source.get_edges()[0].points:
 		assert_almost_eq(point.direction.length(), 1.0, EPSILON, "Direction must sit on the sphere")
@@ -57,7 +57,7 @@ func test_directions_are_unit_length() -> void:
 func test_tangent_is_perpendicular_to_direction() -> void:
 	var source := ManualEdgeSource.new()
 	source.edges_degrees = [
-		PackedVector2Array([Vector2(-20.0, 5.0), Vector2(0.0, 0.0), Vector2(25.0, -8.0)])
+		PackedVector2Array([Vector2(-20.0, 5.0), Vector2(0.0, 0.0), Vector2(25.0, -8.0)]),
 	]
 	for point in source.get_edges()[0].points:
 		assert_almost_eq(
