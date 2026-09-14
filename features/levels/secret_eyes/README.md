@@ -28,6 +28,32 @@ main level. Until then `run/main_scene` is the development demo menu
 the main level lands, it takes over `run/main_scene` and the menu either
 drops this entry or stops shipping, so the secret stays one.
 
+## Eye band
+
+`eye_band_demo.tscn` (`scripts/run.sh band`) is the same tank with music in
+it. [`EyeBand`](eye_band.gd) gives each eye one part of a 70 bpm loop in A
+minor — biggest eye the beat, then bass, pads, melody, arp, ghost drums, and
+the smallest the shimmer — and a part plays only while its eye floats clear of
+the tank walls. Push an eye against a wall (tilt with the arrows, or stir) and
+its part drops out at the next bar; let it drift free and it comes back.
+
+Left alone, eyes in this tank random-walk into the walls within about ten
+seconds and stick there, which would silence the band almost at once. The
+demo adds a soft spring towards the middle (`CENTRE_PULL`, 0.1). At 0.4 a
+free tank played nearly the whole arrangement and a held tilt pinned most
+eyes; at 0.8 a full tilt pinned nothing. 0.1 was picked by ear to leave the
+eyes looser, so keeping the band playing takes some work.
+
+A ring round each eye shows its state: bright while playing, red while pressed
+against a wall, faint while silent. Contact has hysteresis — an eye takes hold
+of a wall within 10 px of its rim and lets go only past 40 px — so one bobbing
+at the edge does not stutter its part.
+
+This is a sketch of the idea in #9 — the music is the reward for an
+arrangement you hold against a drifting medium — using walls where the real
+game will use panorama edges, and with the rule inverted: here staying *off*
+the edge is what plays.
+
 ## Pieces
 
 Kept together because they only make sense as a set:
@@ -35,6 +61,8 @@ Kept together because they only make sense as a set:
 | File | What it is |
 | --- | --- |
 | `fluid_demo.gd` | Builds the tank, drops the eyes in, wires up input. |
+| `eye_band.gd` | `EyeBand` — one part of the music per eye, heard while it is clear of the walls. |
+| `eye_band_demo.gd` | The tank plus an `EyeBand`, rings round the eyes and a parts readout. |
 | `floaty_eye.gd` | `FloatyEye` — a [`FluidBody`](../../fluid/fluid_body.gd) with a face. |
 | `eye.gdshader` | The procedural eye look: squash-along-motion and gaze read off the fluid. |
 | `fluid_demo.tscn` | The single-node scene entry point. |

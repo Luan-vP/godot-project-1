@@ -26,6 +26,8 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
   menu       Click into any of the demos below; Backspace comes back.
   eyes       Secret level: the eye tank. Drag to stir and paint, arrows tilt,
              Space jogs, B blinks, R empties the tank, C recalibrates.
+  band       The eye tank as a band: each eye plays one part of a 70 bpm loop
+             while it floats clear of the walls. Arrows tilt, drag stirs.
   vitreous   Out-of-focus floaters drifting in a coasting gel. Drag to push,
              arrows tilt, Space jogs, +/- floaters, F toggles focus, R stills.
   overcast   Panorama level: bright overcast sky, floaters unmissable. Mouse
@@ -52,6 +54,7 @@ scene_for() {
 	case "$1" in
 		menu) echo "res://features/ui/demo_menu/demo_menu.tscn" ;;
 		eyes | secret-eyes | fluid) echo "res://features/levels/secret_eyes/fluid_demo.tscn" ;;
+		band | eye-band) echo "res://features/levels/secret_eyes/eye_band_demo.tscn" ;;
 		vitreous | floaters) echo "res://features/levels/vitreous/vitreous_tank.tscn" ;;
 		overcast | panorama) echo "res://features/levels/panorama/overcast_sky.tscn" ;;
 		interior) echo "res://features/levels/panorama/dim_interior.tscn" ;;

@@ -29,6 +29,12 @@ const DEMOS: Array[Dictionary] = [
 		"blurb": "Secret level: the eye tank. Drag to stir and paint, arrows tilt, Space jogs.",
 	},
 	{
+		"name": "Eye band",
+		"path": "res://features/levels/secret_eyes/eye_band_demo.tscn",
+		"blurb":
+		"Each eye plays a part while it stays off the walls. Tilt or stir to thin the music.",
+	},
+	{
 		"name": "Vitreous",
 		"path": "res://features/levels/vitreous/vitreous_tank.tscn",
 		"blurb": "Out-of-focus floaters in a coasting gel. Drag to push, +/- floaters.",
