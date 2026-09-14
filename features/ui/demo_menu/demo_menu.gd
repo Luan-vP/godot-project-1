@@ -58,6 +58,11 @@ const DEMOS: Array[Dictionary] = [
 		"path": "res://core/audio/audio_demo.tscn",
 		"blurb": "Bus sliders and mutes, loop layers, the smoothed effect fader.",
 	},
+	{
+		"name": "Arrangement",
+		"path": "res://core/audio/arrangement_demo.tscn",
+		"blurb": "Scoring drives the layer stack (#34). +/- floaters, C clustered/scattered.",
+	},
 ]
 
 const BACKGROUND := Color(0.08, 0.085, 0.1)

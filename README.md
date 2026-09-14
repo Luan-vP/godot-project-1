@@ -49,6 +49,7 @@ scripts/run.sh refraction  # the clear medium bending a checkerboard
 scripts/run.sh synth       # play the synth voices from the keyboard
 scripts/run.sh groove      # synthwave loop: drums on the step grid, bass and pads
 scripts/run.sh audio       # buses, loop layers, the effect fader
+scripts/run.sh arrangement # scoring drives the layer stack (#34)
 ```
 
 It finds Godot from `$GODOT`, then `godot4`/`godot` on `PATH`, then

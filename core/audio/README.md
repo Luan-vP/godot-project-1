@@ -373,3 +373,80 @@ snare with a 185/330 Hz body under high-passed noise, a clap of three noise
 bursts and a tail, and hats built from the TR-808's six square-wave partials
 through a high-pass. Every hit is normalised to the same peak and built from a
 fixed noise seed, so it is identical every time.
+
+## Arrangement
+
+The generative layer (#34): turning a scoring snapshot into which of the
+layers above are playing, so a fuller arrangement *is* the reward for playing
+well, per #28's direction.
+
+| Script | What it is |
+| --- | --- |
+| [`../scoring/scoring_intensity.gd`](../scoring/scoring_intensity.gd) | `ScoringIntensity` — a `ScoringSnapshot` reduced to one number. |
+| [`arrangement_director.gd`](arrangement_director.gd) | `ArrangementDirector` — pure: intensity in, layer stack out, with hysteresis. |
+| [`music_arrangement.gd`](music_arrangement.gd) | `MusicArrangement` — wires `EventBus.scoring_updated` to the director and `AudioManager`. |
+
+### Superlinear on purpose
+
+`ScoringIntensity.compute` sums each active edge's contact count *squared*,
+not summed plain. That is what makes several floaters sharing one edge sound
+more rewarding than the same floaters scattered across several — three
+stacked score 9, the same three split 2-and-1 score only 5 — matching #26's
+rule that clustering, not just floater count, is what the game wants. Nothing
+downstream needs to know this is how the number was produced; it is just a
+float that goes up faster when play gets better in the way that matters.
+
+### The hard part is leaving gracefully, not arriving
+
+Scoring flickers as floaters drift on and off an edge, and a layer that pops
+in and out on every flicker sounds broken — the concern #34 flagged as most
+of the work. `ArrangementDirector` climbs its layer stack immediately (a
+player doing well should hear it right away, modulo the bar boundary
+`AudioManager.set_layer_active` waits for anyway), but only ever drops one
+layer, and only once intensity has sat continuously below that layer's
+threshold for `release_seconds` *and* the layer has already been in for at
+least `min_hold_seconds`. Both gates exist because either alone still lets a
+score hovering right at a threshold chatter: a hold time alone doesn't stop a
+layer that already survived it from leaving the instant intensity dips
+again, and a release lag alone doesn't stop a layer that only just arrived
+from immediately starting its countdown. Losing several layers at once still
+peels off one at a time, its own `release_seconds` apiece, which is what
+turns "falling from a good state to a poor one" into a decay instead of a cut.
+
+Pure and clock-free like `MusicClock` and `LoopLayerScheduler`:
+`ArrangementDirector.update` takes the elapsed seconds it should answer for
+rather than reading one itself, so `tests/test_arrangement_director.gd` drives
+a scripted sequence of intensity readings and asserts exactly which layers are
+active — the "deterministic enough to test" acceptance criterion — with no
+scene tree and no running game.
+
+### Silence is not a valid state
+
+#28 answered the question #34's notes left open: at zero scoring the
+arrangement is a quiet floaty bed (a soft pad or drone), never nothing. That
+bed is deliberately outside `ArrangementDirector`'s layer stack rather than a
+zeroth rung of it — a caller turns it on once with
+`AudioManager.set_layer_active` and never asks the director about it, the
+same way a game turns on any other always-on layer. See
+`core/audio/arrangement_demo.gd` for a worked example.
+
+### Effects move continuously, through `ParameterFader`
+
+`MusicArrangement.effect_faders` is an array of `ParameterFader`s advanced
+every frame with intensity normalised 0..1 against the top of the layer
+stack's thresholds. `MusicArrangement` only supplies that number — what a
+fader is attached to, and what range it maps onto, is the caller's musical
+decision (#32 mechanism, not a #34 direction), so nothing here hardcodes an
+effect. Left empty, `MusicArrangement` only drives the layer stack.
+
+### Proving it without a scorer
+
+#26 (the scorer) and #23 (the edge detector) don't exist yet, so
+`core/audio/arrangement_demo.tscn` (`scripts/run.sh arrangement`) stands in
+for both: pressing +/- publishes a hand-built `ScoringSnapshot` through
+`EventBus.scoring_updated`, exactly the shape a real scorer will one day
+publish, and C switches between clustering those simulated floaters on one
+edge and scattering them — the one thing worth listening for, since it is
+what makes the superlinear rule audible. Layer material is the groove demo's
+own drum patterns (#59), reused rather than invented, per #34's note not to
+default into a musical direction here.
