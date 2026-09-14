@@ -111,6 +111,21 @@ func test_opening_a_second_demo_closes_the_first() -> void:
 	assert_true(_menu.is_demo_open(), "The second is running")
 
 
+func test_launch_options_pick_demos_by_loose_name() -> void:
+	var options := DemoMenu.launch_options(PackedStringArray(["--verbose", "--open=Vitreous"]))
+	assert_eq(options.get("open"), DemoMenu.DEMOS[1]["path"], "Case does not matter")
+	assert_false(options.has("probe"), "Not probing")
+	var probe := DemoMenu.launch_options(PackedStringArray(["--probe=eyes,overcast_sky"]))
+	var names: Array = probe["probe"].map(func(demo): return demo["name"])
+	assert_eq(names, ["Eyes", "Overcast Sky"], "Menu order, spaces as underscores")
+	assert_eq(DemoMenu.launch_options(PackedStringArray(["--probe"]))["probe"].size(), 8, "All")
+
+
+func test_an_unknown_demo_name_opens_nothing() -> void:
+	assert_false(DemoMenu.launch_options(PackedStringArray(["--open=nope"])).has("open"))
+	assert_false(DemoMenu.launch_options(PackedStringArray(["--open="])).has("open"))
+
+
 static func _key(code: Key, pressed: bool, echo: bool) -> InputEventKey:
 	var event := InputEventKey.new()
 	event.keycode = code

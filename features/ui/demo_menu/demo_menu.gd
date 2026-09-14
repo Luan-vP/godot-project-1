@@ -19,6 +19,12 @@ extends Control
 ## On a phone there is no Backspace, so the corner hint is a real button, and
 ## the layout keeps clear of the Dynamic Island and home indicator (see
 ## [SafeArea]). The card grid drops to one column in portrait.
+##
+## Two launch options exist for a device nobody is holding, where the only
+## way in is the command line (see "Building for iPhone" in the README):
+## [code]--open=eyes[/code] goes straight into a demo, and
+## [code]--probe[/code] or [code]--probe=eyes,vitreous[/code] hands the menu to
+## a [FrameProbe], which quits the app when it is done.
 
 ## Emitted after a demo has been instanced and made the current scene.
 signal demo_opened(path: String)
@@ -104,6 +110,7 @@ func _ready() -> void:
 	_fit_to_screen()
 	get_viewport().size_changed.connect(_fit_to_screen)
 	_focus_first_card()
+	_apply_launch_options.call_deferred(launch_options(_command_line()))
 
 
 ## Whether a demo is running in front of the menu.
@@ -159,6 +166,55 @@ func _input(event: InputEvent) -> void:
 		return
 	get_viewport().set_input_as_handled()
 	close_demo()
+
+
+## The demos a comma-separated [param names] list picks, matched loosely:
+## "eyes", "Overcast Sky" and "overcast_sky" all work. Empty picks them all.
+static func demos_named(names: String) -> Array[Dictionary]:
+	var picked: Array[Dictionary] = []
+	var wanted := PackedStringArray()
+	for part in names.split(",", false):
+		wanted.append(_slug(part))
+	for demo in DEMOS:
+		if wanted.is_empty() or wanted.has(_slug(demo["name"])):
+			picked.append(demo)
+	return picked
+
+
+## Read [code]--open=[/code] and [code]--probe[=][/code] out of command-line
+## [param args]. Unknown arguments are left alone; they belong to Godot.
+static func launch_options(args: PackedStringArray) -> Dictionary:
+	var options := {}
+	for arg in args:
+		if arg.begins_with("--open="):
+			var found := demos_named(arg.trim_prefix("--open="))
+			if found.size() > 0 and not arg.trim_prefix("--open=").is_empty():
+				options["open"] = found[0]["path"]
+		elif arg == "--probe":
+			options["probe"] = demos_named("")
+		elif arg.begins_with("--probe="):
+			options["probe"] = demos_named(arg.trim_prefix("--probe="))
+	return options
+
+
+static func _slug(text: String) -> String:
+	return text.strip_edges().to_lower().replace(" ", "_")
+
+
+func _command_line() -> PackedStringArray:
+	return OS.get_cmdline_args() + OS.get_cmdline_user_args()
+
+
+func _apply_launch_options(options: Dictionary) -> void:
+	if options.has("probe"):
+		var which: Array[Dictionary] = options["probe"]
+		var probe := FrameProbe.new(self, which)
+		# Unattended: nobody is there to close the app, and devicectl's console
+		# waits for it to exit.
+		probe.finished.connect(func(_report): get_tree().quit())
+		add_child(probe)
+	elif options.has("open"):
+		open_demo(options["open"])
 
 
 ## How many columns of cards fit a canvas [param width] units wide.
