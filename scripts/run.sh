@@ -34,6 +34,10 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
              controls as overcast.
   refraction Clear medium over a checkerboard: only the bend shows. Drag to
              stir, +/- tune strength down to zero, R stills.
+  gaze       Eye tracking debug: tracking state, raw gaze, the gaze point and
+             the turn it makes. Calibrate, then look. Without the device
+             plugin the pointer stands in: C calibrates, Space blinks, F hides
+             the face, M switches backend.
   synth      Synth voices. A-K hold notes, Up/Down glide, 1/2/3 waveform,
              R plays a phrase, Space holds a high note.
   groove     Floaty synthwave loop at 70 bpm: rendered drums plus live bass and
@@ -56,6 +60,7 @@ scene_for() {
 		overcast | panorama) echo "res://features/levels/panorama/overcast_sky.tscn" ;;
 		interior) echo "res://features/levels/panorama/dim_interior.tscn" ;;
 		refraction) echo "res://features/fluid/refraction_demo.tscn" ;;
+		gaze | eye-gaze | eye-tracking) echo "res://core/look/gaze/gaze_debug_demo.tscn" ;;
 		synth) echo "res://core/audio/synth_demo.tscn" ;;
 		groove) echo "res://core/audio/groove_demo.tscn" ;;
 		audio) echo "res://core/audio/audio_demo.tscn" ;;

@@ -19,6 +19,12 @@ signal looked(delta: Vector2)
 ## Nodes register here so consumers can find the input without wiring.
 const GROUP_NAME := "look_input"
 
+## Add eye tracking to the default mix when this build carries a gaze plugin.
+## The plugin reports for itself whether the hardware can track; on a build
+## without one (every desktop build) this changes nothing. Turning it off is
+## the switch for a player who would rather the camera stayed off.
+@export var eye_tracking: bool = true
+
 var _sources: Array[LookSource] = []
 
 
@@ -27,6 +33,20 @@ func _ready() -> void:
 	if _sources.is_empty():
 		add_source(MouseLookSource.new())
 		add_source(GamepadLookSource.new())
+		if eye_tracking and NativeEyeGazeBackend.is_present():
+			add_source(EyeGazeLookSource.new())
+
+
+func _enter_tree() -> void:
+	# Re-entering the tree reopens what leaving it closed. On the first entry
+	# the mix is still empty; sources added in _ready start in add_source.
+	for source in _sources:
+		source.start()
+
+
+func _exit_tree() -> void:
+	for source in _sources:
+		source.stop()
 
 
 ## Forwards mouse motion to any source that wants it — [MouseLookSource], in
@@ -45,12 +65,24 @@ func _unhandled_input(event: InputEvent) -> void:
 ## as [method MotionInput.set_source].
 func add_source(source: LookSource) -> void:
 	_sources.append(source)
+	if is_inside_tree():
+		source.start()
 
 
 ## Drop every configured source, so a test starts from a known, empty mix
 ## instead of the desktop defaults installed in [method _ready].
 func clear_sources() -> void:
+	for source in _sources:
+		source.stop()
 	_sources.clear()
+
+
+## Re-take neutral on every source that has one — eye gaze, today. Wire it to a
+## recentre action.
+func calibrate() -> void:
+	for source in _sources:
+		if source.has_method("calibrate"):
+			source.calibrate()
 
 
 ## Human-readable summary of what is contributing, for a debug readout.

@@ -26,6 +26,7 @@ tested.
 | `MouseLookSource` | desktop and anywhere else with a mouse |
 | `GamepadLookSource` | the right stick |
 | `ScriptedLookSource` | tests, and replaying a recorded look |
+| `EyeGazeLookSource` | eye tracking on a device with the gaze plugin — see [gaze/README.md](gaze/README.md) |
 
 Touch drag is not implemented. The acceptance criteria asked for the mouse
 plus at least one of gamepad stick or touch drag; the gamepad covers that,
@@ -55,6 +56,14 @@ To swap the mix, in a test or to add a source:
 camera.get_look_input().clear_sources()
 camera.get_look_input().add_source(my_source)
 ```
+
+## Source lifecycle
+
+`LookSource.start()` / `stop()` default to nothing. `LookInput` calls them as
+sources join and leave a mix that is in the tree, because eye gaze holds the
+device camera open and must not do so while nothing is looking.
+`LookInput.calibrate()` (bound to `C` and a double tap by
+`PanoramaLookCamera`) re-takes neutral on any source that has one.
 
 ## Mouse capture
 

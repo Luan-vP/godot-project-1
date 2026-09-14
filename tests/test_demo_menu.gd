@@ -118,7 +118,11 @@ func test_launch_options_pick_demos_by_loose_name() -> void:
 	var probe := DemoMenu.launch_options(PackedStringArray(["--probe=eyes,overcast_sky"]))
 	var names: Array = probe["probe"].map(func(demo): return demo["name"])
 	assert_eq(names, ["Eyes", "Overcast Sky"], "Menu order, spaces as underscores")
-	assert_eq(DemoMenu.launch_options(PackedStringArray(["--probe"]))["probe"].size(), 8, "All")
+	assert_eq(
+		DemoMenu.launch_options(PackedStringArray(["--probe"]))["probe"].size(),
+		DemoMenu.DEMOS.size(),
+		"All"
+	)
 
 
 func test_an_unknown_demo_name_opens_nothing() -> void:
