@@ -345,7 +345,9 @@ func _run_step(frame: Dictionary) -> void:
 		_dispatch(list, "pressure", _sets["pressure"][i % 2], solve, _groups)
 	_dispatch(list, "project", _sets["project" + suffix], solve, _groups)
 	if _pigment_enabled:
-		var pigment := _pack_params(frame, _size, frame["dye_dissipation"], frame["dye_splat_count"])
+		var pigment := _pack_params(
+			frame, _size, frame["dye_dissipation"], frame["dye_splat_count"]
+		)
 		_dispatch(list, "dye", _sets["dye"], pigment, _groups)
 	_dispatch(list, "downsample", _sets["downsample"], resample, _readback_groups)
 	_rd.compute_list_end()
