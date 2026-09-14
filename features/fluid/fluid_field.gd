@@ -10,6 +10,10 @@ extends RefCounted
 ## Grid values are stored in simulation cells per second. [method sample_world]
 ## returns pixels per second, which is what game code actually wants.
 
+## Whether sampling past an edge reads round to the opposite one, matching a
+## tank built with [member FluidConfig.wrap_edges]. Off, it clamps.
+var wrap_edges: bool = false
+
 var _width: int = 0
 var _height: int = 0
 var _cells: PackedVector2Array = PackedVector2Array()
@@ -35,7 +39,8 @@ func resize(width: int, height: int) -> void:
 ##
 ## Sampling outside [param rect] clamps to the nearest edge rather than
 ## returning zero, so a body that drifts out of the tank still feels the
-## current at the wall instead of going limp.
+## current at the wall instead of going limp — or, with [member wrap_edges],
+## reads the current on the far side it has wrapped round to.
 func configure_world(rect: Rect2, pixels_per_cell: Vector2) -> void:
 	_world_rect = rect
 	_pixels_per_cell = pixels_per_cell
@@ -57,10 +62,13 @@ func clear() -> void:
 	_cells.fill(Vector2.ZERO)
 
 
-## Cell velocity in cells/second. Coordinates are clamped into the grid.
+## Cell velocity in cells/second. Coordinates are clamped into the grid, or
+## wrapped round it with [member wrap_edges].
 func get_cell_velocity(x: int, y: int) -> Vector2:
 	if _cells.is_empty():
 		return Vector2.ZERO
+	if wrap_edges:
+		return _cells[posmod(y, _height) * _width + posmod(x, _width)]
 	var cx := clampi(x, 0, _width - 1)
 	var cy := clampi(y, 0, _height - 1)
 	return _cells[cy * _width + cx]
@@ -72,6 +80,17 @@ func set_cell_velocity(x: int, y: int, velocity: Vector2) -> void:
 	var cx := clampi(x, 0, _width - 1)
 	var cy := clampi(y, 0, _height - 1)
 	_cells[cy * _width + cx] = velocity
+
+
+## Mean velocity over the whole grid, in cells/second: how fast the medium as
+## a whole is moving, as opposed to swirling in place.
+func mean_velocity() -> Vector2:
+	if _cells.is_empty():
+		return Vector2.ZERO
+	var total := Vector2.ZERO
+	for cell in _cells:
+		total += cell
+	return total / float(_cells.size())
 
 
 ## Refill the grid from a readback image, taking velocity from the red and
@@ -95,9 +114,12 @@ func update_from_image(image: Image) -> void:
 func sample_uv(uv: Vector2) -> Vector2:
 	if _cells.is_empty():
 		return Vector2.ZERO
-	var point := Vector2(
-		clampf(uv.x, 0.0, 1.0) * float(_width) - 0.5, clampf(uv.y, 0.0, 1.0) * float(_height) - 0.5
+	var inside := (
+		Vector2(fposmod(uv.x, 1.0), fposmod(uv.y, 1.0))
+		if wrap_edges
+		else uv.clamp(Vector2.ZERO, Vector2.ONE)
 	)
+	var point := Vector2(inside.x * float(_width) - 0.5, inside.y * float(_height) - 0.5)
 	var x0 := int(floorf(point.x))
 	var y0 := int(floorf(point.y))
 	var weight := Vector2(point.x - float(x0), point.y - float(y0))

@@ -46,6 +46,7 @@ scripts/run.sh vitreous    # floaters in the vitreous gel
 scripts/run.sh eyes        # the secret eye tank
 scripts/run.sh panorama    # look-around camera (no panorama image yet)
 scripts/run.sh refraction  # the clear medium bending a checkerboard
+scripts/run.sh gaze        # look around to swish the floaters
 scripts/run.sh synth       # play the synth voices from the keyboard
 scripts/run.sh groove      # synthwave loop: drums on the step grid, bass and pads
 scripts/run.sh audio       # buses, loop layers, the effect fader

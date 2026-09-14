@@ -46,6 +46,11 @@ const DEMOS: Array[Dictionary] = [
 		"Dim panorama level, floaters barely there. Mouse/stick to look, Esc frees cursor.",
 	},
 	{
+		"name": "Gaze",
+		"path": "res://features/levels/gaze/gaze_demo.tscn",
+		"blurb": "Look around to swish the floaters. 1/2 hold and 3/4 flick sensitivity.",
+	},
+	{
 		"name": "Refraction",
 		"path": "res://features/fluid/refraction_demo.tscn",
 		"blurb": "Clear medium over a checkerboard. Drag to stir, +/- tune strength.",
