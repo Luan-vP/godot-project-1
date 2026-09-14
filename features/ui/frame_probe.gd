@@ -127,11 +127,14 @@ func _probe(demo: Dictionary) -> Dictionary:
 	result["compute"] = FluidGPU.is_available()
 	result["peak_before"] = still
 	result["peak_after"] = stirred
+	var motion := get_tree().get_first_node_in_group(MotionInput.GROUP_NAME) as MotionInput
+	result["motion"] = motion.get_source_description() if motion != null else "none"
 	_log(
 		(
 			(
 				"probe: %-12s %5.1f fps avg, %5.1f worst over %d frames"
 				+ " | tank %s, compute %s, peak %.1f -> %.1f cells/s"
+				+ " | motion %s, gravity %s"
 			)
 			% [
 				demo["name"],
@@ -142,6 +145,8 @@ func _probe(demo: Dictionary) -> Dictionary:
 				result["compute"],
 				still,
 				stirred,
+				result["motion"],
+				Input.get_gravity(),
 			]
 		)
 	)
