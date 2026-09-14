@@ -46,8 +46,10 @@ func _ready() -> void:
 		"Contact sound (#33)\n\n"
 		+ "1-6    hold a simulated floater's contact; position drifts while held\n"
 		+ "Space  fire a burst: every floater flickers on and off for a few seconds\n\n"
-		+ "Voice cap is %d — a 5th and 6th held contact stay silent until one frees."
-		% _contact_sound.voice_cap
+		+ (
+			"Voice cap is %d — a 5th and 6th held contact stay silent until one frees."
+			% _contact_sound.voice_cap
+		)
 	)
 	add_child(help)
 
