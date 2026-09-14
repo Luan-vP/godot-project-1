@@ -39,10 +39,10 @@ its part drops out at the next bar; let it drift free and it comes back.
 
 Left alone, eyes in this tank random-walk into the walls within about ten
 seconds and stick there, which would silence the band almost at once. The
-demo adds a soft spring towards the middle (`CENTRE_PULL`, 0.4): a free tank
-plays nearly the whole arrangement, dropping the odd part for a bar, and a
-held tilt pins most eyes and strips it back. At 0.8 a full tilt pinned
-nothing.
+demo adds a soft spring towards the middle (`CENTRE_PULL`, 0.1). At 0.4 a
+free tank played nearly the whole arrangement and a held tilt pinned most
+eyes; at 0.8 a full tilt pinned nothing. 0.1 was picked by ear to leave the
+eyes looser, so keeping the band playing takes some work.
 
 A ring round each eye shows its state: bright while playing, red while pressed
 against a wall, faint while silent. Contact has hysteresis — an eye takes hold

@@ -10,9 +10,10 @@ extends "res://features/levels/secret_eyes/fluid_demo.gd"
 ## seconds and stay there, which would leave the band silent almost at once.
 ## A soft spring towards the middle, in 1/second^2, keeps them afloat by
 ## default, weak enough that holding a tilt still pins them to a wall. At 0.8
-## even a full tilt pinned nothing; at 0.4 a held tilt pins most of them and
-## a free tank still loses the odd part for a bar or two.
-const CENTRE_PULL := 0.4
+## even a full tilt pinned nothing; at 0.4 a free tank played nearly the whole
+## arrangement. 0.1, chosen by ear, leaves the eyes looser: more drifting onto
+## walls on their own, and more work to keep the band playing.
+const CENTRE_PULL := 0.1
 
 const RING_GAP := 7.0
 const PLAYING_COLOR := Color(1.0, 1.0, 1.0, 0.8)
