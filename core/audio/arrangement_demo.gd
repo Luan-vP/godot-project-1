@@ -105,7 +105,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 func _current_snapshot() -> ScoringSnapshot:
 	var contacts: Array[ScoringContact] = []
 	for i in _floater_count:
-		var edge_id := (i if _scattered else 0)
+		var edge_id := i if _scattered else 0
 		contacts.append(ScoringContact.new(edge_id, i, 0.5))
 	return ScoringSnapshot.new(contacts)
 

@@ -15,19 +15,25 @@ func test_one_contact_scores_one() -> void:
 
 
 func test_three_floaters_on_one_edge_score_more_than_scattered() -> void:
-	var clustered := ScoringSnapshot.new(
-		[
-			ScoringContact.new(1, 100, 0.1),
-			ScoringContact.new(1, 200, 0.4),
-			ScoringContact.new(1, 300, 0.9),
-		]
+	var clustered := (
+		ScoringSnapshot
+		. new(
+			[
+				ScoringContact.new(1, 100, 0.1),
+				ScoringContact.new(1, 200, 0.4),
+				ScoringContact.new(1, 300, 0.9),
+			]
+		)
 	)
-	var scattered := ScoringSnapshot.new(
-		[
-			ScoringContact.new(1, 100, 0.1),
-			ScoringContact.new(2, 200, 0.4),
-			ScoringContact.new(3, 300, 0.9),
-		]
+	var scattered := (
+		ScoringSnapshot
+		. new(
+			[
+				ScoringContact.new(1, 100, 0.1),
+				ScoringContact.new(2, 200, 0.4),
+				ScoringContact.new(3, 300, 0.9),
+			]
+		)
 	)
 	assert_eq(ScoringIntensity.compute(clustered), 9.0, "3 squared")
 	assert_eq(ScoringIntensity.compute(scattered), 3.0, "1 squared three times")
@@ -39,12 +45,15 @@ func test_three_floaters_on_one_edge_score_more_than_scattered() -> void:
 
 
 func test_two_and_one_split_scores_between_fully_clustered_and_fully_scattered() -> void:
-	var split := ScoringSnapshot.new(
-		[
-			ScoringContact.new(1, 100, 0.1),
-			ScoringContact.new(1, 200, 0.4),
-			ScoringContact.new(2, 300, 0.9),
-		]
+	var split := (
+		ScoringSnapshot
+		. new(
+			[
+				ScoringContact.new(1, 100, 0.1),
+				ScoringContact.new(1, 200, 0.4),
+				ScoringContact.new(2, 300, 0.9),
+			]
+		)
 	)
 	assert_eq(ScoringIntensity.compute(split), 5.0, "2 squared plus 1 squared")
 
