@@ -73,6 +73,15 @@ extends Resource
 ## advect the field halfway across the tank in one go.
 @export_range(0.004, 0.1, 0.001) var max_time_step: float = 1.0 / 45.0
 
+@export_group("Pigment")
+## Whether the dye field is simulated at all. A tank rendered with
+## [FluidRefractionRenderer] never reads it, so turning this off skips the dye
+## dispatch and the texture copy that follows it every frame, and the dye
+## texture pair is never allocated. [method FluidSimulation.get_dye_texture]
+## returns null and [method FluidSimulation.add_paint] becomes a no-op. In the
+## same spirit as [member readback_enabled].
+@export var pigment_enabled: bool = true
+
 @export_group("Readback")
 ## Whether the CPU mirror is maintained at all. Turn this off for a purely
 ## decorative tank — it is the only part of the simulation that stalls the GPU.

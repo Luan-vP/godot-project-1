@@ -92,3 +92,4 @@ func test_defaults_are_usable() -> void:
 	assert_gt(_config.readback_interval, 0, "A zero interval would never read back")
 	assert_gt(_config.world_size.x, 0.0, "The tank needs width")
 	assert_gt(_config.world_size.y, 0.0, "The tank needs height")
+	assert_true(_config.pigment_enabled, "Existing tanks should keep pigment unless they opt out")
