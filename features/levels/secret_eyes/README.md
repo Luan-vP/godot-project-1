@@ -31,10 +31,17 @@ drops this entry or stops shipping, so the secret stays one.
 ## Eye band
 
 `eye_band_demo.tscn` (`scripts/run.sh band`) is the same tank with music in
-it. [`EyeBand`](eye_band.gd) gives each eye one part of a 70 bpm loop in A
-minor — biggest eye the beat, then bass, pads, melody, arp, ghost drums, and
-the smallest the shimmer — and a part plays only while its eye floats clear of
-the tank walls. Push an eye against a wall (tilt with the arrows, or stir) and
+it. [`EyeBand`](eye_band.gd) gives each eye one part of a song — biggest eye
+the beat, then bass, pads, melody, arp, ghost drums, and the smallest the
+shimmer — and a part plays only while its eye floats clear of the tank walls.
+
+Each time the band starts it picks one of four songs from
+[`EyeBandSongs`](eye_band_songs.gd) at random: *Glass Tide* (A minor, 70 bpm),
+*Low Sun* (D dorian, 64 bpm, half-time), *Night Pool* (F major, 74 bpm, running
+arp) and *Slow Orbit* (E minor, 60 bpm). A song is sections of chords that
+branch into one another as it plays, so the progression wanders instead of
+looping four bars; a fill plays over the beat on the last bar of each section.
+The readout shows the song and the section playing. Push an eye against a wall (tilt with the arrows, or stir) and
 its part drops out at the next bar; let it drift free and it comes back.
 
 Left alone, eyes in this tank random-walk into the walls within about ten
@@ -62,6 +69,7 @@ Kept together because they only make sense as a set:
 | --- | --- |
 | `fluid_demo.gd` | Builds the tank, drops the eyes in, wires up input. |
 | `eye_band.gd` | `EyeBand` — one part of the music per eye, heard while it is clear of the walls. |
+| `eye_band_songs.gd` | `EyeBandSongs` — the four songs the band picks from. |
 | `eye_band_demo.gd` | The tank plus an `EyeBand`, rings round the eyes and a parts readout. |
 | `floaty_eye.gd` | `FloatyEye` — a [`FluidBody`](../../fluid/fluid_body.gd) with a face. |
 | `eye.gdshader` | The procedural eye look: squash-along-motion and gaze read off the fluid. |

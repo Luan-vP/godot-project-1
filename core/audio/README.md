@@ -373,3 +373,36 @@ snare with a 185/330 Hz body under high-passed noise, a clap of three noise
 bursts and a tail, and hats built from the TR-808's six square-wave partials
 through a high-pass. Every hit is normalised to the same peak and built from a
 fixed noise seed, so it is identical every time.
+
+## Songs: chords that branch
+
+For music that should not audibly loop, a [`Song`](song.gd) is written as data:
+named sections of chord symbols, each listing which sections may follow it and
+how likely each is. [`SongWalker`](song_walker.gd) lays the path through them
+bar by bar as it plays, seeded, so the progression branches but a replay with
+the same seed walks the same way.
+
+```gdscript
+song.sections = {
+    "A": {"bars": "Am | F | C | G", "next": {"A2": 2, "B": 1}},
+    "B": {"bars": "Dm | Am | F | G,Em", "next": {"A": 1}},  # "G,Em" splits the bar
+}
+var walker := SongWalker.new(song, rng)
+walker.chord_at(bar, step_in_bar)  # -> Chord
+```
+
+[`Chord`](chord.gd) reads symbols (`Am`, `Fmaj7`, `Dm9`, `A7sus4`, `Bbmaj7`, …)
+and voices them for each part: a close voicing inside a register for pads, the
+root down low for bass, the chord tones in a range for an arp or a melody.
+Registers fold notes down rather than letting them climb somewhere shrill.
+
+[`MelodyWriter`](melody_writer.gd) writes each section's melody from the song's
+rhythms: chord tones on the beat, scale steps off it, always the nearest
+candidate to the note before so the line moves by step, settling on the root
+or third at the end. It is seeded by song and section, so a section's melody
+is the same every time that section comes round — the form stays recognisable
+while the order of sections varies.
+
+`problems()` on a song lists anything written wrong (a chord that does not
+parse, a section leading nowhere, a pattern of the wrong length); the eye
+band's songs are checked with it in `tests/test_eye_band_songs.gd`.
