@@ -125,9 +125,7 @@ func test_pigment_disabled_skips_the_dye_field_entirely() -> void:
 	# Calling it anyway should be a silent no-op, not an error.
 	clear_tank.add_paint(PAINT_POINT, PAINT_COLOR, PAINT_RATE, PAINT_RADIUS, PAINT_DURATION)
 
-	clear_tank.add_velocity_impulse(
-		IMPULSE_POINT, IMPULSE_ACCEL, IMPULSE_RADIUS, IMPULSE_DURATION
-	)
+	clear_tank.add_velocity_impulse(IMPULSE_POINT, IMPULSE_ACCEL, IMPULSE_RADIUS, IMPULSE_DURATION)
 	await _step_frames(1)
 	var current := clear_tank.get_field().sample_world(IMPULSE_POINT).length()
 	assert_gt(current, 0.0, "The velocity solve should still run with pigment off")
