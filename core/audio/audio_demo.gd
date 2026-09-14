@@ -246,6 +246,8 @@ func _build_fader_demo_row() -> VBoxContainer:
 		"ParameterFader demo: filter cutoff (SFX) + reverb wet (Music), swept every %.0fs"
 		% _SWEEP_PERIOD
 	)
+	# Wider than a phone held upright.
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	section.add_child(label)
 
 	_smooth_check = CheckBox.new()
