@@ -66,7 +66,11 @@ func _process(delta: float) -> void:
 		if _band.is_playing(part) != _band.wants_part(part):
 			mark = "◐"
 		parts.append("%s %s" % [mark, part])
-	_parts_label.text = "   ".join(parts) + "      keep eyes off the walls to hear them"
+	_parts_label.text = (
+		"♪ %s · %s\n" % [_band.song_title(), _band.current_section()]
+		+ "   ".join(parts)
+		+ "      keep eyes off the walls to hear them"
+	)
 
 
 ## A ring round each eye: bright while its part plays, red while it is pressed
