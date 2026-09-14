@@ -22,7 +22,9 @@ A 2D game about floaty eye thingies, in a painterly style. Godot 4.4.
   developed on a desktop and tested in CI. See its
   [README](core/motion/README.md).
 - `core/look/` — camera look input (mouse, gamepad) behind a port, the same
-  shape as `core/motion`. See its [README](core/look/README.md).
+  shape as `core/motion`, including eye tracking on devices with the gaze
+  plugin. See its [README](core/look/README.md) and
+  [gaze README](core/look/gaze/README.md).
 - `core/audio/` — the audio foundation: bus layout, `AudioManager`, and a
   manual demo scene to prove it makes a sound. See its
   [README](core/audio/README.md).
@@ -46,6 +48,7 @@ scripts/run.sh vitreous    # floaters in the vitreous gel
 scripts/run.sh eyes        # the secret eye tank
 scripts/run.sh panorama    # look-around camera (no panorama image yet)
 scripts/run.sh refraction  # the clear medium bending a checkerboard
+scripts/run.sh gaze        # eye tracking readout (the pointer stands in on desktop)
 scripts/run.sh synth       # play the synth voices from the keyboard
 scripts/run.sh groove      # synthwave loop: drums on the step grid, bass and pads
 scripts/run.sh audio       # buses, loop layers, the effect fader
