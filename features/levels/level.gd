@@ -94,7 +94,9 @@ static func _gradient_panorama(top: Color, horizon: Color, bottom: Color) -> Ima
 	var image := Image.create(WIDTH, HEIGHT, false, Image.FORMAT_RGB8)
 	for y in HEIGHT:
 		var t := float(y) / float(HEIGHT - 1)
-		var color := top.lerp(horizon, t * 2.0) if t < 0.5 else horizon.lerp(bottom, (t - 0.5) * 2.0)
+		var color := (
+			top.lerp(horizon, t * 2.0) if t < 0.5 else horizon.lerp(bottom, (t - 0.5) * 2.0)
+		)
 		for x in WIDTH:
 			image.set_pixel(x, y, color)
 	return ImageTexture.create_from_image(image)

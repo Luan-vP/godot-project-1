@@ -36,12 +36,14 @@ const DEMOS: Array[Dictionary] = [
 	{
 		"name": "Overcast Sky",
 		"path": "res://features/levels/panorama/overcast_sky.tscn",
-		"blurb": "Bright panorama level, floaters unmissable. Mouse/stick to look, Esc frees cursor.",
+		"blurb":
+		"Bright panorama level, floaters unmissable. Mouse/stick to look, Esc frees cursor.",
 	},
 	{
 		"name": "Dim Interior",
 		"path": "res://features/levels/panorama/dim_interior.tscn",
-		"blurb": "Dim panorama level, floaters barely there. Mouse/stick to look, Esc frees cursor.",
+		"blurb":
+		"Dim panorama level, floaters barely there. Mouse/stick to look, Esc frees cursor.",
 	},
 	{
 		"name": "Refraction",
