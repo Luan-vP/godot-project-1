@@ -20,6 +20,15 @@ extends Resource
 ## copy, so the same medium can be reused across levels and retuned once.
 @export var fluid_config: FluidConfig
 
+## Where the edges in [member panorama_texture] are, for Level 2 scoring
+## ([code]#9[/code]) to judge floaters against. A reference behind the
+## [EdgeSource] port, not inlined geometry, so a hand-authored overlay
+## ([ManualEdgeSource]) and a future image-based detector are both just an
+## [EdgeSource] this field can point at — see that class for the panorama
+## space and once-per-load contract. Left [code]null[/code], a level simply
+## has no edges to score against.
+@export var edge_source: EdgeSource
+
 @export_group("Floaters")
 ## How many drift in the medium.
 @export_range(0, 400) var floater_count: int = 60
