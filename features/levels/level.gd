@@ -1,0 +1,102 @@
+class_name Level
+extends Resource
+## Everything that makes one playable level read differently from another: its
+## background, how the medium in front of it moves and looks, how much debris
+## drifts there, and how looking around feels.
+##
+## References a [FluidConfig] rather than inlining its fields, the same reason
+## [FluidConfig] and [PainterlyStyle]/[RefractionStyle] are kept apart — see
+## the fluid README's note on that split. One medium's physics can then be
+## shared and retuned once across every level that uses it, instead of a
+## level's own tuning fighting it.
+##
+## Assigning [member PanoramaLevel.level] is the whole job of loading a level:
+## no scene to edit, no script to touch.
+
+## Equirectangular image shown behind the [PanoramaLookCamera].
+@export var panorama_texture: Texture2D
+
+## How the medium in front of the background moves. A reference, not an inline
+## copy, so the same medium can be reused across levels and retuned once.
+@export var fluid_config: FluidConfig
+
+@export_group("Floaters")
+## How many drift in the medium.
+@export_range(0, 400) var floater_count: int = 60
+
+## Radius range floaters are drawn from, in pixels; see [member
+## FloaterField.radius_range].
+@export var floater_radius_range: Vector2 = Vector2(2.0, 8.0)
+
+## Skews the radius distribution towards the small end above 1; see [member
+## FloaterField.size_skew].
+@export_range(0.1, 4.0) var floater_size_skew: float = 1.8
+
+@export_group("Look")
+## How strongly the medium bends the background behind it; see [member
+## RefractionStyle.strength]. Zero turns the bend off entirely.
+@export_range(0.0, 0.1, 0.001) var distortion_strength: float = 0.012
+
+## Multiplies every look source's contribution; see [member
+## PanoramaLookCamera.sensitivity]. 1 leaves each source's own sensitivity
+## untouched.
+@export_range(0.1, 5.0, 0.05) var look_sensitivity: float = 1.0
+
+
+## A bright, high-key overcast sky where the floaters are the whole point:
+## barely any bend to the medium, and enough debris that nobody could miss it.
+static func overcast_sky() -> Level:
+	var level := Level.new()
+	level.panorama_texture = _gradient_panorama(
+		Color(0.90, 0.93, 0.97), Color(0.80, 0.84, 0.90), Color(0.64, 0.68, 0.76)
+	)
+	var fluid := FluidConfig.new()
+	fluid.viscosity = 200.0
+	fluid.vorticity = 10.0
+	fluid.ambient_current = 6.0
+	level.fluid_config = fluid
+	level.floater_count = 220
+	level.floater_radius_range = Vector2(3.0, 14.0)
+	level.floater_size_skew = 1.4
+	level.distortion_strength = 0.02
+	level.look_sensitivity = 1.0
+	return level
+
+
+## A dim interior where the medium sits almost still and its handful of
+## floaters are easy to miss — proof the same systems can nearly vanish.
+static func dim_interior() -> Level:
+	var level := Level.new()
+	level.panorama_texture = _gradient_panorama(
+		Color(0.11, 0.10, 0.11), Color(0.07, 0.065, 0.075), Color(0.03, 0.03, 0.035)
+	)
+	var fluid := FluidConfig.new()
+	fluid.viscosity = 1200.0
+	fluid.vorticity = 0.0
+	fluid.velocity_dissipation = 0.98
+	fluid.ambient_current = 1.0
+	level.fluid_config = fluid
+	level.floater_count = 8
+	level.floater_radius_range = Vector2(1.0, 3.0)
+	level.floater_size_skew = 2.5
+	level.distortion_strength = 0.002
+	level.look_sensitivity = 0.6
+	return level
+
+
+## A small vertical-gradient equirectangular sky: [param top] at the zenith
+## fading through [param horizon] to [param bottom] at the nadir. Generated
+## rather than shipped as an image, the same reason [code]refraction_demo.gd[/code]
+## paints its checkerboard in code — no binary asset, so no export-size cost.
+static func _gradient_panorama(top: Color, horizon: Color, bottom: Color) -> ImageTexture:
+	const WIDTH := 4
+	const HEIGHT := 256
+	var image := Image.create(WIDTH, HEIGHT, false, Image.FORMAT_RGB8)
+	for y in HEIGHT:
+		var t := float(y) / float(HEIGHT - 1)
+		var color := (
+			top.lerp(horizon, t * 2.0) if t < 0.5 else horizon.lerp(bottom, (t - 0.5) * 2.0)
+		)
+		for x in WIDTH:
+			image.set_pixel(x, y, color)
+	return ImageTexture.create_from_image(image)

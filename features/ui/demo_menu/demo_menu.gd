@@ -34,9 +34,16 @@ const DEMOS: Array[Dictionary] = [
 		"blurb": "Out-of-focus floaters in a coasting gel. Drag to push, +/- floaters.",
 	},
 	{
-		"name": "Panorama",
-		"path": "res://features/levels/panorama/panorama_level.tscn",
-		"blurb": "Look-around camera. Mouse or right stick to look, Esc frees the cursor.",
+		"name": "Overcast Sky",
+		"path": "res://features/levels/panorama/overcast_sky.tscn",
+		"blurb":
+		"Bright panorama level, floaters unmissable. Mouse/stick to look, Esc frees cursor.",
+	},
+	{
+		"name": "Dim Interior",
+		"path": "res://features/levels/panorama/dim_interior.tscn",
+		"blurb":
+		"Dim panorama level, floaters barely there. Mouse/stick to look, Esc frees cursor.",
 	},
 	{
 		"name": "Refraction",

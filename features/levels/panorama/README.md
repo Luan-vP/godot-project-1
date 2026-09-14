@@ -1,30 +1,63 @@
 # Panorama level
 
 The main level's core mechanic: a [`PanoramaLookCamera`](../../player/panorama_look_camera.gd)
-at the centre of a sphere, looking around an equirectangular background. See
-[issue #7](https://github.com/Luan-vP/godot-project-1/issues/7).
+at the centre of a sphere, looking around an equirectangular background, with
+the [fluid](../../fluid/README.md) and its [floaters](../../floaters/README.md)
+as a screen-space overlay in front of it. See [issue #7](https://github.com/Luan-vP/godot-project-1/issues/7)
+and [issue #14](https://github.com/Luan-vP/godot-project-1/issues/14).
 
-Everything else in the floaters mechanic hangs off this scene, because the
-floaters are seen *against* this background and the act of looking is what
-stirs them — but they are screen-space and belong in a `CanvasLayer` sibling
-added later, not here. This scene stays the background and the camera alone.
+## One `Level`, one assignment
+
+[`Level`](../level.gd) is the single resource a level is defined by: the
+background, the medium's `FluidConfig`, how much debris drifts in it, how
+hard it bends the view, and how sensitive looking around feels. Assigning
+`PanoramaLevel.level` is the whole job of loading a level — nothing about the
+scene or the script needs to change to retune one.
+
+`Level` references a `FluidConfig` rather than inlining its fields, for the
+same reason `FluidConfig` and `PainterlyStyle`/`RefractionStyle` are kept
+apart (see the fluid README): retuning a level's medium should never risk
+changing another level's physics unless they deliberately share the same
+`FluidConfig` asset.
+
+`PanoramaLevel` is built in code, the same as the secret eye and vitreous
+levels — the medium overlay has to be sized against the actual viewport, and
+`FluidConfig` is only read once when its `FluidSimulation` is built, so
+changing `level` tears down and rebuilds the overlay rather than editing it
+in place.
+
+## Two examples
+
+`Level.overcast_sky()` and `Level.dim_interior()` are tuned presets — the
+[`overcast_sky.tscn`](overcast_sky.tscn) and [`dim_interior.tscn`](dim_interior.tscn)
+scenes are each a single node whose script assigns one of them before calling
+up to `PanoramaLevel._ready()`. They exist to prove the resource actually
+abstracts a level rather than just moving the same numbers somewhere else:
+
+| | Overcast Sky | Dim Interior |
+| --- | --- | --- |
+| Floaters | 220, unmissable | 8, barely there |
+| Distortion | 0.02, a visible ripple | 0.002, almost nothing |
+| Medium | brisk, `viscosity` 200 | thick and still, `viscosity` 1200 |
+| Look sensitivity | 1.0 | 0.6, slower and heavier |
+
+Both panoramas are generated in code (`Level._gradient_panorama`), the same
+reason `refraction_demo.gd` paints its checkerboard in code rather than
+shipping an image: no binary asset, so no export-size cost. A real
+photographic equirectangular background can replace either later by simply
+assigning a loaded `Texture2D` to `Level.panorama_texture` instead — check
+what that does to the Linux/Windows export size in `build.yml` before
+committing more than one, since `.png`/`.jpg` are already tracked with Git
+LFS but still ship inside the exported PCK.
 
 ## How the background is rendered
 
 `WorldEnvironment` with a `Sky` whose `sky_material` is a `PanoramaSkyMaterial`
 — the purpose-built way to show an equirectangular image behind a `Camera3D`.
 The fallback the issue called out, an inverted sphere mesh, would only be
-worth it if the sky path turned out to fight the 2D overlay; there is no
-overlay yet, so there is nothing to fight, and the simpler approach stands
-until that changes.
-
-## The image is not hardcoded
-
-`PanoramaLevel.panorama_texture` is `@export`ed, not baked into the scene, so
-a level can supply its own equirectangular image. It is applied to the
-`PanoramaSkyMaterial` at `_ready`. There is no image checked in yet — wiring
-an actual level's art to this `@export` is for whichever level-definition
-work picks a background per level.
+worth it if the sky path turned out to fight the 2D overlay; the overlay reads
+`hint_screen_texture` rather than rendering into the sky, so there is nothing
+to fight and the simpler approach stands.
 
 ## Look input and angular velocity
 
@@ -38,3 +71,14 @@ Pitch is clamped short of vertical (`max_pitch_degrees`, default 85°) so the
 horizon cannot roll over. Yaw wraps to `[-PI, PI]` rather than growing without
 bound, and the wrap is a jump of exactly one full turn — visually identical,
 so it produces no seam.
+
+`PanoramaLookCamera.sensitivity` multiplies every configured `LookSource`'s
+contribution in one place — what `Level.look_sensitivity` drives — rather
+than a level having to retune each source's own sensitivity individually.
+
+## Not yet
+
+The medium is idle beyond its own `ambient_current`: nothing stirs it from
+gaze yet. The vitreous level's README already calls out the intended input —
+`PanoramaLookCamera.angular_velocity` driving a stir, the way a real eye's
+saccades disturb the vitreous humour — left for its own issue.
