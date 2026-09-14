@@ -98,6 +98,12 @@ if [ ! -f "$TEMPLATES/ios.zip" ]; then
 	exit 1
 fi
 
+mkdir -p "$BUILDS"
+# builds/ sits inside res://. Without this Godot scans the last export's
+# asset catalog on the next run, fails to import its icons, and the export
+# log fills with errors that have nothing to do with the game.
+touch "$BUILDS/.gdignore"
+
 # The compute shaders are compiled at import, and only with a window; a
 # headless export would ship whatever stubs are there and the fluid would sit
 # still on the phone. See features/fluid/README.md.
