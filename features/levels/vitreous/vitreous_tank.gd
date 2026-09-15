@@ -121,6 +121,10 @@ func _build_hint() -> void:
 	hint.position = Vector2(16.0, 12.0)
 	hint.add_theme_color_override("font_color", Color(0.2, 0.22, 0.26, 0.55))
 	hint.text = "drag push · arrows tilt · space jog · C calibrate · R still · +/- count · F focus"
+	# One line on a desktop; a phone in portrait is too narrow for it.
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.size = Vector2(SafeArea.line_width(get_viewport(), hint.position.x), 0.0)
+	SafeArea.offset_layer(layer, get_viewport())
 	layer.add_child(hint)
 	add_child(layer)
 

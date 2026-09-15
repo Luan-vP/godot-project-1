@@ -15,6 +15,14 @@ config/features=PackedStringArray("4.4", "Forward Plus")
 config/version="0.1.0"
 run/main_scene="res://features/ui/demo_menu/demo_menu.tscn"
 
+[display]
+
+window/size/viewport_width.mobile=540
+window/size/viewport_height.mobile=960
+window/stretch/mode.mobile="canvas_items"
+window/stretch/aspect.mobile="expand"
+window/handheld/orientation=1
+
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/gut/plugin.cfg")
@@ -33,3 +41,5 @@ buses/default_bus_layout="res://resources/audio/default_bus_layout.tres"
 [rendering]
 
 renderer/rendering_method="forward_plus"
+renderer/rendering_method.mobile="mobile"
+textures/vram_compression/import_etc2_astc=true

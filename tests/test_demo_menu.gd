@@ -50,8 +50,26 @@ func test_demo_names_are_unique() -> void:
 
 
 func test_there_is_a_button_per_demo() -> void:
-	var buttons := _menu.find_children("*", "Button", true, false)
+	var cards := _menu.find_child("Cards", true, false)
+	assert_not_null(cards, "The card grid exists")
+	var buttons := cards.find_children("*", "Button", false, false)
 	assert_eq(buttons.size(), DemoMenu.DEMOS.size(), "One card per demo")
+
+
+func test_cards_stack_in_one_column_when_the_screen_is_narrow() -> void:
+	assert_eq(DemoMenu.columns_for_width(1152.0), 2, "Desktop window")
+	assert_eq(DemoMenu.columns_for_width(DemoMenu.TWO_COLUMN_MIN_WIDTH), 2, "Right at the edge")
+	assert_eq(DemoMenu.columns_for_width(540.0), 1, "Phone in portrait")
+
+
+func test_the_corner_button_goes_back_without_taking_focus() -> void:
+	var back := _menu.find_child("BackToMenu", true, false) as Button
+	assert_not_null(back, "There is a tappable way back")
+	assert_eq(back.focus_mode, Control.FOCUS_NONE, "Space in a demo must not press it")
+	_menu.open_demo(STAND_IN_PATH)
+	back.pressed.emit()
+	assert_false(_menu.is_demo_open(), "Tapping it closes the demo")
+	assert_true(_menu.visible, "and shows the menu")
 
 
 func test_backspace_and_select_go_back_but_other_input_does_not() -> void:
@@ -91,6 +109,26 @@ func test_opening_a_second_demo_closes_the_first() -> void:
 	_menu.open_demo(STAND_IN_PATH)
 	assert_false(first.is_inside_tree(), "The first demo is gone")
 	assert_true(_menu.is_demo_open(), "The second is running")
+
+
+func test_launch_options_pick_demos_by_loose_name() -> void:
+	var options := DemoMenu.launch_options(PackedStringArray(["--verbose", "--open=Vitreous"]))
+	var vitreous: Dictionary = DemoMenu.DEMOS.filter(func(d): return d["name"] == "Vitreous")[0]
+	assert_eq(options.get("open"), vitreous["path"], "Case does not matter")
+	assert_false(options.has("probe"), "Not probing")
+	var probe := DemoMenu.launch_options(PackedStringArray(["--probe=eyes,overcast_sky"]))
+	var names: Array = probe["probe"].map(func(demo): return demo["name"])
+	assert_eq(names, ["Eyes", "Overcast Sky"], "Menu order, spaces as underscores")
+	assert_eq(
+		DemoMenu.launch_options(PackedStringArray(["--probe"]))["probe"].size(),
+		DemoMenu.DEMOS.size(),
+		"All"
+	)
+
+
+func test_an_unknown_demo_name_opens_nothing() -> void:
+	assert_false(DemoMenu.launch_options(PackedStringArray(["--open=nope"])).has("open"))
+	assert_false(DemoMenu.launch_options(PackedStringArray(["--open="])).has("open"))
 
 
 static func _key(code: Key, pressed: bool, echo: bool) -> InputEventKey:
