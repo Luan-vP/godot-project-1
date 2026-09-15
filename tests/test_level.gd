@@ -26,6 +26,26 @@ func test_fluid_config_is_a_reference_not_inlined_fields() -> void:
 	assert_eq(b.fluid_config.vorticity, 33.0, "...and level b, since both reference it")
 
 
+func test_edge_source_is_a_reference_not_inlined_geometry() -> void:
+	# The same split as fluid_config: a level points at an EdgeSource instead
+	# of owning edge geometry itself, so a hand-authored overlay or a future
+	# detector can be swapped in without Level changing.
+	var shared_edges := ManualEdgeSource.new()
+	shared_edges.edges_degrees = [PackedVector2Array([Vector2(0.0, 0.0), Vector2(10.0, 0.0)])]
+	var a := Level.new()
+	var b := Level.new()
+	a.edge_source = shared_edges
+	b.edge_source = shared_edges
+	assert_eq(a.edge_source.get_edges().size(), 1)
+	assert_eq(b.edge_source, a.edge_source, "Both levels reference the same source")
+
+
+func test_edge_source_defaults_to_null() -> void:
+	# A level with no edges to score is valid — it simply has none configured.
+	var level := Level.new()
+	assert_null(level.edge_source)
+
+
 func test_overcast_sky_and_dim_interior_read_differently() -> void:
 	var overcast := Level.overcast_sky()
 	var interior := Level.dim_interior()
