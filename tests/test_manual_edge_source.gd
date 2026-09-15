@@ -94,10 +94,8 @@ func test_the_same_yaw_step_produces_a_shorter_chord_near_a_pole() -> void:
 		PackedVector2Array([Vector2(-5.0, 80.0), Vector2(5.0, 80.0)]),
 	]
 	var edges := source.get_edges()
-	var equator_chord: float = (
-		edges[0].points[0].direction - edges[0].points[1].direction
-	).length()
-	var near_pole_chord: float = (
-		edges[1].points[0].direction - edges[1].points[1].direction
-	).length()
+	var equator_vector: Vector3 = edges[0].points[0].direction - edges[0].points[1].direction
+	var equator_chord: float = equator_vector.length()
+	var pole_vector: Vector3 = edges[1].points[0].direction - edges[1].points[1].direction
+	var near_pole_chord: float = pole_vector.length()
 	assert_lt(near_pole_chord, equator_chord, "Same yaw step, shorter chord near the pole")
