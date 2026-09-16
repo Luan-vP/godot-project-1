@@ -1,0 +1,29 @@
+"appbuild"
+{
+	"appid" "YOUR_APP_ID"          # Replace with your actual Steam App ID
+	"description" "godot-project-1 build"
+	"buildoutput" "%BUILDROOT%/build"
+	"secure" "0"
+
+	# ---------- Linux depot ----------
+	"depots"
+	{
+		"1"
+		{
+			"depotid" "YOUR_LINUX_DEPOT_ID"  # Replace with your Linux depot ID
+			"dir" "linux"
+			"files" "build/linux"
+		}
+	}
+
+	# ---------- macOS depot (uncomment when macOS export exists) ----------
+	# "depots"
+	# {
+	# 	"2"
+	# 	{
+	# 		"depotid" "YOUR_MACOS_DEPOT_ID"  # Replace with your macOS depot ID
+	# 		"dir" "macos"
+	# 		"files" "build/macos"
+	# 	}
+	# }
+}
