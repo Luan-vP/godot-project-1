@@ -202,6 +202,21 @@ func configure_loop_layers(layers: Array[LoopLayer]) -> void:
 ## before this call (while nothing was playing yet) are already audible from
 ## the first frame; layers switched on afterwards fade in on the next bar.
 func play_loops() -> void:
+	start_music_clock()
+
+
+## Stops loop playback entirely and discards any pending layer changes.
+func stop_loops() -> void:
+	stop_music_clock()
+
+
+## Starts the shared musical clock: [method get_current_bar] and
+## [method get_current_beat] become meaningful, and anything on a [StepClock]
+## starts ticking — [method play_loops]'s other name for the same thing,
+## since loop layers ride the same clock. A caller with no loop layers of its
+## own, live drums and all (see #75), still needs this to get a clock to tick
+## against.
+func start_music_clock() -> void:
 	if _loop_player.playing:
 		return
 	_time_source.start()
@@ -209,8 +224,8 @@ func play_loops() -> void:
 	_loop_scheduler.reset()
 
 
-## Stops loop playback entirely and discards any pending layer changes.
-func stop_loops() -> void:
+## Stops the shared musical clock and discards any pending loop layer changes.
+func stop_music_clock() -> void:
 	_loop_player.stop()
 	_time_source.stop()
 	_loop_scheduler.reset()

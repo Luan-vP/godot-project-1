@@ -373,7 +373,8 @@ next bar, and a closed hat chokes an open one. Kit build 41 ms, one bar 26 ms,
 done before playback.
 
 **Live, for game-driven notes.** Connect to `StepClock.step` and play a synth
-note. Good enough, with some wonk — see below.
+note, or a drum hit through `DrumKit`. Good enough, with some wonk — see
+below.
 
 ### How tight, measured
 
@@ -398,6 +399,39 @@ snare with a 185/330 Hz body under high-passed noise, a clap of three noise
 bursts and a tail, and hats built from the TR-808's six square-wave partials
 through a high-pass. Every hit is normalised to the same peak and built from a
 fixed noise seed, so it is identical every time.
+
+### Drums played live: the eye band's choice, and its price
+
+`DrumSynth`'s own hits are built to be mixed at exact sample offsets by
+`StepPattern`, and the docs above still recommend that — "rendered, for
+anything that must be tight" — whenever a part's tempo does not need to move.
+
+The eye band's tempo does (#72), and a rendered drum loop cannot follow it: a
+`StepPattern.render()` bakes a bar's exact sample length in at render time, so
+retuning leaves the drums either running at the old tempo forever or needing a
+re-render that restarts playback. `DrumKit` is the fix: a pool of one-shot
+players (the same shape `AudioManager`'s SFX pool uses) that plays a
+`StepPattern`'s hits live off `StepClock`, the way the melodic parts already
+did — so drum tempo is simply the step clock's tempo, whatever it currently
+is, with nothing baked in to go stale.
+
+The price is exactly the "how tight, measured" numbers above: onsets land
+10-20 ms off the grid rather than the ±1 sample a rendered loop gives.
+Accepted, and worth listening for — `scripts/run.sh band`, ear on the kick
+against the bass. If it reads as sloppy rather than human, the fix is one of
+the two already on the table: a sample-accurate `MusicTimeSource` (tightens
+the melodic parts at the same time), or running `StepPattern.mix()`'s logic
+continuously into an `AudioStreamGenerator` instead of per bar into a WAV.
+
+`StepPattern.parse()` — the notation, the velocities, the hit names — is kept
+regardless of which player reads it; only `render()`/`mix()` go unused by a
+part that plays this way. The open-hat choke moves with it: `DrumKit` chokes
+a sounding open hat with a short fade when a closed hat plays, the live
+equivalent of the sample-exact choke `StepPattern.mix()` renders.
+
+This is a per-part choice, not a rule: `groove_demo` and `audio_demo` still
+render their drums into loop layers, because nothing there needs the tempo to
+move, and ±1 sample is free while it's available.
 
 ## Songs: chords that branch
 

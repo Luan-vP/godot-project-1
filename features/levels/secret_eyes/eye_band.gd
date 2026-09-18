@@ -10,12 +10,12 @@ extends Node
 ##
 ## The music is a [Song], picked at random from [EyeBandSongs] each time the
 ## band starts, walked section by section by a [SongWalker] so its chord
-## progression branches as it plays. Drum parts are the song's [StepPattern]s
-## rendered into [AudioManager] loop layers, which already land changes on the
-## next bar. Melodic parts are live [Synth] notes on a [StepClock] that follow
-## whatever chord is current; whether each is on is latched once per bar, so
-## both kinds change at the same moment. A fill layer plays over the beat on
-## the last bar of every section.
+## progression branches as it plays. Every part is live: drum parts are the
+## song's [StepPattern]s played hit by hit through a [DrumKit], on the same
+## [StepClock] that drives the melodic [Synth] notes, so both kinds latch
+## whether they are on through the same mechanism, once per bar, and change at
+## the same moment. A fill plays over the beat on the last bar of every
+## section.
 ##
 ## An eye near a wall uses two distances, not one, so one hovering at the
 ## threshold does not flicker its part on and off: it counts as touching once
@@ -29,15 +29,19 @@ signal song_started(title: String)
 
 ## Heaviest first; eyes are matched to these by size.
 const PARTS: Array[String] = ["beat", "bass", "pads", "melody", "arp", "ghost", "shimmer"]
-const LOOP_PARTS: Array[String] = ["beat", "ghost", "shimmer"]
 
-## Loop layer played over the beat on a section's last bar. Not a part: it
-## belongs to whichever eye has the beat.
+## Parts played by the [DrumKit] from a [StepPattern] rather than by a
+## [Synth] following [MelodyWriter] or [Chord].
+const DRUM_PARTS: Array[String] = ["beat", "ghost", "shimmer"]
+
+## Drum pattern played over the beat on a section's last bar. Not a part: it
+## belongs to whichever eye has the beat, and no eye owns it directly.
 const FILL := "fill"
 
-## Loop layer volumes, in dB. Seven parts at once sit about 3 dB under the
-## groove demo's levels so the full arrangement does not clip.
-const LOOP_DB := {"beat": -6.0, "ghost": -8.0, "shimmer": -9.0, "fill": -8.0}
+## Drum part volumes, in dB, on top of each [DrumKit] hit's own velocity.
+## Seven parts at once sit about 3 dB under the groove demo's levels so the
+## full arrangement does not clip.
+const DRUM_DB := {"beat": -6.0, "ghost": -8.0, "shimmer": -9.0, "fill": -8.0}
 
 ## Default patch per live part: waveform, attack, release, level, voices. A
 ## song's [member Song.timbres] overrides any of the first four.
@@ -61,6 +65,9 @@ var _touching: Array[bool] = []
 ## Whether each part is sounding right now, per [constant PARTS].
 var _playing: Dictionary = {}
 var _synths := {}
+var _drum_kit: DrumKit
+## Part name (from [constant DRUM_PARTS], plus [constant FILL]) -> [StepPattern].
+var _drum_patterns: Dictionary = {}
 var _clock: StepClock
 var _effect_indices: Array[int] = []
 var _started := false
@@ -69,7 +76,7 @@ var _walker: SongWalker
 ## Section name -> the melody [MelodyWriter] wrote for it, written once.
 var _melodies := {}
 var _bar := -1
-var _fill_requested := false
+var _fill_active := false
 
 
 func _ready() -> void:
@@ -86,7 +93,7 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	if not _started:
 		return
-	AudioManager.stop_loops()
+	AudioManager.stop_music_clock()
 	for synth in _synths.values():
 		synth.release_all()
 	for i in range(_effect_indices.size() - 1, -1, -1):
@@ -107,20 +114,16 @@ func start(song: Song = null, rng: RandomNumberGenerator = null) -> void:
 	_song = song if song != null else EyeBandSongs.pick_random(rng)
 	_walker = SongWalker.new(_song, rng)
 	_build_synths()
+	_build_drum_kit()
 	_add_space()
 	AudioManager.set_tempo(_song.tempo_bpm, _song.beats_per_bar)
-	var rate := int(AudioServer.get_mix_rate())
-	var layers: Array[LoopLayer] = []
-	for layer_name in LOOP_PARTS + [FILL]:
-		layers.append(_loop_layer(layer_name, _song.drums.get(layer_name, {}), rate))
-	AudioManager.configure_loop_layers(layers)
-	# Before playback, loop layers switch at once; live parts follow suit so
-	# the first bar is already the full arrangement.
+	for part_name in DRUM_PARTS + [FILL]:
+		_drum_patterns[part_name] = _drum_pattern(_song.drums.get(part_name, {}))
+	# Before playback, every part switches at once so the first bar is already
+	# the full arrangement.
 	for part in PARTS:
 		_playing[part] = wants_part(part)
-		if part in LOOP_PARTS:
-			AudioManager.set_layer_active(part, _playing[part])
-	AudioManager.play_loops()
+	AudioManager.start_music_clock()
 	_clock = StepClock.new()
 	_clock.step.connect(_on_step)
 	add_child(_clock)
@@ -182,17 +185,12 @@ func _process(_delta: float) -> void:
 	var simulation := get_tree().get_first_node_in_group(FluidSimulation.GROUP_NAME)
 	if simulation != null:
 		update_contacts((simulation as FluidSimulation).get_world_rect())
-	# Read loop state as AudioManager applies it rather than latching it on
-	# the step clock's downbeat: the clock fires ahead of the audio by the mix
-	# lookahead, before a queued layer change has landed, so a latch there
-	# would show every loop change a bar late.
-	if _started:
-		for part in LOOP_PARTS:
-			_playing[part] = AudioManager.is_layer_active(part)
 
 
-## Re-measure every eye against [param tank]. Loop parts are asked to follow at
-## once, since [AudioManager] already holds the change for the bar line.
+## Re-measure every eye against [param tank]. Touching state updates at once;
+## whether a part actually sounds only catches up at the next bar, in
+## [method _latch_live_parts] — true alike for drum and melodic parts now that
+## both are live, which is what keeps them changing on the same bar.
 func update_contacts(tank: Rect2) -> void:
 	for i in _eyes.size():
 		var eye := _eyes[i]
@@ -204,8 +202,6 @@ func update_contacts(tank: Rect2) -> void:
 			continue
 		_touching[i] = touching
 		var part: String = PARTS[_eye_parts[i]]
-		if _started and part in LOOP_PARTS:
-			AudioManager.set_layer_active(part, not touching)
 		contact_changed.emit(part, touching)
 
 
@@ -256,13 +252,17 @@ func _on_step(_index: int, bar: int, step_in_bar: int) -> void:
 	if new_bar:
 		_bar = bar
 		_latch_live_parts()
+	for part in DRUM_PARTS:
+		if is_playing(part):
+			_play_drum_step(part, step_in_bar)
+	if _fill_active:
+		_play_drum_step(FILL, step_in_bar)
+
 	var chords := _walker.chords_at(bar)
 	var chord := _song.chord_in_bar(chords, step_in_bar)
 	var steps := _song.beats_per_bar * 4
 	var chord_steps := steps / chords.size()
 	var seconds_per_step := 60.0 / _song.tempo_bpm / 4.0
-	if step_in_bar == steps / 2:
-		_request_fill(bar + 1)
 
 	if is_playing("pads") and (new_bar or step_in_bar % chord_steps == 0):
 		var remaining := chord_steps - step_in_bar % chord_steps
@@ -305,25 +305,25 @@ static func bass_note(chord: Chord, symbol: String, low: int) -> int:
 	return -1
 
 
-## Ask for the fill on [param bar] if it ends a section and the beat's eye is
-## free, and for it off otherwise. Asked half a bar ahead, since a loop layer
-## change lands on the next bar line after it is requested.
-func _request_fill(bar: int) -> void:
-	var wanted := _walker.is_last_bar_of_section(bar) and wants_part("beat")
-	if wanted != _fill_requested:
-		_fill_requested = wanted
-		AudioManager.set_layer_active(FILL, wanted)
-
-
-## On a new bar, every live part catches up with whether its eye is free.
+## On a new bar, every part — drum and melodic alike — catches up with whether
+## its eye is free, all through the one mechanism. The fill is not a part with
+## an eye of its own: it wants to sound whenever this bar ends the section and
+## the beat's eye is free.
 func _latch_live_parts() -> void:
 	for part in PARTS:
-		if part in LOOP_PARTS:
-			continue
 		var wanted := wants_part(part)
-		if _playing[part] and not wanted:
+		if part not in DRUM_PARTS and _playing[part] and not wanted:
 			_synths[part].release_all()
 		_playing[part] = wanted
+	_fill_active = _walker.is_last_bar_of_section(_bar) and wants_part("beat")
+
+
+func _play_drum_step(part: String, step_in_bar: int) -> void:
+	var pattern: StepPattern = _drum_patterns[part]
+	for hit_type in pattern.tracks:
+		var velocity := pattern.velocity(hit_type, step_in_bar)
+		if velocity > 0.0:
+			_drum_kit.hit(hit_type, velocity, DRUM_DB.get(part, -8.0))
 
 
 func _play(part: String, note: int, velocity: float, hold_seconds: float) -> void:
@@ -357,14 +357,19 @@ func _build_synths() -> void:
 		add_child(synth)
 
 
-func _loop_layer(layer_name: String, lines: Dictionary, rate: int) -> LoopLayer:
-	var layer := LoopLayer.new()
-	layer.layer_name = layer_name
+func _build_drum_kit() -> void:
+	_drum_kit = DrumKit.new()
+	_drum_kit.name = "DrumKit"
+	add_child(_drum_kit)
+
+
+## [param lines] as [method StepPattern.parse] takes them, with a silent
+## fallback pattern of the right length for a song missing this part —
+## shouldn't happen (see [code]tests/test_eye_band_songs.gd[/code]), but a
+## song written wrong should play silence, not fail to start.
+func _drum_pattern(lines: Dictionary) -> StepPattern:
 	var steps := _song.beats_per_bar * 4
-	var pattern := StepPattern.parse(lines if not lines.is_empty() else {"kick": ".".repeat(steps)})
-	layer.stream = pattern.render(_song.tempo_bpm, _song.beats_per_bar, rate)
-	layer.volume_db = LOOP_DB.get(layer_name, -8.0)
-	return layer
+	return StepPattern.parse(lines if not lines.is_empty() else {"kick": ".".repeat(steps)})
 
 
 ## Chorus and a long, soft reverb on the Music bus, as in the groove demo.

@@ -20,6 +20,11 @@ extends Resource
 ## layer.layer_name = "drums"
 ## layer.stream = pattern.render(96.0, 4, 48000)
 ## [/codeblock]
+##
+## [method parse] is also the notation [DrumKit] reads to play a pattern's
+## hits live instead — same text, same [member tracks], a different player.
+## Only [method render] and [method mix] are specific to this rendered,
+## sample-accurate path; see core/audio/README.md for when each is worth it.
 
 ## Fade applied where a closed hat cuts an open hat off, so the choke does not
 ## click.
