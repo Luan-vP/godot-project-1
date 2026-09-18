@@ -7,8 +7,9 @@ extends Resource
 ## well a floater sits on one" ([code]#26[/code]), split apart deliberately
 ## so each can be built, tested, and swapped independently. A consumer must
 ## not care whether the edges below came from an image filter run over the
-## panorama texture, a hand-authored overlay ([ManualEdgeSource]), or
-## something else — [method get_edges] is the entire contract.
+## panorama texture ([CannyEdgeSource]), a hand-authored overlay
+## ([ManualEdgeSource]), or something else — [method get_edges] is the entire
+## contract.
 ##
 ## [b]Panorama space, not screen space.[/b] Edges are expressed as unit
 ## directions on the sphere the camera sits at the centre of, in world

@@ -36,6 +36,9 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
              controls as overcast.
   refraction Clear medium over a checkerboard: only the bend shows. Drag to
              stir, +/- tune strength down to zero, R stills.
+  canny      CannyEdgeSource's debug overlay: traced edges over a synthetic
+             panorama. Up/Down tunes blur, [/] and +/- tune thresholds,
+             Left/Right tunes minimum run length.
   synth      Synth voices. A-K hold notes, Up/Down glide, 1/2/3 waveform,
              R plays a phrase, Space holds a high note.
   groove     Floaty synthwave loop at 70 bpm: rendered drums plus live bass and
@@ -59,6 +62,7 @@ scene_for() {
 		overcast | panorama) echo "res://features/levels/panorama/overcast_sky.tscn" ;;
 		interior) echo "res://features/levels/panorama/dim_interior.tscn" ;;
 		refraction) echo "res://features/fluid/refraction_demo.tscn" ;;
+		canny | edges) echo "res://features/edges/canny_edge_debug.tscn" ;;
 		synth) echo "res://core/audio/synth_demo.tscn" ;;
 		groove) echo "res://core/audio/groove_demo.tscn" ;;
 		audio) echo "res://core/audio/audio_demo.tscn" ;;
