@@ -105,6 +105,7 @@ func _ready() -> void:
 	add_child(_loop_player)
 	_loop_clock = MusicClock.new()
 	_loop_scheduler = LoopLayerScheduler.new(_loop_clock)
+	_time_source.set_tempo(_loop_clock.tempo_bpm)
 
 	_load_settings()
 
@@ -112,8 +113,7 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if _loop_player == null or not _loop_player.playing:
 		return
-	var seconds := _get_loop_playback_seconds()
-	var changes := _loop_scheduler.update(seconds)
+	var changes := _loop_scheduler.update(_get_loop_playback_beats())
 	for layer_name: String in changes:
 		_apply_layer_active(layer_name, changes[layer_name])
 
@@ -156,15 +156,20 @@ func is_music_playing() -> bool:
 
 
 ## Sets the tempo and bar length the loop layer clock schedules against.
-## Configurable rather than baked in; safe to call before or during
-## playback. Rebases the scheduler's notion of "the current bar" onto the new
-## clock at the moment of the change, so a request already pending is not
-## mistaken for having crossed a boundary and released early — see
-## [method LoopLayerScheduler.set_clock].
+## Configurable rather than baked in; safe to call before or during playback,
+## and a change during playback is continuous — the music does not jump,
+## because position is measured in beats and the time source banks what has
+## already elapsed at the old tempo. See [MusicClock].
 func set_tempo(tempo_bpm: float, beats_per_bar: int = 4) -> void:
-	var seconds := _get_loop_playback_seconds()
 	_loop_clock = MusicClock.new(tempo_bpm, beats_per_bar)
-	_loop_scheduler.set_clock(_loop_clock, seconds)
+	_time_source.set_tempo(_loop_clock.tempo_bpm)
+	_loop_scheduler.set_clock(_loop_clock)
+
+
+## The tempo in force now, in BPM. Changing it alone, leaving the bar length
+## as it is, is what a player-facing tempo control wants (see #72).
+func get_tempo() -> float:
+	return _loop_clock.tempo_bpm
 
 
 ## Declares the set of loops available to layer together, as data (see
@@ -256,23 +261,27 @@ func set_music_time_source(source: MusicTimeSource) -> void:
 	var was_running := _time_source.is_running()
 	_time_source.stop()
 	_time_source = source
+	_time_source.set_tempo(_loop_clock.tempo_bpm)
 	if was_running:
 		_time_source.start()
 	_loop_scheduler.reset()
 
 
 func get_current_bar() -> int:
-	return _loop_clock.bar_at(_get_loop_playback_seconds())
+	return _loop_clock.bar_at(_get_loop_playback_beats())
 
 
 ## Position within the current bar, in beats, from 0 up to (not including)
 ## the configured beats per bar.
 func get_current_beat() -> float:
-	return _loop_clock.beat_in_bar_at(_get_loop_playback_seconds())
+	return _loop_clock.beat_in_bar_at(_get_loop_playback_beats())
 
 
+## How long until a change requested now would land, in wall seconds — the
+## answer a caller waiting on a bar line actually wants.
 func get_seconds_until_next_bar() -> float:
-	return _loop_clock.seconds_until_next_bar(_get_loop_playback_seconds())
+	var beats := _loop_clock.beats_until_next_bar(_get_loop_playback_beats())
+	return _loop_clock.seconds_in(beats)
 
 
 func _apply_layer_active(layer_name: String, active: bool) -> void:
@@ -289,13 +298,13 @@ func _apply_layer_active(layer_name: String, active: bool) -> void:
 	)
 
 
-## Musical seconds since [method play_loops], from the [MusicTimeSource]. See
+## Beats since [method play_loops], from the [MusicTimeSource]. See
 ## [WallClockMusicTime] for why that is a session clock and not the player's
-## playback position.
-func _get_loop_playback_seconds() -> float:
+## playback position, and [MusicClock] for why it is beats and not seconds.
+func _get_loop_playback_beats() -> float:
 	if not _loop_player.playing:
 		return 0.0
-	return _time_source.get_seconds()
+	return _time_source.get_beats()
 
 
 ## Sets a bus's volume from a linear fraction in [0, 1], converting to

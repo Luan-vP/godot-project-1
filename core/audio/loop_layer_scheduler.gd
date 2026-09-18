@@ -5,9 +5,9 @@ extends RefCounted
 ## instead of the instant it was asked for.
 ##
 ## Pure and [AudioServer]-free like [MusicClock]: [method update] is handed
-## the current elapsed seconds by the caller rather than reading one itself,
-## which is what makes the scheduling logic deterministically testable — a
-## test can call [method update] with any sequence of seconds values to
+## the current position in beats by the caller rather than reading a clock
+## itself, which is what makes the scheduling logic deterministically testable
+## — a test can call [method update] with any sequence of positions to
 ## simulate time passing, without waiting on real playback.
 
 var _clock: MusicClock
@@ -19,18 +19,16 @@ func _init(clock: MusicClock) -> void:
 	_clock = clock
 
 
-## Swaps in a new clock, e.g. after a tempo change, and rebases the current
-## bar onto it from [param seconds] (the playback position at the moment of
-## the swap). Without the rebase, the next [method update] would compare a
-## bar number computed under the new clock's scale against [member _last_bar]
-## from the old one — two different tempos rarely agree on which bar a given
-## position falls in, so the mismatch reads as a boundary crossing and
-## releases anything pending immediately, mid-bar, rather than waiting for a
-## real one. Does not itself release or discard anything pending.
-func set_clock(clock: MusicClock, seconds: float = 0.0) -> void:
+## Swaps in a new clock, e.g. after a tempo change. Does not release or
+## discard anything pending.
+##
+## Nothing is rebased, because nothing needs to be: a bar sits at a fixed
+## position in beats, so the new clock agrees with the old one about which bar
+## the music is in. While position was measured in seconds, two tempos rarely
+## agreed about that, the mismatch read as a boundary crossing, and anything
+## pending released immediately — mid-bar — rather than waiting for a real one.
+func set_clock(clock: MusicClock) -> void:
 	_clock = clock
-	if _last_bar != -1:
-		_last_bar = _clock.bar_at(seconds)
 
 
 ## Forgets where "the last bar" was and any pending requests. Call when
@@ -48,12 +46,12 @@ func request(layer_name: String, active: bool) -> void:
 	_pending[layer_name] = active
 
 
-## Advances the scheduler to [param seconds] and returns the layer_name ->
+## Advances the scheduler to [param beats] and returns the layer_name ->
 ## active changes that just landed on a bar boundary, as a [Dictionary]
 ## (empty if none did, including on the very first call after a [method
 ## reset], which only establishes the starting bar).
-func update(seconds: float) -> Dictionary:
-	var bar := _clock.bar_at(seconds)
+func update(beats: float) -> Dictionary:
+	var bar := _clock.bar_at(beats)
 	if _last_bar == -1:
 		_last_bar = bar
 		return {}

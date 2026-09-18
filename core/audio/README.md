@@ -156,14 +156,26 @@ musical-bar granularity, and moot since `AudioStreamSynchronized` already
 guarantees the layers themselves share one playback position regardless of
 what the scheduler measures against.
 
-A second, subtler version of the same "which clock" question: changing tempo
-mid-playback swaps in a new `MusicClock` with a different seconds-per-bar
-scale, so the bar number a given playback position maps to changes too.
-`LoopLayerScheduler.set_clock()` rebases its notion of the current bar onto
-the new clock at the moment of the swap — without that, the next `update()`
-compares a new-clock bar against an old-clock one, the mismatch reads as a
-boundary crossing, and anything pending releases immediately instead of
-waiting for a real bar to pass.
+A second, subtler version of the same "which clock" question, and the reason
+`MusicClock` counts in beats: **changing tempo must not move where the music
+is.** While a position was measured in seconds, a new `MusicClock` had a
+different seconds-per-bar scale, so the same position mapped to a different
+bar — the whole elapsed history was being reinterpreted at the new tempo.
+Measured five minutes into a 70 bpm song, a nudge to 72 bpm moved bar 87
+beat 2.0 to bar 90 beat 0.0: three bars forward and onto a different beat,
+from one keypress, and worse the longer the song had been running.
+
+Both schedulers used to paper over this by rebasing their notion of the
+current bar (or step) onto the new clock at the moment of the swap. Without
+it, the mismatch read as a boundary crossing and anything pending released
+immediately instead of waiting for a real bar — but the rebase only stopped
+them misfiring, it could not stop the phase inside the bar from jumping.
+
+Position is now accumulated in beats by the `MusicTimeSource` against whatever
+tempo was in force at the time, so bars and steps sit at fixed beat positions
+and two tempos agree about where the music is. A tempo change is a non-event
+for everything downstream: both rebases are gone, and `set_clock()` on either
+scheduler is a plain swap.
 
 ### Using it
 
@@ -306,7 +318,7 @@ for the floaty-synthwave direction. `core/audio/groove_demo.tscn`
 | [`time/music_time_source.gd`](time/music_time_source.gd) | `MusicTimeSource` — port: where musical time comes from. |
 | [`time/sources/wall_clock_music_time.gd`](time/sources/wall_clock_music_time.gd) | `WallClockMusicTime` — the current adapter: a session wall clock. |
 | [`time/sources/scripted_music_time.gd`](time/sources/scripted_music_time.gd) | `ScriptedMusicTime` — time moved by hand, for tests. |
-| [`music_clock.gd`](music_clock.gd) | `MusicClock` — now also steps: `step_at`, `seconds_per_step`, `steps_per_bar`. |
+| [`music_clock.gd`](music_clock.gd) | `MusicClock` — beats read as bars and steps: `bar_at`, `step_at`, `steps_per_bar`. |
 | [`step_sequencer.gd`](step_sequencer.gd) | `StepSequencer` — pure: which steps have come due, each once, in order. |
 | [`step_clock.gd`](step_clock.gd) | `StepClock` — node emitting `step(index, bar, step_in_bar)` while music plays. |
 | [`drum_synth.gd`](drum_synth.gd) | `DrumSynth` — kick, snare, clap, closed and open hat, synthesised. |
@@ -323,9 +335,22 @@ clock driven from the audio thread, say — is a new adapter and one call:
 AudioManager.set_music_time_source(MyBetterClock.new())
 ```
 
+**The port reports beats, not seconds**, and an adapter is told the tempo
+through `set_tempo()` so it can accumulate against it. That is what keeps a
+tempo change continuous (see above): beats already played keep the tempo they
+were played at, and only what comes next runs at the new one. Scaling a
+running seconds total by the current tempo would rewrite the past instead.
+
+Wall seconds survive at the two boundaries that genuinely need them: how long
+a note is held, and `get_lookahead()` — the time to the next audio mix, a
+property of the pipeline rather than of the music, which callers convert with
+`MusicClock.beats_in()`.
+
 `tests/test_music_time_sources.gd` drives both bar changes and steps from a
 `ScriptedMusicTime`, which is what proves nothing is reading a clock behind the
-port's back.
+port's back, and covers the continuity property from both ends: that
+`WallClockMusicTime.set_tempo()` does not move the position, and that retuning
+mid-bar through `AudioManager` changes neither the bar nor the beat within it.
 
 ### Two ways onto the grid
 
