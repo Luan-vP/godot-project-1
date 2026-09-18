@@ -49,7 +49,7 @@ func test_a_closed_hat_chokes_a_sounding_open_hat() -> void:
 	_kit.hit(DrumSynth.Hit.OPEN_HAT, 0.9)
 	assert_eq(_kit.sounding_count(), 1)
 	_kit.hit(DrumSynth.Hit.CLOSED_HAT, 0.9)
-	await wait_seconds(DrumKit.CHOKE_FADE_SECONDS * 4.0)
+	await wait_seconds(StepPattern.CHOKE_FADE_SECONDS * 4.0)
 	assert_eq(_kit.sounding_count(), 1, "The open hat stopped; the closed hat is still sounding")
 
 
@@ -67,7 +67,7 @@ func test_an_open_hat_stolen_before_it_is_choked_is_not_choked_again() -> void:
 		_kit.hit(DrumSynth.Hit.SNARE, 0.8)  # Voices 1, 2, 3.
 	_kit.hit(DrumSynth.Hit.SNARE, 0.8)  # Voice 0 again: steals the open hat.
 	_kit.hit(DrumSynth.Hit.CLOSED_HAT, 0.9)  # Nothing left to choke; must not misfire.
-	await wait_seconds(DrumKit.CHOKE_FADE_SECONDS * 4.0)
+	await wait_seconds(StepPattern.CHOKE_FADE_SECONDS * 4.0)
 	assert_eq(_kit.sounding_count(), 4, "Pool stays full; the stale choke target caused no harm")
 
 
