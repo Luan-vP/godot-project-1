@@ -62,6 +62,11 @@ const DEMOS: Array[Dictionary] = [
 		"blurb": "Clear medium over a checkerboard. Drag to stir, +/- tune strength.",
 	},
 	{
+		"name": "Eye Gaze",
+		"path": "res://core/look/gaze/gaze_debug_demo.tscn",
+		"blurb": "Eye tracking readout: state, gaze, the turn it makes. Calibrate, then look.",
+	},
+	{
 		"name": "Synth",
 		"path": "res://core/audio/synth_demo.tscn",
 		"blurb": "Synth voices. A-K hold notes, Up/Down glide, R plays a phrase.",

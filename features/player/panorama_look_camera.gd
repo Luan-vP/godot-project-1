@@ -70,6 +70,11 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _is_recentre(event):
+		# Only eye gaze has a neutral to re-take today; mouse and stick ignore
+		# it. A double tap because a phone held for eye tracking has no keys.
+		_look.calibrate()
+		return
 	if not capture_mouse:
 		return
 	if event.is_action_pressed("ui_cancel"):
@@ -80,3 +85,11 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func get_look_input() -> LookInput:
 	return _look
+
+
+static func _is_recentre(event: InputEvent) -> bool:
+	var key := event as InputEventKey
+	if key != null:
+		return key.pressed and not key.echo and key.keycode == KEY_C
+	var touch := event as InputEventScreenTouch
+	return touch != null and touch.pressed and touch.double_tap
