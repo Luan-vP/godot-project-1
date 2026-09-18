@@ -70,6 +70,17 @@ func test_a_part_with_no_eye_is_never_wanted() -> void:
 	assert_false(_band.wants_part("shimmer"), "Nobody plays the shimmer")
 
 
+## shift_key() before the music has started (nothing playing, no song, no
+## walker) must still track the offset rather than touching any of that —
+## it is guarded by is_playing("pads"), which starts false, per _ready().
+func test_shift_key_tracks_the_offset_before_the_band_has_started() -> void:
+	assert_eq(_band.key_offset(), 0, "Starts at the song's own key")
+	_band.shift_key(5)
+	assert_eq(_band.key_offset(), 5, "Up a fourth")
+	_band.shift_key(-7)
+	assert_eq(_band.key_offset(), -2, "Then down a fifth, unbounded and unfolded")
+
+
 func _eye(radius: float, at: Vector2) -> FloatyEye:
 	var eye := FloatyEye.new()
 	eye.radius = radius

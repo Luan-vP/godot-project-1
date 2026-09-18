@@ -43,6 +43,9 @@ signal bus_volume_changed(bus_name: String, linear_volume: float)
 ## Emitted whenever a bus's mute state changes, including on load.
 signal bus_mute_changed(bus_name: String, muted: bool)
 
+## Emitted whenever the tempo changes, in BPM — for a HUD readout (#72).
+signal tempo_changed(tempo_bpm: float)
+
 const MASTER_BUS := "Master"
 const MUSIC_BUS := "Music"
 const SFX_BUS := "SFX"
@@ -164,10 +167,18 @@ func set_tempo(tempo_bpm: float, beats_per_bar: int = 4) -> void:
 	_loop_clock = MusicClock.new(tempo_bpm, beats_per_bar)
 	_time_source.set_tempo(_loop_clock.tempo_bpm)
 	_loop_scheduler.set_clock(_loop_clock)
+	tempo_changed.emit(_loop_clock.tempo_bpm)
 
 
-## The tempo in force now, in BPM. Changing it alone, leaving the bar length
-## as it is, is what a player-facing tempo control wants (see #72).
+## Changes the tempo alone, leaving the current bar length as it is — what a
+## player-facing tempo control wants (#72). [method set_tempo] takes a bar
+## length too because it also stands in for "start a whole new clock", which
+## a plain tempo nudge is not.
+func set_tempo_bpm(tempo_bpm: float) -> void:
+	set_tempo(tempo_bpm, _loop_clock.beats_per_bar)
+
+
+## The tempo in force now, in BPM.
 func get_tempo() -> float:
 	return _loop_clock.tempo_bpm
 

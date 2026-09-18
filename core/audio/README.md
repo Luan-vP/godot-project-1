@@ -465,3 +465,24 @@ while the order of sections varies.
 `problems()` on a song lists anything written wrong (a chord that does not
 parse, a section leading nowhere, a pattern of the wrong length); the eye
 band's songs are checked with it in `tests/test_eye_band_songs.gd`.
+
+### Transposing a live key (#71)
+
+`Chord.transposed(semitones)` moves the root round the circle and leaves the
+intervals alone, so every voicing method still keeps its result inside
+whatever register it is handed — nothing downstream needs to know a
+transposition happened at all. The offset is kept off the `Song`, on whoever
+is playing it (`EyeBand._key_offset`), and applied at read time: a `Song` is
+shared, cached, seeded data, and the offset is a moving, per-session choice,
+not a fixed part of what the song is.
+
+A written melody is different: it is not read fresh each time, it is written
+once and cached (`MelodyWriter.write_section`'s seeding is what keeps a
+section recognisably itself across a walk). `MelodyWriter.transposed()`
+therefore moves the *cached* notes rather than rewriting them from scratch in
+the new key — every note by the same amount, so the line's contour survives,
+folded back by whole octaves if the move pushed it out of `melody_range`
+rather than folding note by note, which would turn a step into a leap. A
+scale-correct line moved this way is still scale-correct, which is what makes
+"any scales used should adapt to this new root note" true without threading
+the offset into `scale_between()` at all.

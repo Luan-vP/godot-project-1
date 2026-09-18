@@ -47,3 +47,31 @@ func test_tones_between_lists_only_chord_tones() -> void:
 func test_root_at_or_above_finds_the_nearest_root_up() -> void:
 	assert_eq(Chord.parse("A").root_at_or_above(28), 33, "A1 above E1")
 	assert_eq(Chord.parse("E").root_at_or_above(28), 28, "E1 itself")
+
+
+func test_transposed_moves_the_root_and_keeps_the_quality() -> void:
+	var moved := Chord.parse("Am7").transposed(5)
+	assert_eq(moved.root, 2, "A up a fourth is D")
+	assert_eq(moved.intervals, Chord.parse("Am7").intervals, "Still minor 7")
+	assert_eq(Chord.parse("Am7").root, 9, "The original chord is untouched")
+
+
+func test_transposed_wraps_the_root_rather_than_climbing() -> void:
+	assert_eq(Chord.parse("C").transposed(11).root, 11, "B, not C an octave up")
+	assert_eq(Chord.parse("C").transposed(-1).root, 11, "Wraps down to B too")
+
+
+## Up a fourth (+5) and down a fifth (-7) name the same root, as #71 needs:
+## whichever way the player nudges the key, the two moves must agree.
+func test_a_fourth_up_and_a_fifth_down_land_on_the_same_root() -> void:
+	var chord := Chord.parse("C")
+	assert_eq(chord.transposed(5).root, chord.transposed(-7).root)
+
+
+## Repeated calls (as #71's controls make them) must agree with one call for
+## the accumulated total — nothing here depends on folding the offset to a
+## smaller equivalent first.
+func test_repeated_transposition_matches_the_accumulated_total() -> void:
+	var stepped := Chord.parse("G").transposed(5).transposed(5)
+	var direct := Chord.parse("G").transposed(10)
+	assert_eq(stepped.root, direct.root)

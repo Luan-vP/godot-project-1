@@ -125,6 +125,24 @@ func test_retuning_mid_bar_moves_neither_the_bar_nor_the_beat() -> void:
 	assert_false(AudioManager.is_layer_active("pad"), "The retune is not a bar boundary")
 
 
+## set_tempo_bpm() is what a player-facing tempo control (#72) wants: the
+## tempo alone, the current bar length left as it is — unlike set_tempo(),
+## whose default parameter would silently reset it.
+func test_set_tempo_bpm_changes_tempo_alone() -> void:
+	AudioManager.set_tempo(TEMPO, 3)
+	AudioManager.set_tempo_bpm(TEMPO + 10.0)
+	assert_eq(AudioManager.get_tempo(), TEMPO + 10.0)
+	assert_eq(AudioManager.get_music_clock().beats_per_bar, 3, "Bar length untouched")
+
+
+func test_tempo_changed_fires_on_either_setter() -> void:
+	watch_signals(AudioManager)
+	AudioManager.set_tempo(96.0, 4)
+	assert_signal_emitted_with_parameters(AudioManager, "tempo_changed", [96.0])
+	AudioManager.set_tempo_bpm(100.0)
+	assert_signal_emitted_with_parameters(AudioManager, "tempo_changed", [100.0])
+
+
 func test_step_clock_fires_steps_from_the_injected_time_source() -> void:
 	var clock: StepClock = autofree(StepClock.new())
 	clock.set_time_source(_scripted)

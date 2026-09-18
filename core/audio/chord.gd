@@ -61,6 +61,23 @@ static func parse(text: String) -> Chord:
 	return null
 
 
+## The same chord moved [param semitones] round the circle — only the root
+## pitch class changes; the intervals, and so the chord's quality, do not.
+## Unbounded and wrapped internally, so up a fourth (+5) and down a fifth
+## (-7) land on the same root, as they must (#71): [param semitones] is
+## never folded to a smaller equivalent before it gets here, so repeated
+## calls (walking the offset up or down) always agree with a single call for
+## the total. Every voicing method already keeps its result inside whatever
+## register it is given, so nothing downstream needs to know a transposition
+## happened at all.
+func transposed(semitones: int) -> Chord:
+	var moved := Chord.new()
+	moved.symbol = symbol
+	moved.root = posmod(root + semitones, 12)
+	moved.intervals = intervals.duplicate()
+	return moved
+
+
 ## Pitch classes in the chord, root first.
 func pitch_classes() -> Array[int]:
 	var classes: Array[int] = []

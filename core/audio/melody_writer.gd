@@ -66,6 +66,47 @@ static func scale_between(song: Song, low: int, high: int) -> Array[int]:
 	return notes
 
 
+## [param written], as [method write_section] returns it, moved by
+## [param semitones] altogether — same shape, same contour, every note
+## carried by exactly the same amount — then folded back into
+## [param low, param high] by whole octaves if that move pushed it out of
+## range, rather than folding each note on its own and turning a step into a
+## leap (#71). [param written] itself is untouched, so the section written
+## once (see [method write_section]'s seeding) can be transposed differently
+## on every call without losing that fixed shape.
+##
+## The octave fold cannot always satisfy both ends of the range at once — a
+## line that already reaches from [param low] to [param high] has nowhere
+## left to go without breaking one of them — so bringing the top back under
+## [param high] takes priority; a #71 shift that goes on to land under
+## [param low] as well is the rarer, lesser cost.
+static func transposed(written: Array, semitones: int, low: int, high: int) -> Array:
+	var pitches: Array[int] = []
+	for bar in written:
+		for note in bar:
+			pitches.append(note[1] + semitones)
+	if pitches.is_empty():
+		return written
+	var lowest := pitches[0]
+	var highest := pitches[0]
+	for pitch in pitches:
+		lowest = mini(lowest, pitch)
+		highest = maxi(highest, pitch)
+	var octaves := 0
+	while highest + octaves * 12 > high:
+		octaves -= 1
+	while lowest + octaves * 12 < low:
+		octaves += 1
+	var shift := semitones + octaves * 12
+	var moved := []
+	for bar in written:
+		var moved_bar := []
+		for note in bar:
+			moved_bar.append([note[0], note[1] + shift, note[2]])
+		moved.append(moved_bar)
+	return moved
+
+
 ## The candidate closest to [param target]; the lower one on a tie.
 static func nearest(candidates: Array[int], target: int) -> int:
 	var best := candidates[0]

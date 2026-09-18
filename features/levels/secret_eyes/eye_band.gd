@@ -45,9 +45,14 @@ const DRUM_DB := {"beat": -6.0, "ghost": -8.0, "shimmer": -9.0, "fill": -8.0}
 
 ## Default patch per live part: waveform, attack, release, level, voices. A
 ## song's [member Song.timbres] overrides any of the first four.
+##
+## Pads' voice count covers a #71 key shift crossfading against itself: a
+## chord already sounding (up to five notes, a maj9) can overlap a second,
+## freshly transposed voicing of the same chord (see [method shift_key]) —
+## ten voices, comfortably under 16 even before whatever else was ringing.
 const PATCHES := {
 	"bass": [SynthWavetable.Waveform.SAW, 0.005, 0.08, 0.16, 4],
-	"pads": [SynthWavetable.Waveform.SQUARE, 0.6, 1.4, 0.045, 8],
+	"pads": [SynthWavetable.Waveform.SQUARE, 0.6, 1.4, 0.045, 16],
 	"arp": [SynthWavetable.Waveform.SINE, 0.005, 0.3, 0.07, 4],
 	"melody": [SynthWavetable.Waveform.SQUARE, 0.08, 0.5, 0.05, 2],
 }
@@ -75,8 +80,16 @@ var _song: Song
 var _walker: SongWalker
 ## Section name -> the melody [MelodyWriter] wrote for it, written once.
 var _melodies := {}
+## "section@offset" -> [method MelodyWriter.transposed] of [member _melodies],
+## computed lazily per key offset and kept alongside it, never over it — a
+## shift never touches [member _melodies] itself.
+var _transposed_melodies := {}
 var _bar := -1
+var _step_in_bar := 0
 var _fill_active := false
+## Semitones the key has moved from the song as written (#71). Unbounded and
+## never folded to a smaller equivalent — see [method Chord.transposed].
+var _key_offset := 0
 
 
 func _ready() -> void:
@@ -176,6 +189,33 @@ func is_playing(part: String) -> bool:
 	return _playing.get(part, false)
 
 
+## The key offset in force now, in semitones (#71).
+func key_offset() -> int:
+	return _key_offset
+
+
+## Moves the key by [param semitones] — up a fourth is +5, up a fifth +7, and
+## down the negative of either (#71). Applied to chords and the melody where
+## they are read, every step, never stored on the [Song] — see
+## [method Chord.transposed] and [method MelodyWriter.transposed].
+##
+## A pad chord already sounding fades across into the new key at once,
+## rather than waiting for its natural retrigger (up to a bar away) or
+## ringing on against the new key until then: see [method _trigger_pads].
+## Nothing else needs this — bass, arp and melody retrigger every step or
+## few, so their next regular trigger already picks up the new key within a
+## step.
+func shift_key(semitones: int) -> void:
+	_key_offset += semitones
+	if is_playing("pads") and _bar >= 0:
+		var chords := _walker.chords_at(_bar)
+		var chord_steps := (_song.beats_per_bar * 4) / chords.size()
+		var chord := _song.chord_in_bar(chords, _step_in_bar).transposed(_key_offset)
+		_trigger_pads(
+			chord, _step_in_bar, chord_steps, AudioManager.get_music_clock().seconds_per_step()
+		)
+
+
 func is_touching(eye: FloatyEye) -> bool:
 	var i := _eyes.find(eye)
 	return i >= 0 and _touching[i]
@@ -252,6 +292,7 @@ func _on_step(_index: int, bar: int, step_in_bar: int) -> void:
 	if new_bar:
 		_bar = bar
 		_latch_live_parts()
+	_step_in_bar = step_in_bar
 	for part in DRUM_PARTS:
 		if is_playing(part):
 			_play_drum_step(part, step_in_bar)
@@ -259,15 +300,15 @@ func _on_step(_index: int, bar: int, step_in_bar: int) -> void:
 		_play_drum_step(FILL, step_in_bar)
 
 	var chords := _walker.chords_at(bar)
-	var chord := _song.chord_in_bar(chords, step_in_bar)
+	var chord := _song.chord_in_bar(chords, step_in_bar).transposed(_key_offset)
 	var steps := _song.beats_per_bar * 4
 	var chord_steps := steps / chords.size()
-	var seconds_per_step := 60.0 / _song.tempo_bpm / 4.0
+	# From the live clock, not the song: it moves with #72's tempo control,
+	# where _song.tempo_bpm only ever names the tempo the song started at.
+	var seconds_per_step := AudioManager.get_music_clock().seconds_per_step()
 
 	if is_playing("pads") and (new_bar or step_in_bar % chord_steps == 0):
-		var remaining := chord_steps - step_in_bar % chord_steps
-		for note in chord.voice(_song.pad_range.x, _song.pad_range.y):
-			_play("pads", note, 0.8, seconds_per_step * (remaining - 0.5))
+		_trigger_pads(chord, step_in_bar, chord_steps, seconds_per_step)
 	if is_playing("bass"):
 		var note := bass_note(chord, _song.bass_line[step_in_bar], _song.bass_range.x)
 		if note >= 0:
@@ -282,9 +323,7 @@ func _on_step(_index: int, bar: int, step_in_bar: int) -> void:
 				_play("arp", tones[symbol.to_int() % tones.size()], accent, seconds_per_step * 1.5)
 	if is_playing("melody"):
 		var section := _walker.section_at(bar)
-		if not _melodies.has(section):
-			_melodies[section] = MelodyWriter.write_section(_song, section)
-		for note in _melodies[section][_walker.bar_in_section(bar)]:
+		for note in _transposed_melody(section)[_walker.bar_in_section(bar)]:
 			if note[0] == step_in_bar:
 				_play("melody", note[1], 0.8, seconds_per_step * note[2] * 0.95)
 
@@ -324,6 +363,35 @@ func _play_drum_step(part: String, step_in_bar: int) -> void:
 		var velocity := pattern.velocity(hit_type, step_in_bar)
 		if velocity > 0.0:
 			_drum_kit.hit(hit_type, velocity, DRUM_DB.get(part, -8.0))
+
+
+## Voices [param chord] onto the pads for the rest of its span — the trigger
+## [method _on_step] fires on a chord change, and [method shift_key] re-enters
+## with the chord already sounding, transposed, so its own notes overlap and
+## crossfade with whatever is still decaying from before the shift.
+func _trigger_pads(
+	chord: Chord, step_in_bar: int, chord_steps: int, seconds_per_step: float
+) -> void:
+	var remaining := chord_steps - step_in_bar % chord_steps
+	for note in chord.voice(_song.pad_range.x, _song.pad_range.y):
+		_play("pads", note, 0.8, seconds_per_step * (remaining - 0.5))
+
+
+## The melody for [param section] at the current key offset — the
+## untransposed line [method MelodyWriter.write_section] wrote is what stays
+## fixed and cached in [member _melodies]; this is a second, offset-keyed
+## cache over it, so a section transposed differently at different points in
+## the same run does not need rewriting, only picking the cached copy for
+## whatever [member _key_offset] is now.
+func _transposed_melody(section: String) -> Array:
+	if not _melodies.has(section):
+		_melodies[section] = MelodyWriter.write_section(_song, section)
+	var key := "%s@%d" % [section, _key_offset]
+	if not _transposed_melodies.has(key):
+		_transposed_melodies[key] = MelodyWriter.transposed(
+			_melodies[section], _key_offset, _song.melody_range.x, _song.melody_range.y
+		)
+	return _transposed_melodies[key]
 
 
 func _play(part: String, note: int, velocity: float, hold_seconds: float) -> void:
