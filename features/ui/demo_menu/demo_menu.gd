@@ -24,6 +24,12 @@ signal demo_closed
 ## Every level and demo, in the order shown. Keep in step with scripts/run.sh.
 const DEMOS: Array[Dictionary] = [
 	{
+		"name": "Level 1",
+		"path": "res://features/levels/panorama/level_one.tscn",
+		"blurb":
+		"Pure exploration. No score, no timer, no way to fail — just look. Mouse/stick to look, Esc frees cursor.",
+	},
+	{
 		"name": "Eyes",
 		"path": "res://features/levels/secret_eyes/fluid_demo.tscn",
 		"blurb": "Secret level: the eye tank. Drag to stir and paint, arrows tilt, Space jogs.",

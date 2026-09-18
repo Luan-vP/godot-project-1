@@ -24,6 +24,8 @@ usage() {
 Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
 
   menu       Click into any of the demos below; Backspace comes back.
+  level1     Level 1: pure exploration. No score, no timer, no way to fail —
+             just look. Mouse or right stick to look, Esc frees the cursor.
   eyes       Secret level: the eye tank. Drag to stir and paint, arrows tilt,
              Space jogs, B blinks, R empties the tank, C recalibrates.
   band       The eye tank as a band: each eye plays one part of a 70 bpm loop
@@ -53,6 +55,7 @@ USAGE
 scene_for() {
 	case "$1" in
 		menu) echo "res://features/ui/demo_menu/demo_menu.tscn" ;;
+		level1 | level-one) echo "res://features/levels/panorama/level_one.tscn" ;;
 		eyes | secret-eyes | fluid) echo "res://features/levels/secret_eyes/fluid_demo.tscn" ;;
 		band | eye-band) echo "res://features/levels/secret_eyes/eye_band_demo.tscn" ;;
 		vitreous | floaters) echo "res://features/levels/vitreous/vitreous_tank.tscn" ;;
