@@ -40,7 +40,7 @@ func test_folding_preserves_the_interval_between_notes() -> void:
 	# never note by note, or a step turns into a leap.
 	var written := [[[0, 60, 1], [4, 64, 1], [8, 67, 1]]]
 	var moved := MelodyWriter.transposed(written, 9, LOW, HIGH)
-	var shift := moved[0][0][1] - 60
+	var shift: int = moved[0][0][1] - 60
 	for i in 3:
 		assert_eq(moved[0][i][1], written[0][i][1] + shift, "Note %d moved by the same shift" % i)
 

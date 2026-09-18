@@ -49,8 +49,12 @@ func test_a_closed_hat_chokes_a_sounding_open_hat() -> void:
 	_kit.hit(DrumSynth.Hit.OPEN_HAT, 0.9)
 	assert_eq(_kit.sounding_count(), 1)
 	_kit.hit(DrumSynth.Hit.CLOSED_HAT, 0.9)
-	await wait_seconds(StepPattern.CHOKE_FADE_SECONDS * 4.0)
-	assert_eq(_kit.sounding_count(), 1, "The open hat stopped; the closed hat is still sounding")
+	# The choke is a tween, not instant — poll rather than a fixed wait, so
+	# this does not depend on how many frames land within
+	# CHOKE_FADE_SECONDS on whatever machine runs it.
+	var choked := func(): return _kit.sounding_count() == 1
+	var arrived: bool = await wait_until(choked, 1.0)
+	assert_true(arrived, "The open hat stopped; the closed hat is still sounding")
 
 
 func test_a_closed_hat_with_nothing_to_choke_does_not_error() -> void:
