@@ -61,7 +61,10 @@ func test_tangent_is_perpendicular_to_direction() -> void:
 	]
 	for point in source.get_edges()[0].points:
 		assert_almost_eq(
-			point.direction.dot(point.tangent), 0.0, EPSILON, "Tangent must lie in the tangent plane"
+			point.direction.dot(point.tangent),
+			0.0,
+			EPSILON,
+			"Tangent must lie in the tangent plane"
 		)
 
 
