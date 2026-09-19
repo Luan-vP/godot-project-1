@@ -29,13 +29,13 @@ fi
 # The compute shaders compile to SPIR-V through a real rendering device, which
 # --headless does not have. Over ssh there is no display in the environment,
 # so borrow the session's: gamescope's Xwayland in Game Mode, Plasma's in
-# Desktop Mode. Both are :0, and both keep their cookie in a randomly named
-# xauth_* file in the runtime dir.
+# Desktop Mode. Both are :0, sometimes with the cookie in a randomly named
+# xauth_* file in the runtime dir and sometimes with none.
 export DISPLAY="${DISPLAY:-:0}"
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 if [ -z "${XAUTHORITY:-}" ]; then
-	XAUTHORITY="$(ls -t "$XDG_RUNTIME_DIR"/xauth_* 2>/dev/null | head -n 1 || true)"
-	export XAUTHORITY
+	auth="$(ls -t "$XDG_RUNTIME_DIR"/xauth_* 2>/dev/null | head -n 1 || true)"
+	[ -n "$auth" ] && export XAUTHORITY="$auth"
 fi
 
 build_name="$NAME"

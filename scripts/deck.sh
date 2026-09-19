@@ -82,12 +82,14 @@ build() {
 
 run() {
 	local build="${1:-$NAME}"
-	# gamescope (Game Mode) and Plasma (Desktop Mode) both serve :0, with the
-	# cookie in a randomly named xauth_* file. A transient user unit outlives
-	# the ssh session, which would otherwise take the game down with it.
+	# gamescope (Game Mode) and Plasma (Desktop Mode) both serve :0, sometimes
+	# with the cookie in a randomly named xauth_* file and sometimes with none.
+	# A transient user unit outlives the ssh session, which would otherwise
+	# take the game down with it.
 	remote "systemctl --user stop $build 2>/dev/null; systemctl --user reset-failed $build 2>/dev/null
+		auth=\$(ls -t /run/user/\$(id -u)/xauth_* 2>/dev/null | head -n 1)
 		systemd-run --user --quiet --unit=$build --working-directory=\$HOME/Games/$build \
-			--setenv=DISPLAY=:0 --setenv=XAUTHORITY=\$(ls -t /run/user/\$(id -u)/xauth_* | head -n 1) \
+			--setenv=DISPLAY=:0 \${auth:+--setenv=XAUTHORITY=\$auth} \
 			\$HOME/Games/$build/$NAME.x86_64"
 	echo "Launched $build on the Deck. Logs: scripts/deck.sh logs $build"
 }
