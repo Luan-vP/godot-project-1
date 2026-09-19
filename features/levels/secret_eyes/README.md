@@ -18,15 +18,23 @@ the arrows and space give way to the real accelerometer with no code change.
 
 ## Secret access
 
-**Decision:** once a main level exists, this scene is reached by holding
-`Shift` while starting the game, rather than through any in-game menu.
+Reached from [`LevelSelect`](../../ui/level_select/level_select.gd), the
+level select every player actually sees (`run/main_scene`): press `Shift` on
+a keyboard, or the gamepad's `Y` button, while the level select is showing.
+An "Eyes" card appears in the list alongside the discovered levels, picked
+the same way as any other.
 
-There is no main level yet to hide this behind, so wiring up the `Shift`
-check would have nothing to gate; that is left for whichever issue adds the
-main level. Until then `run/main_scene` is the development demo menu
-(`features/ui/demo_menu/`), which lists this level alongside the rest. When
-the main level lands, it takes over `run/main_scene` and the menu either
-drops this entry or stops shipping, so the secret stays one.
+This replaces an earlier decision to gate the tank behind holding `Shift`
+while starting the game — written before a menu existed for a gesture to
+live on. A level-select gesture reads better once there is a screen to hide
+it on, and needs no command-line flag or start-of-process check. The tank
+itself is unaffected: it is still not a [`Level`](../../level.gd) resource,
+so the level select's directory scan never surfaces it on its own — see
+`resources/levels/README.md`.
+
+`features/ui/demo_menu/` (`run/main_scene` before the level select existed)
+still lists this level openly alongside the rest, since it exists to make
+every demo and level reachable for development regardless of any secret.
 
 ## Eye band
 
