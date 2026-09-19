@@ -7,7 +7,7 @@ it hangs in.
 
 ## Controls
 
-Drag to push the gel, arrows to tilt, `Space` to jog, `C` to recalibrate, `R`
+Drag to push the gel, `WASD` to tilt, `Space` to jog, `C` to recalibrate, `R`
 to still the gel, `+`/`-` to add or remove floaters, `F` to toggle the
 out-of-focus look.
 

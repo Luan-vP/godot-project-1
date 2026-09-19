@@ -17,6 +17,13 @@ extends Node
 ## both kinds change at the same moment. A fill layer plays over the beat on
 ## the last bar of every section.
 ##
+## Tempo starts at [member Song.tempo_bpm] but is live from there:
+## [method AudioManager.set_tempo_bpm] moves it, note hold lengths follow the
+## live clock rather than the song's starting value, and the rendered drum
+## loops keep pace by pitch rather than re-rendering (see
+## docs/music-player-controls-scope.md §2-3). See [code]eye_band_demo.gd[/code]
+## for the arrow key control.
+##
 ## An eye near a wall uses two distances, not one, so one hovering at the
 ## threshold does not flicker its part on and off: it counts as touching once
 ## it comes within [member touch_px], and only lets go past [member release_px].
@@ -260,7 +267,9 @@ func _on_step(_index: int, bar: int, step_in_bar: int) -> void:
 	var chord := _song.chord_in_bar(chords, step_in_bar)
 	var steps := _song.beats_per_bar * 4
 	var chord_steps := steps / chords.size()
-	var seconds_per_step := 60.0 / _song.tempo_bpm / 4.0
+	# The live tempo, not the song's starting one: note holds must track a
+	# tempo change (#72) or drift out of step with the arrangement.
+	var seconds_per_step := AudioManager.get_music_clock().seconds_per_step()
 	if step_in_bar == steps / 2:
 		_request_fill(bar + 1)
 

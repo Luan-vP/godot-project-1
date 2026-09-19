@@ -5,7 +5,7 @@ extends Node2D
 ## the vitreous humour, out of focus, against a bright field. Assembled in code
 ## so the scene file stays a single node, the same as the secret eye level.
 ##
-## Drag to push the gel. Arrows tilt, space jogs, C recalibrates, R stills the
+## Drag to push the gel. WASD tilts, space jogs, C recalibrates, R stills the
 ## gel, +/- adds or removes floaters, F toggles the out-of-focus look.
 
 ## A push spreads over a broad, soft footprint and moves a whole region of the
@@ -120,7 +120,7 @@ func _build_hint() -> void:
 	var hint := Label.new()
 	hint.position = Vector2(16.0, 12.0)
 	hint.add_theme_color_override("font_color", Color(0.2, 0.22, 0.26, 0.55))
-	hint.text = "drag push · arrows tilt · space jog · C calibrate · R still · +/- count · F focus"
+	hint.text = "drag push · WASD tilt · space jog · C calibrate · R still · +/- count · F focus"
 	layer.add_child(hint)
 	add_child(layer)
 

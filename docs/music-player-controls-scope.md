@@ -1,3 +1,11 @@
+> **Update (#72):** tempo control is implemented. The prerequisite in §1
+> (musical position as beats) landed separately as #74, ahead of this scope
+> doc reaching review. §3's live-tempo plumbing, the §5 arrow-key clash and
+> its safety rail are resolved as this doc recommends: arrows drive tempo,
+> keyboard tilt (desktop-only stand-in) moved to WASD, tempo clamped to
+> 30-180 bpm. #71 (key control) is still open — the rest of this document
+> describes both as originally scoped.
+
 # Scoping #71 and #72: playing the music system as an instrument
 
 Both tickets ask for the same new thing: **the player changes the music while it
