@@ -42,6 +42,9 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
              pads on the step grid. Space plays, 1/2 drum layers, B bass, P pads.
   audio      Audio foundation: bus sliders and mutes, loop layers, the
              smoothed effect fader.
+  comfort    Comfort options (#17): distortion strength, look sensitivity,
+             floater overshoot reduction. Open a panorama level afterwards to
+             feel a change take effect.
 
 Options:
   --fresh    Delete compiled compute shaders and reimport before running.
@@ -62,6 +65,7 @@ scene_for() {
 		synth) echo "res://core/audio/synth_demo.tscn" ;;
 		groove) echo "res://core/audio/groove_demo.tscn" ;;
 		audio) echo "res://core/audio/audio_demo.tscn" ;;
+		comfort) echo "res://features/ui/comfort_settings/comfort_settings_demo.tscn" ;;
 		*) return 1 ;;
 	esac
 }

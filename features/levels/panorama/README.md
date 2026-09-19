@@ -76,6 +76,19 @@ so it produces no seam.
 contribution in one place — what `Level.look_sensitivity` drives — rather
 than a level having to retune each source's own sensitivity individually.
 
+## Comfort options
+
+[`ComfortSettings`](../../../autoload/ComfortSettings.gd) (issue #17) lets a
+player pull back from a level's tuned `distortion_strength` and
+`look_sensitivity`, and reduce how much a floater lags and overshoots behind
+the current — the whole mechanic is "move the view, watch the image distort",
+which some players find sickening. `PanoramaLevel._apply_level` and
+`_rebuild_medium` scale a level's numbers through it before applying them, so
+the values above stay the tuned defaults a player starts from, not the
+accessible ones. Settings persist through `SaveManager` and are read once when
+a level's medium is built, not live while one is already running — see the
+[comfort settings demo](../../ui/comfort_settings/comfort_settings_demo.gd).
+
 ## Not yet
 
 The medium is idle beyond its own `ambient_current`: nothing stirs it from

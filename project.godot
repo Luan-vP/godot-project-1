@@ -25,6 +25,7 @@ EventBus="*res://autoload/EventBus.gd"
 GameState="*res://autoload/GameState.gd"
 AudioManager="*res://autoload/AudioManager.gd"
 SaveManager="*res://autoload/SaveManager.gd"
+ComfortSettings="*res://autoload/ComfortSettings.gd"
 
 [audio]
 
