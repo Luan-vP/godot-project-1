@@ -21,14 +21,14 @@ extends Node
 
 const _POOL_SIZE := 8
 
+static var _stream_cache := {}
+
 ## Bus every player plays through.
 @export var bus: StringName = &"Music"
 
 var _players: Array[AudioStreamPlayer] = []
 var _started_usec: Array[int] = []
 var _open_hat_index := -1
-
-static var _stream_cache := {}
 
 
 func _ready() -> void:
