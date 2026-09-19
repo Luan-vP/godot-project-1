@@ -4,9 +4,12 @@
 #   scripts/deck.sh setup     install Godot + export templates on the Deck,
 #                             create its checkout, add the `deck` git remote
 #   scripts/deck.sh build     push HEAD to the Deck and build there
+#                             (--as NAME installs it to ~/Games/NAME, so
+#                             builds can sit side by side to compare)
 #   scripts/deck.sh run       launch the installed build on the Deck's screen
 #   scripts/deck.sh stop      quit it
 #   scripts/deck.sh logs      show its recent output
+#                             (run/stop/logs take a NAME from build --as)
 #   scripts/deck.sh ssh       open a shell on the Deck
 #
 # Host defaults to deck@steamdeck; override with DECK_HOST. Tailscale SSH in
@@ -78,30 +81,33 @@ build() {
 }
 
 run() {
+	local build="${1:-$NAME}"
 	# gamescope (Game Mode) and Plasma (Desktop Mode) both serve :0, with the
 	# cookie in a randomly named xauth_* file. A transient user unit outlives
 	# the ssh session, which would otherwise take the game down with it.
-	remote "systemctl --user stop $NAME 2>/dev/null; systemctl --user reset-failed $NAME 2>/dev/null
-		systemd-run --user --quiet --unit=$NAME --working-directory=\$HOME/Games/$NAME \
+	remote "systemctl --user stop $build 2>/dev/null; systemctl --user reset-failed $build 2>/dev/null
+		systemd-run --user --quiet --unit=$build --working-directory=\$HOME/Games/$build \
 			--setenv=DISPLAY=:0 --setenv=XAUTHORITY=\$(ls -t /run/user/\$(id -u)/xauth_* | head -n 1) \
-			\$HOME/Games/$NAME/$NAME.x86_64"
-	echo "Launched on the Deck. Logs: scripts/deck.sh logs"
+			\$HOME/Games/$build/$NAME.x86_64"
+	echo "Launched $build on the Deck. Logs: scripts/deck.sh logs $build"
 }
 
 stop() {
-	remote "systemctl --user stop $NAME 2>/dev/null && echo Stopped. || echo Not running."
+	local build="${1:-$NAME}"
+	remote "systemctl --user stop $build 2>/dev/null && echo Stopped. || echo Not running."
 }
 
 logs() {
-	remote "journalctl --user -u $NAME -n 50 --no-pager"
+	local build="${1:-$NAME}"
+	remote "journalctl --user -u $build -n 50 --no-pager"
 }
 
 case "${1:-}" in
 	setup) setup ;;
 	build) shift; build "$@" ;;
-	run) run ;;
-	stop) stop ;;
-	logs) logs ;;
+	run) run "${2:-}" ;;
+	stop) stop "${2:-}" ;;
+	logs) logs "${2:-}" ;;
 	ssh) "${SSH[@]}" "$HOST" ;;
-	*) sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+	*) sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
 esac

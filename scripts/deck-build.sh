@@ -3,6 +3,8 @@
 #
 #   scripts/deck-build.sh            import, export, install
 #   scripts/deck-build.sh --fresh    recompile the compute shaders first
+#   scripts/deck-build.sh --as NAME  install to ~/Games/NAME instead, so
+#                                    builds can sit side by side to compare
 #
 # Runs on the Deck, from its checkout (see scripts/deck.sh for driving it from
 # another machine). Expects Godot 4.4.1 at ~/.local/bin/godot4 with matching
@@ -17,7 +19,6 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 IMPORTED="$ROOT/.godot/imported"
 SHADER_DIR="$ROOT/features/fluid/shaders/compute"
 NAME="godot-project-1"
-INSTALL_DIR="$HOME/Games/$NAME"
 GODOT_BIN="${GODOT:-$HOME/.local/bin/godot4}"
 
 if [ ! -x "$GODOT_BIN" ]; then
@@ -37,7 +38,19 @@ if [ -z "${XAUTHORITY:-}" ]; then
 	export XAUTHORITY
 fi
 
-if [ "${1:-}" = "--fresh" ]; then
+build_name="$NAME"
+fresh=0
+while [ $# -gt 0 ]; do
+	case "$1" in
+		--fresh) fresh=1 ;;
+		--as) build_name="${2:?--as needs a name}"; shift ;;
+		*) echo "Unknown option: $1" >&2; exit 2 ;;
+	esac
+	shift
+done
+INSTALL_DIR="$HOME/Games/$build_name"
+
+if [ "$fresh" -eq 1 ]; then
 	echo "Clearing compiled compute shaders."
 	rm -f "$IMPORTED"/*.glsl-*
 fi
@@ -76,10 +89,10 @@ chmod +x "$INSTALL_DIR/$NAME.x86_64"
 git -C "$ROOT" log -1 --format='%h %s' >"$INSTALL_DIR/BUILD" 2>/dev/null || true
 
 mkdir -p "$HOME/.local/share/applications"
-cat >"$HOME/.local/share/applications/$NAME.desktop" <<DESKTOP
+cat >"$HOME/.local/share/applications/$build_name.desktop" <<DESKTOP
 [Desktop Entry]
 Type=Application
-Name=$NAME
+Name=$build_name
 Exec=$INSTALL_DIR/$NAME.x86_64
 Path=$INSTALL_DIR
 Terminal=false
