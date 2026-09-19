@@ -89,7 +89,9 @@ func test_secret_gesture_reveals_an_extra_card() -> void:
 	_menu._input(_key(KEY_SHIFT, true, false))
 	var after := _menu.find_children("*", "Button", true, false).size()
 	assert_eq(after, before + 1, "One more card than before")
-	assert_true(_has_entry_named(_menu.get_entries(), LevelSelect.SECRET_LEVEL_NAME), "Eyes is listed")
+	assert_true(
+		_has_entry_named(_menu.get_entries(), LevelSelect.SECRET_LEVEL_NAME), "Eyes is listed"
+	)
 
 
 func test_secret_gesture_does_nothing_while_a_level_is_open() -> void:
