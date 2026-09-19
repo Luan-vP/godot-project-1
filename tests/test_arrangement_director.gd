@@ -7,7 +7,7 @@ extends GutTest
 ## readings, no running game, no scene tree.
 
 const LAYERS: Array[String] = ["beat", "hats", "bass", "shimmer"]
-const THRESHOLDS := PackedFloat32Array([1.0, 3.0, 6.0, 10.0])
+const THRESHOLDS: Array[float] = [1.0, 3.0, 6.0, 10.0]
 
 
 func _new_director(release_seconds := 2.0, min_hold_seconds := 0.0) -> ArrangementDirector:
@@ -114,5 +114,5 @@ func test_top_threshold_is_the_last_entry() -> void:
 
 func test_top_threshold_is_zero_with_no_thresholds() -> void:
 	var empty_layers: Array[String] = []
-	var director := ArrangementDirector.new(empty_layers, PackedFloat32Array())
+	var director := ArrangementDirector.new(empty_layers, [])
 	assert_eq(director.top_threshold(), 0.0)

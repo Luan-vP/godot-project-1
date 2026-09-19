@@ -5,11 +5,12 @@ extends GutTest
 ## calls out directly.
 ##
 ## Time comes from a [ScriptedMusicTime] like [code]test_music_time_sources.gd[/code]:
-## it only moves when [method ScriptedMusicTime.advance] is called, which is
-## what lets the release hysteresis be advanced by seconds on demand instead
-## of waiting on the wall clock. A bar boundary still needs a real frame to
-## pass afterwards for [AudioManager]'s scheduler to notice, same as every
-## other loop layer test.
+## it only moves in beats when [method ScriptedMusicTime.advance] is called
+## (#74), which [MusicArrangement] converts to the wall seconds
+## [ArrangementDirector]'s release hysteresis runs on — so advancing it lets
+## that hysteresis be driven on demand instead of waiting on the wall clock.
+## A bar boundary still needs a real frame to pass afterwards for
+## [AudioManager]'s scheduler to notice, same as every other loop layer test.
 
 const FRAME_TIMEOUT := 5.0
 const TEMPO := 1200.0  # 0.05s per bar: fast enough for a boundary within the timeout.
@@ -35,7 +36,7 @@ func before_each() -> void:
 	await wait_frames(2)  # Let the scheduler establish bar 0 as its baseline, at t=0.
 
 	_arrangement = add_child_autofree(MusicArrangement.new())
-	_arrangement.configure(["beat", "hats"], PackedFloat32Array([1.0, 3.0]), 2.0)
+	_arrangement.configure(["beat", "hats"], [1.0, 3.0], 2.0)
 
 
 func after_each() -> void:
@@ -70,7 +71,7 @@ func test_scoring_brings_layers_in_once_a_bar_boundary_passes() -> void:
 	assert_eq(_arrangement.active_layers(), ["beat", "hats"], "Director updates synchronously")
 	assert_false(AudioManager.is_layer_active("beat"), "But AudioManager waits for a bar")
 
-	_scripted.advance(0.06)  # Past the 0.05s bar.
+	_scripted.advance(1.01)  # Past the 1-beat (0.05s) bar.
 	var both_active := func():
 		return AudioManager.is_layer_active("beat") and AudioManager.is_layer_active("hats")
 	var arrived: bool = await wait_until(both_active, FRAME_TIMEOUT)
@@ -79,7 +80,7 @@ func test_scoring_brings_layers_in_once_a_bar_boundary_passes() -> void:
 
 func test_falling_scoring_does_not_drop_a_layer_before_release_seconds() -> void:
 	EventBus.scoring_updated.emit(_snapshot(1))  # One layer justified.
-	_scripted.advance(0.06)
+	_scripted.advance(1.01)  # Past the 1-beat bar.
 	await wait_until(func(): return AudioManager.is_layer_active("beat"), FRAME_TIMEOUT)
 
 	EventBus.scoring_updated.emit(_snapshot(0))  # Score drops, but no time has passed.
@@ -89,11 +90,11 @@ func test_falling_scoring_does_not_drop_a_layer_before_release_seconds() -> void
 
 func test_falling_scoring_drops_the_layer_once_release_seconds_have_passed() -> void:
 	EventBus.scoring_updated.emit(_snapshot(1))
-	_scripted.advance(0.06)
+	_scripted.advance(1.01)  # Past the 1-beat bar.
 	await wait_until(func(): return AudioManager.is_layer_active("beat"), FRAME_TIMEOUT)
 
 	EventBus.scoring_updated.emit(_snapshot(0))  # Starts the release countdown.
-	_scripted.advance(2.1)  # Past release_seconds, entirely under this test's control.
+	_scripted.advance(41.0)  # 2.05s at this tempo: past release_seconds, under this test's control.
 	EventBus.scoring_updated.emit(_snapshot(0))  # A later tick confirms it stayed down.
 
 	var beat_left := func(): return not AudioManager.is_layer_active("beat")

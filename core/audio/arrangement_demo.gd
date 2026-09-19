@@ -24,7 +24,7 @@ const BEATS_PER_BAR := 4
 const MAX_FLOATERS := 6
 
 const LAYERS: Array[String] = ["beat", "hats", "claps"]
-const THRESHOLDS := PackedFloat32Array([1.0, 4.0, 9.0])  # 1, 2 and 3 floaters clustered.
+const THRESHOLDS: Array[float] = [1.0, 4.0, 9.0]  # 1, 2 and 3 floaters clustered.
 const RELEASE_SECONDS := 3.0
 const MIN_HOLD_SECONDS := 1.5
 

@@ -35,7 +35,7 @@ var layers: Array[String]
 ## Intensity required for layers[i] to be active. Must be ascending and the
 ## same length as [member layers]; not validated, since every other data
 ## class in this codebase (e.g. [StepPattern]) trusts its caller the same way.
-var thresholds: PackedFloat32Array
+var thresholds: Array[float]
 
 ## Seconds intensity must stay continuously below a layer's threshold before
 ## that layer leaves.
@@ -53,7 +53,7 @@ var _below_since := -1.0
 
 func _init(
 	p_layers: Array[String],
-	p_thresholds: PackedFloat32Array,
+	p_thresholds: Array[float],
 	p_release_seconds: float = 2.0,
 	p_min_hold_seconds: float = 0.0
 ) -> void:

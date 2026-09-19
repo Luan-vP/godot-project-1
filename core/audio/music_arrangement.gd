@@ -44,7 +44,7 @@ var _last_intensity := 0.0
 ## scoring starts arriving; safe to call again to retune while it is not.
 func configure(
 	layers: Array[String],
-	thresholds: PackedFloat32Array,
+	thresholds: Array[float],
 	release_seconds: float = 2.0,
 	min_hold_seconds: float = 0.0
 ) -> void:
@@ -84,7 +84,8 @@ func _on_scoring_updated(snapshot: ScoringSnapshot) -> void:
 		return
 	var intensity := ScoringIntensity.compute(snapshot)
 	_last_intensity = intensity
-	var seconds := AudioManager.get_music_time_source().get_seconds()
+	var beats := AudioManager.get_music_time_source().get_beats()
+	var seconds := beats * AudioManager.get_music_clock().seconds_per_beat()
 	var changes := _director.update(intensity, seconds)
 	for layer_name: String in changes:
 		AudioManager.set_layer_active(layer_name, changes[layer_name])
