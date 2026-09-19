@@ -91,3 +91,10 @@ func test_seconds_per_step_reflects_tempo() -> void:
 func test_steps_per_beat_is_configurable() -> void:
 	var triplets := MusicClock.new(70.0, 4, 3)
 	assert_eq(triplets.steps_per_bar(), 12, "Eighth-note triplets")
+
+
+func test_non_positive_tempo_is_clamped_so_wall_time_never_divides_by_zero() -> void:
+	# A live tempo control (#72) can be nudged all the way down to and past
+	# zero; seconds_per_beat() is 60.0 / tempo_bpm underneath.
+	assert_gt(MusicClock.new(0.0, 4).seconds_per_beat(), 0.0, "Zero tempo")
+	assert_gt(MusicClock.new(-10.0, 4).seconds_per_beat(), 0.0, "Negative tempo")

@@ -43,6 +43,10 @@ signal bus_volume_changed(bus_name: String, linear_volume: float)
 ## Emitted whenever a bus's mute state changes, including on load.
 signal bus_mute_changed(bus_name: String, muted: bool)
 
+## Emitted whenever the loop layer clock's tempo changes, from [method set_tempo]
+## or [method set_bpm], for a HUD readout to follow.
+signal tempo_changed(tempo_bpm: float)
+
 const MASTER_BUS := "Master"
 const MUSIC_BUS := "Music"
 const SFX_BUS := "SFX"
@@ -161,9 +165,27 @@ func is_music_playing() -> bool:
 ## so there is nothing to rebase here: the same beats position reads as the
 ## same bar under the new clock as it did under the old one.
 func set_tempo(tempo_bpm: float, beats_per_bar: int = 4) -> void:
+	_set_tempo(tempo_bpm, beats_per_bar)
+
+
+## Changes tempo alone, leaving the bar length as it is — what a live tempo
+## control (see #72) wants, rather than [method set_tempo]'s full signature.
+func set_bpm(tempo_bpm: float) -> void:
+	_set_tempo(tempo_bpm, _loop_clock.beats_per_bar)
+
+
+## The loop layer clock's current tempo, in beats per minute. Parts that must
+## not go stale after a live tempo change (see [EyeBand]) read this instead of
+## a [Song]'s starting tempo.
+func get_tempo() -> float:
+	return _loop_clock.tempo_bpm
+
+
+func _set_tempo(tempo_bpm: float, beats_per_bar: int) -> void:
 	_time_source.set_tempo_bpm(tempo_bpm)
 	_loop_clock = MusicClock.new(tempo_bpm, beats_per_bar)
 	_loop_scheduler.set_clock(_loop_clock)
+	tempo_changed.emit(_loop_clock.tempo_bpm)
 
 
 ## Declares the set of loops available to layer together, as data (see
