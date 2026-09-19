@@ -142,9 +142,7 @@ static func _build_demo_panorama() -> ImageTexture:
 
 	for y in PANORAMA_HEIGHT:
 		var row_color := (
-			sky_top.lerp(sky_bottom, float(y) / float(horizon_row))
-			if y < horizon_row
-			else ground
+			sky_top.lerp(sky_bottom, float(y) / float(horizon_row)) if y < horizon_row else ground
 		)
 		for x in PANORAMA_WIDTH:
 			image.set_pixel(x, y, row_color)
