@@ -27,7 +27,10 @@ const DEMOS: Array[Dictionary] = [
 		"name": "Level 1",
 		"path": "res://features/levels/panorama/level_one.tscn",
 		"blurb":
-		"Pure exploration. No score, no timer, no way to fail — just look. Mouse/stick to look, Esc frees cursor.",
+		(
+			"Pure exploration. No score, no timer, no way to fail — just look. "
+			+ "Mouse/stick to look, Esc frees cursor."
+		),
 	},
 	{
 		"name": "Eyes",
