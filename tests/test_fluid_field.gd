@@ -59,6 +59,29 @@ func test_sampling_outside_the_grid_clamps_to_the_edge() -> void:
 	_assert_vector(_field.sample_uv(Vector2(9.0, 9.0)), Vector2(3.0, 4.0), "Off the bottom right")
 
 
+func test_wrapping_cell_access_reads_round_to_the_far_side() -> void:
+	_field.wrap_edges = true
+	_assert_vector(_field.get_cell_velocity(-1, 0), Vector2(3.0, 0.0), "Left of column 0")
+	_assert_vector(_field.get_cell_velocity(0, 2), Vector2(1.0, 0.0), "Below the last row")
+
+
+func test_wrapping_samples_blend_across_the_seam() -> void:
+	_field.wrap_edges = true
+	# The left edge of row 0 is halfway between column 0 and, wrapped round,
+	# column 1 — where a clamped field would read column 0 alone.
+	_assert_vector(_field.sample_uv(Vector2(0.0, 0.25)), Vector2(2.0, 0.0), "At the seam")
+	_assert_vector(
+		_field.sample_uv(Vector2(1.25, 0.25)),
+		_field.sample_uv(Vector2(0.25, 0.25)),
+		"One tank over"
+	)
+
+
+func test_mean_velocity_averages_every_cell() -> void:
+	_assert_vector(_field.mean_velocity(), Vector2(2.0, 2.0), "Mean of the four cells")
+	_assert_vector(FluidField.new().mean_velocity(), Vector2.ZERO, "Empty field")
+
+
 func test_world_and_uv_coordinates_round_trip() -> void:
 	_assert_vector(_field.world_to_uv(Vector2(100.0, 50.0)), Vector2(0.5, 0.5), "Centre to UV")
 	_assert_vector(_field.uv_to_world(Vector2(0.5, 0.5)), Vector2(100.0, 50.0), "UV to centre")
