@@ -129,7 +129,9 @@ func test_set_bpm_changes_tempo_without_touching_bar_length() -> void:
 	AudioManager.set_tempo(90.0, 3)
 	AudioManager.set_bpm(120.0)
 	assert_almost_eq(AudioManager.get_tempo(), 120.0, 0.001)
-	assert_eq(AudioManager.get_music_clock().beats_per_bar, 3, "Bar length survives a bpm-only change")
+	assert_eq(
+		AudioManager.get_music_clock().beats_per_bar, 3, "Bar length survives a bpm-only change"
+	)
 
 
 func test_tempo_changed_is_emitted_by_set_tempo_and_set_bpm() -> void:
