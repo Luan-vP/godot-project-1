@@ -16,12 +16,18 @@ that point) — a dot has no orientation a strand lying along an edge could be
 scored against, so both travel together rather than the tangent being
 re-derived later from neighbouring points.
 
-[`ManualEdgeSource`](manual_edge_source.gd) is the one implementation this
-issue ships: edges placed by hand, `@export`ed as polylines in
-`(yaw_degrees, pitch_degrees)`. It is enough to build and test the scorer
-before any real detector exists, and doubles as that scorer's test fixture.
-A future image-based detector is a different `EdgeSource` behind the same
-port — nothing about `Level` or the scorer changes to swap it in.
+[`ManualEdgeSource`](manual_edge_source.gd) is edges placed by hand,
+`@export`ed as polylines in `(yaw_degrees, pitch_degrees)`. It was enough to
+build and test the scorer before any real detector existed, and doubles as
+that scorer's test fixture.
+
+[`CannyEdgeSource`](canny_edge_source.gd) ([issue #24](https://github.com/Luan-vP/godot-project-1/issues/24))
+is the first real one: it runs Canny edge detection over a level's
+equirectangular panorama texture and traces the result into the same
+`PanoramaEdge`/`PanoramaEdgePoint` shape, so a level is a photograph plus
+tuning rather than a photograph plus hand-traced geometry. Nothing about
+`Level` or the scorer cares which `EdgeSource` a level points at — see
+"Which space, and why" below.
 
 ## Why `Resource`, not `RefCounted`
 
@@ -81,3 +87,64 @@ pixels would first need mapping to the same angles (the standard, *linear*
 equirectangular pixel-to-angle formula) before embedding them on the sphere
 the same way. The distortion only ever needs handling once, at the sphere
 embedding, which is why it belongs here rather than in every implementation.
+
+## `CannyEdgeSource`
+
+Runs the textbook Canny pipeline — grayscale, Gaussian blur, Sobel gradients,
+non-maximum suppression, hysteresis threshold — over a working-resolution
+copy of `panorama_texture`, then links the surviving pixels into ordered runs
+and embeds each one on the sphere through
+[`EquirectProjection`](equirect_projection.gd), giving every point a tangent
+via the same [`PanoramaEdgeTangent`](panorama_edge_tangent.gd) chord-on-the-
+tangent-plane math `ManualEdgeSource` uses. A binary edge mask alone cannot
+answer "does this floater lie along an edge" ([#26](https://github.com/Luan-vP/godot-project-1/issues/26));
+tracing is what turns detected pixels into the same connected,
+tangent-carrying geometry `ManualEdgeSource` already produces.
+
+### CPU, not a compute shader
+
+The fluid tank's `.glsl` compute passes (see the [fluid README](../../features/fluid/README.md))
+are the obvious comparison, and the blur/Sobel/suppression stages here would
+parallelise the same way. Hysteresis linking and run-tracing do not: which
+pixel a weak edge connects to, and which direction a traced run continues in,
+both depend on a decision already made a few pixels back — inherently
+sequential work a parallel pass is the wrong tool for. Splitting the pipeline
+across a GPU half and a CPU half would still mean a synchronous GPU readback
+once per level load, no cheaper than staying on the CPU throughout, and
+without the `.glsl` import step's dependency on a real rendering device
+(lavapipe in CI) or its compiled-shader-count check. Staying on the CPU also
+keeps this class testable in headless GUT the same way `ManualEdgeSource` is
+— a small synthetic `Image` built by hand, no rendering device required —
+rather than joining the fluid solve as the project's second system that can
+only be exercised with one.
+
+### Runtime, not an import-time bake
+
+`get_edges()` runs once, lazily, the first time a consumer asks, and caches
+the result for the object's lifetime — the same "computed once, not every
+frame" contract every `EdgeSource` makes. The alternative this issue asked to
+weigh explicitly was baking edges at import time instead: faster level loads,
+and a level ships with its edges already decided. That loses against
+`CannyEdgeSource` being **tunable per level** (the issue's own acceptance
+criterion) — an import bake means a reimport for every tuning pass, the same
+friction the fluid README's viscosity table was gathered without needing.
+`working_width` is what keeps the runtime cost bounded instead: detection
+always runs against a copy downscaled to a fixed working resolution, never
+the full source texture, so "once per level load" stays cheap regardless of
+how large a level's panorama actually is.
+
+### Debug overlay
+
+`features/edges/canny_edge_debug.tscn` (`scripts/run.sh canny`, or "Canny
+Edges" in the demo menu) draws a synthetic panorama — a sky/ground split plus
+a few rectangles, one deliberately straddling the horizontal wrap seam — and
+overlays every traced run `CannyEdgeSource` finds on top of it.
+Up/Down tunes `blur_sigma`, `[`/`]` and `+`/`-` tune the two hysteresis
+thresholds, and Left/Right tunes `min_run_length`, each rebuilding a fresh
+`CannyEdgeSource` rather than mutating the running one — see `EdgeSource`'s
+own docstring for why a fresh detector run should be a fresh source. The
+issue this class implements calls this overlay "worth more than any unit
+test here", and [#25](https://github.com/Luan-vP/godot-project-1/issues/25)
+(comparing detectors) cannot happen without one: a unit test can check a
+tangent is perpendicular to its direction, but only a human looking at the
+overlay can judge whether the detector traced the picture's real edges.

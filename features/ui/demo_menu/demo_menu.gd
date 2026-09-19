@@ -57,6 +57,11 @@ const DEMOS: Array[Dictionary] = [
 		"blurb": "Clear medium over a checkerboard. Drag to stir, +/- tune strength.",
 	},
 	{
+		"name": "Canny Edges",
+		"path": "res://features/edges/canny_edge_debug.tscn",
+		"blurb": "Traced edges over a synthetic panorama. Up/down blur, [/] and +/- thresholds.",
+	},
+	{
 		"name": "Synth",
 		"path": "res://core/audio/synth_demo.tscn",
 		"blurb": "Synth voices. A-K hold notes, Up/Down glide, R plays a phrase.",
