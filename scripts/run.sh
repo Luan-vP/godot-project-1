@@ -24,12 +24,13 @@ usage() {
 Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
 
   menu       Click into any of the demos below; Backspace comes back.
-  eyes       Secret level: the eye tank. Drag to stir and paint, arrows tilt,
+  eyes       Secret level: the eye tank. Drag to stir and paint, WASD tilts,
              Space jogs, B blinks, R empties the tank, C recalibrates.
   band       The eye tank as a band: each eye plays one part of a 70 bpm loop
-             while it floats clear of the walls. Arrows tilt, drag stirs.
+             while it floats clear of the walls. WASD tilts, drag stirs,
+             arrows nudge the tempo (Up/Down ±2 bpm, Left/Right ±10 bpm).
   vitreous   Out-of-focus floaters drifting in a coasting gel. Drag to push,
-             arrows tilt, Space jogs, +/- floaters, F toggles focus, R stills.
+             WASD tilts, Space jogs, +/- floaters, F toggles focus, R stills.
   overcast   Panorama level: bright overcast sky, floaters unmissable. Mouse
              or right stick to look, Esc frees the cursor, click to recapture.
   interior   Panorama level: dim interior, floaters barely there. Same

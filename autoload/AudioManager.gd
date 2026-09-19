@@ -43,6 +43,10 @@ signal bus_volume_changed(bus_name: String, linear_volume: float)
 ## Emitted whenever a bus's mute state changes, including on load.
 signal bus_mute_changed(bus_name: String, muted: bool)
 
+## Emitted whenever the live loop tempo changes, from [method set_tempo] or
+## [method set_tempo_bpm].
+signal tempo_changed(tempo_bpm: float)
+
 const MASTER_BUS := "Master"
 const MUSIC_BUS := "Music"
 const SFX_BUS := "SFX"
@@ -84,6 +88,12 @@ var _loop_active_states: Dictionary = {}  # layer_name -> bool
 var _loop_clock: MusicClock
 var _loop_scheduler: LoopLayerScheduler
 var _time_source: MusicTimeSource = WallClockMusicTime.new()
+
+## Tempo the currently configured loop layers were rendered at (see
+## [method configure_loop_layers]). [method set_tempo_bpm] compares the live
+## tempo against this to derive [member AudioStreamPlayer.pitch_scale] rather
+## than re-rendering the drums — see docs/music-player-controls-scope.md §2.
+var _loop_rendered_tempo_bpm: float = 120.0
 
 
 func _ready() -> void:
@@ -155,12 +165,49 @@ func is_music_playing() -> bool:
 	return _music_player.playing
 
 
-## Sets the tempo and bar length the loop layer clock schedules against.
-## Configurable rather than baked in; safe to call before or during
-## playback. Musical position is beats, not seconds (see [MusicTimeSource]),
-## so there is nothing to rebase here: the same beats position reads as the
-## same bar under the new clock as it did under the old one.
+## Sets the tempo and bar length the loop layer clock schedules against, and
+## resets which tempo the currently configured loops count as rendered at —
+## call this to start a session, not to nudge the tempo live (see
+## [method set_tempo_bpm]). Configurable rather than baked in; safe to call
+## before or during playback. Musical position is beats, not seconds (see
+## [MusicTimeSource]), so there is nothing to rebase here: the same beats
+## position reads as the same bar under the new clock as it did under the old
+## one.
 func set_tempo(tempo_bpm: float, beats_per_bar: int = 4) -> void:
+	_apply_tempo(tempo_bpm, beats_per_bar)
+	_loop_rendered_tempo_bpm = tempo_bpm
+	_loop_player.pitch_scale = 1.0
+	tempo_changed.emit(tempo_bpm)
+
+
+## Nudges the live tempo without touching bar length or re-rendering the drum
+## loops already playing: their pitch scales with it instead, so the beat,
+## ghost, shimmer and fill layers — sharing one [AudioStreamSynchronized] —
+## stay locked to each other and to the live parts, just faster or slower (see
+## docs/music-player-controls-scope.md §2 for why re-rendering was rejected).
+## Callers are responsible for their own safety-rail clamp; this only guards
+## against a non-positive tempo (see [MusicClock]).
+func set_tempo_bpm(tempo_bpm: float) -> void:
+	_apply_tempo(tempo_bpm, _loop_clock.beats_per_bar)
+	if _loop_rendered_tempo_bpm > 0.0:
+		_loop_player.pitch_scale = tempo_bpm / _loop_rendered_tempo_bpm
+	tempo_changed.emit(tempo_bpm)
+
+
+## The live loop tempo, in beats per minute.
+func get_tempo() -> float:
+	return _loop_clock.tempo_bpm
+
+
+## The loop player's [member AudioStreamPlayer.pitch_scale] — 1.0 while the
+## live tempo matches what the currently configured loops were rendered at,
+## and away from 1.0 after [method set_tempo_bpm] moves the tempo without
+## re-rendering them (see docs/music-player-controls-scope.md §2).
+func get_loop_pitch_scale() -> float:
+	return _loop_player.pitch_scale
+
+
+func _apply_tempo(tempo_bpm: float, beats_per_bar: int) -> void:
 	_time_source.set_tempo_bpm(tempo_bpm)
 	_loop_clock = MusicClock.new(tempo_bpm, beats_per_bar)
 	_loop_scheduler.set_clock(_loop_clock)
@@ -169,7 +216,10 @@ func set_tempo(tempo_bpm: float, beats_per_bar: int = 4) -> void:
 ## Declares the set of loops available to layer together, as data (see
 ## [LoopLayer]) rather than paths hardcoded into a script. Stops playback and
 ## resets every layer to inactive; call [method play_loops] and
-## [method set_layer_active] afterwards to start again.
+## [method set_layer_active] afterwards to start again. Assumes [param layers]
+## were rendered at the tempo [method set_tempo] was last called with — call
+## that first, so [method set_tempo_bpm] has the right tempo to scale pitch
+## from.
 func configure_loop_layers(layers: Array[LoopLayer]) -> void:
 	if layers.size() > MAX_LOOP_LAYERS:
 		var msg := "AudioManager: %d loop layers requested, only %d supported; the rest are dropped"

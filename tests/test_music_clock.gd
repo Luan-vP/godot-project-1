@@ -91,3 +91,15 @@ func test_seconds_per_step_reflects_tempo() -> void:
 func test_steps_per_beat_is_configurable() -> void:
 	var triplets := MusicClock.new(70.0, 4, 3)
 	assert_eq(triplets.steps_per_bar(), 12, "Eighth-note triplets")
+
+
+## A repeated tempo-down tap (#72) reaching zero or negative would make
+## seconds_per_beat() divide by zero or go negative; guarded at construction
+## so every caller is covered, not just the one with a safety-rail clamp.
+func test_a_non_positive_tempo_is_clamped_instead_of_dividing_by_zero() -> void:
+	var stopped := MusicClock.new(0.0, 4)
+	assert_gt(stopped.tempo_bpm, 0.0, "Zero tempo should be clamped, not kept")
+	assert_true(is_finite(stopped.seconds_per_beat()), "Must not divide by zero")
+
+	var negative := MusicClock.new(-40.0, 4)
+	assert_gt(negative.tempo_bpm, 0.0, "Negative tempo should be clamped, not kept")

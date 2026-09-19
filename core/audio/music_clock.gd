@@ -31,7 +31,10 @@ var steps_per_beat: int
 
 
 func _init(p_tempo_bpm: float = 120.0, p_beats_per_bar: int = 4, p_steps_per_beat: int = 4) -> void:
-	tempo_bpm = p_tempo_bpm
+	# A non-positive tempo would divide by zero or go negative in every
+	# seconds_per_* conversion below; clamped here so no caller has to guard
+	# it separately (see docs/music-player-controls-scope.md §5).
+	tempo_bpm = maxf(p_tempo_bpm, 1.0)
 	beats_per_bar = p_beats_per_bar
 	steps_per_beat = p_steps_per_beat
 

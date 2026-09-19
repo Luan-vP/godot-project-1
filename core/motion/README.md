@@ -15,7 +15,7 @@ three adapters behind it:
 | Adapter | For |
 | --- | --- |
 | `DeviceMotionSource` | the real sensors |
-| `KeyboardMotionSource` | desktop — arrows tilt, space jogs |
+| `KeyboardMotionSource` | desktop — WASD tilt, space jogs |
 | `ScriptedMotionSource` | tests, and replaying a recorded gesture |
 
 The keyboard adapter synthesises a **gravity vector**, not a tilt. Producing a

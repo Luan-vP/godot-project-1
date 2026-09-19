@@ -5,11 +5,11 @@ extends Node2D
 ## cursor stir. Everything here is assembled in code so the scene file stays a
 ## single node — the demo is meant to be read, not clicked together.
 ##
-## Drag to stir and paint. Arrows tilt, space jogs, C recalibrates, R empties
+## Drag to stir and paint. WASD tilts, space jogs, C recalibrates, R empties
 ## the tank, B makes everyone blink.
 ##
-## On a phone the arrows and space are replaced by the real accelerometer,
-## with no change here — [MotionInput] picks the source.
+## On a phone WASD and space are replaced by the real accelerometer, with no
+## change here — [MotionInput] picks the source.
 
 const EYE_COUNT := 7
 const SEED_BLOBS := 5

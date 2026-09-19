@@ -12,9 +12,9 @@ as a secret rather than throw away.
 
 ## Controls
 
-Drag to stir and paint, arrows to tilt, `Space` to jog, `C` to recalibrate,
+Drag to stir and paint, `WASD` to tilt, `Space` to jog, `C` to recalibrate,
 `R` to empty the tank, `B` to make everyone blink. On a device with sensors
-the arrows and space give way to the real accelerometer with no code change.
+WASD and space give way to the real accelerometer with no code change.
 
 ## Secret access
 
@@ -41,8 +41,16 @@ Each time the band starts it picks one of four songs from
 arp) and *Slow Orbit* (E minor, 60 bpm). A song is sections of chords that
 branch into one another as it plays, so the progression wanders instead of
 looping four bars; a fill plays over the beat on the last bar of each section.
-The readout shows the song and the section playing. Push an eye against a wall (tilt with the arrows, or stir) and
-its part drops out at the next bar; let it drift free and it comes back.
+The readout shows the song, the section and the tempo it is playing at. Push
+an eye against a wall (tilt with `WASD`, or stir) and its part drops out at
+the next bar; let it drift free and it comes back.
+
+The arrow keys drive the tempo instead of tilt here — `Up`/`Down` nudge it
+±2 bpm, `Left`/`Right` ±10 bpm, clamped to 30-180 bpm. Note holds and the
+rendered drum loops' pitch both follow the live tempo (#72); see
+[`AudioManager.set_tempo_bpm`](../../../autoload/AudioManager.gd) and
+`docs/music-player-controls-scope.md` for why the drums are pitched rather
+than re-rendered.
 
 Left alone, eyes in this tank random-walk into the walls within about ten
 seconds and stick there, which would silence the band almost at once. The
