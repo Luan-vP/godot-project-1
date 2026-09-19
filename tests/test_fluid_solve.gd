@@ -101,6 +101,37 @@ func test_paint_accumulates_instead_of_plateauing() -> void:
 	)
 
 
+## A clear-medium tank (e.g. one rendered with FluidRefractionRenderer) never
+## reads the dye field, so [member FluidConfig.pigment_enabled] lets it skip
+## the dye texture pair, the dye dispatch and the copy entirely. This checks
+## the tank still builds and solves velocity normally with it off, and that
+## the dye API degrades to null/no-op rather than erroring.
+func test_pigment_disabled_skips_the_dye_field_entirely() -> void:
+	if not FluidGPU.is_available():
+		pending("No rendering device available; the GPU solve cannot run headless here.")
+		return
+
+	var clear_config: FluidConfig = _simulation.config.duplicate()
+	clear_config.pigment_enabled = false
+	var clear_tank := FluidSimulation.new()
+	clear_tank.config = clear_config
+	add_child_autofree(clear_tank)
+	var built: bool = await wait_until(
+		func(): return clear_tank.get_velocity_texture() != null, FRAME_TIMEOUT
+	)
+	assert_true(built, "A clear tank should still finish building")
+	assert_null(clear_tank.get_dye_texture(), "A clear tank should not expose a dye texture")
+
+	# Calling it anyway should be a silent no-op, not an error.
+	clear_tank.add_paint(PAINT_POINT, PAINT_COLOR, PAINT_RATE, PAINT_RADIUS, PAINT_DURATION)
+
+	clear_tank.add_velocity_impulse(IMPULSE_POINT, IMPULSE_ACCEL, IMPULSE_RADIUS, IMPULSE_DURATION)
+	await _step_frames(1)
+	var current := clear_tank.get_field().sample_world(IMPULSE_POINT).length()
+	assert_gt(current, 0.0, "The velocity solve should still run with pigment off")
+	assert_null(clear_tank.get_dye_texture(), "Pigment should stay off after stepping")
+
+
 ## The only masked cells today are the tank walls, so this is also the
 ## regression test for the obstacle mask itself: a wall cell must come out of
 ## the solve at rest, and the fluid cell right beside it must keep moving

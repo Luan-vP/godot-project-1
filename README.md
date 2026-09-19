@@ -27,7 +27,7 @@ A 2D game about floaty eye thingies, in a painterly style. Godot 4.4.
   manual demo scene to prove it makes a sound. See its
   [README](core/audio/README.md).
 - `autoload/` — global singletons (`EventBus`, `GameState`, `AudioManager`,
-  `SaveManager`).
+  `SaveManager`, `ComfortSettings`).
 - `addons/` — vendored third-party code; see [addons/README.md](addons/README.md).
 - `tests/` — GUT suite.
 
@@ -44,11 +44,13 @@ scripts/run.sh             # list the levels and demos, with their controls
 scripts/run.sh menu        # the clickable demo menu
 scripts/run.sh vitreous    # floaters in the vitreous gel
 scripts/run.sh eyes        # the secret eye tank
+scripts/run.sh band        # the eye tank as a band: eyes off the walls play parts
 scripts/run.sh panorama    # look-around camera (no panorama image yet)
 scripts/run.sh refraction  # the clear medium bending a checkerboard
 scripts/run.sh synth       # play the synth voices from the keyboard
 scripts/run.sh groove      # synthwave loop: drums on the step grid, bass and pads
 scripts/run.sh audio       # buses, loop layers, the effect fader
+scripts/run.sh comfort     # distortion, look sensitivity, floater overshoot
 scripts/run.sh arrangement # scoring drives the layer stack (#34)
 ```
 

@@ -46,11 +46,12 @@ func advance() -> void:
 	if not source.is_running():
 		reset()
 		return
-	var seconds := source.get_seconds()
+	var beats := source.get_beats()
 	if _sequencer == null:
 		_sequencer = StepSequencer.new(clock)
 	elif _sequencer.get_clock() != clock:
-		_sequencer.set_clock(clock, seconds)
+		_sequencer.set_clock(clock)
 	var per_bar := clock.steps_per_bar()
-	for index in _sequencer.update(seconds, source.get_lookahead()):
+	var lookahead := clock.beats_from_seconds(source.get_lookahead())
+	for index in _sequencer.update(beats, lookahead):
 		step.emit(index, index / per_bar, index % per_bar)

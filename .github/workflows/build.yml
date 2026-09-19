@@ -147,38 +147,131 @@ jobs:
           ./butler/butler push build/linux "your-itch-username/godot-project-1:linux" \
             --userversion "${{ github.ref_name }}"
 
-  # --- Steam deployment (manual setup required) ---------------------------
-  # TODO: Steam deployment via steamcmd + VDF build scripts is intentionally
-  # left out of automation. steamcmd requires an interactive Steam Guard
-  # login (a one-time code sent to your phone/email) the first time it runs
-  # under a new machine/CI identity, which can't be scripted headlessly
-  # without either disabling Steam Guard (not recommended) or setting up
-  # steamcmd's persistent login cache out-of-band. Set this up manually:
-  #   1. Write app_build.vdf / depot_build.vdf describing your Steam app
-  #      and depots (see https://partner.steamgames.com/doc/sdk/uploading).
-  #   2. Run `steamcmd +login <user> +run_app_build app_build.vdf +quit`
-  #      once locally/interactively to authorize this machine and cache
-  #      credentials (~/Steam/config/config.vdf).
-  #   3. Only then can a CI job reuse those cached credentials as a
-  #      GitHub Actions secret to run steamcmd non-interactively.
+  export-macos:
+    name: macOS Export
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Install Godot
+        run: |
+          curl -L -o Godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_macOS.universal.${GODOT_VERSION}-stable.zip"
+          unzip -o Godot.zip -d /Applications/
+          GODOT_BIN="/Applications/Godot.app/Contents/MacOS/Godot"
+          chmod +x "$GODOT_BIN"
+          echo "GODOT_BIN=$GODOT_BIN" >> $GITHUB_ENV
+
+      - name: Install export templates
+        run: |
+          mkdir -p ~/Library/Application\ Support/Godot/export_templates/
+          curl -L -o templates.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/template_${GODOT_VERSION}-stable.zip"
+          unzip -o templates.zip -d ~/Library/Application\ Support/Godot/export_templates/
+
+      - name: Import project
+        run: |
+          "$GODOT_BIN" --headless --import || true
+
+      - name: Verify the compute shaders compiled
+        run: |
+          count=$(ls .godot/imported/ | grep -c '\.glsl-.*\.res$' || true)
+          if [ "$count" -lt 6 ]; then
+            echo "Expected 6 compiled compute shaders in .godot/imported/, found $count."
+            exit 1
+          fi
+          echo "Compiled $count compute shaders."
+
+      - name: Export
+        run: |
+          mkdir -p build/macos
+          "$GODOT_BIN" --headless --verbose --export-release "macOS" "build/macos/$EXPORT_NAME.zip"
+
+      - name: Unzip export
+        run: |
+          mkdir -p build/macos/staged
+          if [ -f "build/macos/$EXPORT_NAME.zip" ]; then
+            unzip -o "build/macos/$EXPORT_NAME.zip" -d build/macos/staged
+            # Godot's macOS export puts the .app inside a nested folder sometimes
+            app=$(find build/macos/staged -name "*.app" -type d | head -n 1)
+            if [ -n "$app" ]; then
+              mv "$app" build/macos/
+            fi
+          fi
+          # Copy any .pck data file alongside the .app
+          pck=$(find build/macos -maxdepth 1 -name "*.pck" | head -n 1)
+          if [ -n "$pck" ]; then
+            mv "$pck" build/macos/
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: build/macos
+
+  # ──────────────────────────────────────────────────────────────────────
+  # Steam deployment — runs only on tag pushes (releases)
   #
-  # deploy-steam:
-  #   name: Deploy to Steam
-  #   needs: export-linux
-  #   if: startsWith(github.ref, 'refs/tags/')
-  #   runs-on: ubuntu-24.04
-  #   steps:
-  #     - name: Download Linux artifact
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         name: linux
-  #         path: build/linux
-  #     - name: Install steamcmd
-  #       run: |
-  #         # apt-get update && apt-get install -y steamcmd
-  #     - name: Upload build via steamcmd
-  #       env:
-  #         STEAM_USERNAME: ${{ secrets.STEAM_USERNAME }}
-  #         STEAM_CONFIG_VDF: ${{ secrets.STEAM_CONFIG_VDF }}
-  #       run: |
-  #         # steamcmd +login "$STEAM_USERNAME" +run_app_build scripts/steam/app_build.vdf +quit
+  # Steam Guard setup (one-time, on any machine):
+  #   1. Install steamcmd:  sudo apt install steamcmd   (Linux)
+  #                        brew install --cask steamcmd  (macOS)
+  #   2. Login once:       steamcmd +login "<user>" +quit
+  #      Enter password + Steam Guard code when prompted.
+  #   3. Copy config.vdf:
+  #      Linux:  ~/.steam/steam/config/config.vdf
+  #      macOS:  ~/Library/Application Support/Steam/config/config.vdf
+  #   4. Set as GitHub secret: STEAM_CONFIG_VDF
+  #      Also set: STEAM_USERNAME
+  # ──────────────────────────────────────────────────────────────────────
+
+  deploy-steam:
+    name: Deploy to Steam
+    needs: [export-linux]  # Add export-macos when macOS preset exists
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linux
+          path: build/linux
+
+      # ── Uncomment when macOS depot is ready ──
+      # - name: Download macOS artifact
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: macos
+      #     path: build/macos
+
+      - name: Package builds for Steam
+        run: |
+          chmod +x scripts/build-for-steam.sh
+          ./scripts/build-for-steam.sh linux build/linux build/steam/linux
+
+      # ── Uncomment when macOS depot is ready ──
+      # ./scripts/build-for-steam.sh macos build/macos build/steam/macos
+
+      - name: Install steamcmd
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq steamcmd
+
+      - name: Restore Steam credentials
+        run: |
+          mkdir -p ~/.steam/steam/config
+          echo "$STEAM_CONFIG_VDF" > ~/.steam/steam/config/config.vdf
+        env:
+          STEAM_CONFIG_VDF: ${{ secrets.STEAM_CONFIG_VDF }}
+
+      - name: Upload to Steam
+        env:
+          STEAM_USERNAME: ${{ secrets.STEAM_USERNAME }}
+        run: |
+          steamcmd +login "$STEAM_USERNAME" \
+            +run_app_build steam/app_build.vdf \
+            +quit

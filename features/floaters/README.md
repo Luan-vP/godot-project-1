@@ -42,6 +42,10 @@ add_child(floater)
 - **Current-dominated, not current-locked.** `Floater` loosens `drag` below
   `FluidBody`'s default so a floater lags and overshoots when the medium
   swishes, rather than snapping straight onto the current.
+  [`ComfortSettings.overshoot_reduction`](../../autoload/ComfortSettings.gd)
+  (issue #17) pulls a panorama level's floaters back towards that snap for
+  players who find the lag disorienting rather than pleasant — see
+  `PanoramaLevel._rebuild_medium`.
 - **Recycled, not lost.** A floater that drifts past the tank edge reappears
   from the opposite edge with its velocity untouched
   (`Floater.recycled_position`), so a population never thins out. This is a
