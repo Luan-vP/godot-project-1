@@ -61,6 +61,24 @@ the compiled copies — Godot misses edits to the shared
 `--fresh` forces that recompile; anything after `--` goes to Godot, e.g.
 `scripts/run.sh eyes -- --resolution 1280x720`.
 
+## Building on the Steam Deck
+
+The Deck builds its own export: the compute shaders compile against its own
+GPU, and the result is exactly what it will run. From your dev machine, over
+Tailscale:
+
+```sh
+scripts/deck.sh setup   # once: Godot + templates in ~/.local, a checkout, a `deck` git remote
+scripts/deck.sh build   # push HEAD to the Deck, import, export to ~/Games/godot-project-1
+scripts/deck.sh run     # launch it on the Deck's screen (stop / logs / ssh too)
+```
+
+`build` sends committed work only. On the Deck itself, the build runs from
+`~/dev/godot-project-1/scripts/deck-build.sh`. To play from Game Mode, add
+`~/Games/godot-project-1/godot-project-1.x86_64` once as a non-Steam game
+(Desktop Mode → Steam → *Add a Game* → *Add a Non-Steam Game*; the entry is
+listed as `godot-project-1`). Later builds replace it in place.
+
 ## Running the tests
 
 ```sh
