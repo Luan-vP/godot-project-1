@@ -23,6 +23,10 @@ extends RefCounted
 ## Tempo and bar length are constructor arguments, not constants, so both are
 ## configurable rather than baked in.
 
+## Never at or below zero: [method seconds_per_beat] divides by it, and a
+## live tempo control (see #72) can be nudged all the way down to nothing.
+const MIN_TEMPO_BPM := 1.0
+
 var tempo_bpm: float
 var beats_per_bar: int
 
@@ -31,7 +35,7 @@ var steps_per_beat: int
 
 
 func _init(p_tempo_bpm: float = 120.0, p_beats_per_bar: int = 4, p_steps_per_beat: int = 4) -> void:
-	tempo_bpm = p_tempo_bpm
+	tempo_bpm = maxf(p_tempo_bpm, MIN_TEMPO_BPM)
 	beats_per_bar = p_beats_per_bar
 	steps_per_beat = p_steps_per_beat
 
