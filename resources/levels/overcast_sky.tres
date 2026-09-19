@@ -1,6 +1,7 @@
-[gd_resource type="Level" load_steps=5 format=3]
+[gd_resource type="Level" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://features/levels/level.gd" id="1_level"]
+[ext_resource type="Script" path="res://features/fluid/fluid_config.gd" id="2_fluid_config"]
 
 [sub_resource type="Gradient" id="Gradient_1"]
 offsets = PackedFloat32Array(0, 0.5, 1)
@@ -13,7 +14,8 @@ height = 256
 fill_from = Vector2(0.5, 0)
 fill_to = Vector2(0.5, 1)
 
-[sub_resource type="FluidConfig" id="FluidConfig_1"]
+[sub_resource type="Resource" id="FluidConfig_1"]
+script = ExtResource("2_fluid_config")
 viscosity = 200.0
 vorticity = 10.0
 ambient_current = 6.0
