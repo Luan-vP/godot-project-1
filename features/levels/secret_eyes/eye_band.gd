@@ -41,9 +41,15 @@ const LOOP_DB := {"beat": -6.0, "ghost": -8.0, "shimmer": -9.0, "fill": -8.0}
 
 ## Default patch per live part: waveform, attack, release, level, voices. A
 ## song's [member Song.timbres] overrides any of the first four.
+##
+## Pads get extra voices (16, not the 8 every other part manages with): a
+## key change re-voices them at once (see [method _revoice_pads]), so the
+## outgoing chord's notes are still releasing when the incoming chord's notes
+## start. [method Synth.pick_voice] steals a released voice before a held one,
+## so without the headroom a crossfade would steal its own outgoing tail.
 const PATCHES := {
 	"bass": [SynthWavetable.Waveform.SAW, 0.005, 0.08, 0.16, 4],
-	"pads": [SynthWavetable.Waveform.SQUARE, 0.6, 1.4, 0.045, 8],
+	"pads": [SynthWavetable.Waveform.SQUARE, 0.6, 1.4, 0.045, 16],
 	"arp": [SynthWavetable.Waveform.SINE, 0.005, 0.3, 0.07, 4],
 	"melody": [SynthWavetable.Waveform.SQUARE, 0.08, 0.5, 0.05, 2],
 }
@@ -66,10 +72,23 @@ var _effect_indices: Array[int] = []
 var _started := false
 var _song: Song
 var _walker: SongWalker
-## Section name -> the melody [MelodyWriter] wrote for it, written once.
+## Section name -> the melody [MelodyWriter] wrote for it, written once and
+## never transposed in place — see [member _folded_melodies].
 var _melodies := {}
+## Section name -> [member _melodies]'s entry shifted by [member _key_offset]
+## and folded to stay in [member Song.melody_range]. Cleared whenever the
+## offset changes and rebuilt lazily, section by section, as each is next
+## needed.
+var _folded_melodies := {}
 var _bar := -1
+var _step_in_bar := 0
 var _fill_requested := false
+
+## Semitones the band's key sits above the song as written. Unbounded so a
+## HUD can show "how many presses", but only ever applied [code]posmod(…,
+## 12)[/code] — a move round the circle of fifths — so repeated presses walk
+## the circle instead of climbing until every part is shrill.
+var _key_offset: int = 0
 
 
 func _ready() -> void:
@@ -136,6 +155,24 @@ func song_title() -> String:
 ## bar.
 func current_section() -> String:
 	return _walker.section_at(_bar) if _walker != null and _bar >= 0 else ""
+
+
+## Moves the band's key. Chords, bass and arp read this the next time any of
+## them asks [method SongWalker.chords_at] for the current chord — from the
+## next step, not the next bar, since a bar can be seconds away (see
+## [method _on_step]). The melody transposes with its cached shape intact
+## (see [method _fold_melody]) and pads crossfade to the new voicing at once
+## (see [method _revoice_pads]) rather than riding out the old one or cutting.
+func set_key_offset(offset: int) -> void:
+	if offset == _key_offset:
+		return
+	_key_offset = offset
+	_folded_melodies.clear()
+	_revoice_pads()
+
+
+func get_key_offset() -> int:
+	return _key_offset
 
 
 ## Hand the band its eyes, and give each one a part by size.
@@ -256,18 +293,18 @@ func _on_step(_index: int, bar: int, step_in_bar: int) -> void:
 	if new_bar:
 		_bar = bar
 		_latch_live_parts()
+	_step_in_bar = step_in_bar
 	var chords := _walker.chords_at(bar)
-	var chord := _song.chord_in_bar(chords, step_in_bar)
+	var chord := _song.chord_in_bar(chords, step_in_bar).transposed(_key_offset)
 	var steps := _song.beats_per_bar * 4
 	var chord_steps := steps / chords.size()
-	var seconds_per_step := 60.0 / _song.tempo_bpm / 4.0
+	var seconds_per_step := _seconds_per_step()
 	if step_in_bar == steps / 2:
 		_request_fill(bar + 1)
 
 	if is_playing("pads") and (new_bar or step_in_bar % chord_steps == 0):
 		var remaining := chord_steps - step_in_bar % chord_steps
-		for note in chord.voice(_song.pad_range.x, _song.pad_range.y):
-			_play("pads", note, 0.8, seconds_per_step * (remaining - 0.5))
+		_voice_pads(chord, seconds_per_step * (remaining - 0.5))
 	if is_playing("bass"):
 		var note := bass_note(chord, _song.bass_line[step_in_bar], _song.bass_range.x)
 		if note >= 0:
@@ -284,7 +321,11 @@ func _on_step(_index: int, bar: int, step_in_bar: int) -> void:
 		var section := _walker.section_at(bar)
 		if not _melodies.has(section):
 			_melodies[section] = MelodyWriter.write_section(_song, section)
-		for note in _melodies[section][_walker.bar_in_section(bar)]:
+		if not _folded_melodies.has(section):
+			_folded_melodies[section] = _fold_melody(
+				_melodies[section], _key_offset, _song.melody_range
+			)
+		for note in _folded_melodies[section][_walker.bar_in_section(bar)]:
 			if note[0] == step_in_bar:
 				_play("melody", note[1], 0.8, seconds_per_step * note[2] * 0.95)
 
@@ -326,10 +367,21 @@ func _latch_live_parts() -> void:
 		_playing[part] = wanted
 
 
+## Wall seconds per grid step at the live clock's current tempo — never the
+## song's starting [member Song.tempo_bpm], which goes stale the moment the
+## live tempo changes. Every note hold length hangs off this.
+func _seconds_per_step() -> float:
+	return AudioManager.get_music_clock().seconds_per_step()
+
+
 func _play(part: String, note: int, velocity: float, hold_seconds: float) -> void:
 	var voice: SynthVoice = _synths[part].note_on(midi_to_hz(note), velocity)
 	if voice == null:
 		return
+	# Real seconds, deliberately: a note already sounding keeps the hold
+	# length it started with even if the tempo changes mid-note. Retiming a
+	# note mid-flight against the new tempo would be more jarring than
+	# letting it finish on the one it was played at.
 	get_tree().create_timer(hold_seconds).timeout.connect(
 		_release_if_unchanged.bind(voice, voice.started_usec)
 	)
@@ -338,6 +390,72 @@ func _play(part: String, note: int, velocity: float, hold_seconds: float) -> voi
 func _release_if_unchanged(voice: SynthVoice, started_usec: int) -> void:
 	if is_instance_valid(voice) and voice.started_usec == started_usec:
 		voice.note_off()
+
+
+## Voices [param chord] for the pads across [member Song.pad_range], held for
+## [param hold_seconds].
+func _voice_pads(chord: Chord, hold_seconds: float) -> void:
+	for note in chord.voice(_song.pad_range.x, _song.pad_range.y):
+		_play("pads", note, 0.8, hold_seconds)
+
+
+## Fades the held pad voicing out and the current chord's voicing, at the new
+## key offset, in — called the moment [method set_key_offset] changes the
+## offset, rather than waiting for the chord's own next re-voice, so a key
+## change does not ride out up to a bar of the old key still sounding.
+## [method Synth.release_all] starts the outgoing notes fading over the pad
+## patch's own release; see [constant PATCHES] for why pad polyphony has the
+## headroom to let them.
+func _revoice_pads() -> void:
+	if not _started or _bar < 0 or not is_playing("pads"):
+		return
+	_synths["pads"].release_all()
+	var chords := _walker.chords_at(_bar)
+	var steps := _song.beats_per_bar * 4
+	var chord_steps := steps / chords.size()
+	var remaining := chord_steps - _step_in_bar % chord_steps
+	var chord := _song.chord_in_bar(chords, _step_in_bar).transposed(_key_offset)
+	_voice_pads(chord, _seconds_per_step() * (remaining - 0.5))
+
+
+## [param bars] shifted by [param offset]'s pitch class and folded by a whole
+## octave, if that keeps the line better inside [param register] — the same
+## shape, moved as a block, rather than each note refit to the register on its
+## own. Per-note folding would turn steps into leaps and change the contour a
+## section is recognised by; folding the whole line preserves it. [param
+## bars] is never mutated: this returns a new structure, leaving the cached,
+## unshifted melody untouched for the next fold.
+##
+## Two octave-representatives of the same pitch-class move are compared —
+## [param offset] taken up, and the same move taken down an octave instead —
+## and whichever leaves the line least outside [param register] wins. With
+## [member Song.melody_range] exactly an octave wide, a melody that already
+## uses most of it can be pushed out one side or the other by any nonzero
+## shift; comparing both keeps that to the smaller side rather than always
+## folding towards it.
+static func _fold_melody(bars: Array, offset: int, register: Vector2i) -> Array:
+	var up := posmod(offset, 12)
+	var candidates: Array[int] = [up, up - 12]
+	var shift: int = candidates[0]
+	var least_overshoot := INF
+	for candidate in candidates:
+		var highest := register.x
+		var lowest := register.y
+		for bar in bars:
+			for note in bar:
+				highest = maxi(highest, note[1] + candidate)
+				lowest = mini(lowest, note[1] + candidate)
+		var overshoot := maxi(0, highest - register.y) + maxi(0, register.x - lowest)
+		if overshoot < least_overshoot:
+			least_overshoot = overshoot
+			shift = candidate
+	var folded := []
+	for bar in bars:
+		var folded_bar := []
+		for note in bar:
+			folded_bar.append([note[0], note[1] + shift, note[2]])
+		folded.append(folded_bar)
+	return folded
 
 
 func _build_synths() -> void:

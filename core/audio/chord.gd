@@ -96,6 +96,19 @@ func voice(low: int, high: int) -> Array[int]:
 	return notes
 
 
+## A copy of this chord with its root moved [param semitones] round the circle
+## of fifths and wrapped back to a pitch class. Intervals are already relative
+## to the root, so they carry over unchanged — every voicing method still
+## folds the result into whatever register it is asked for, which is what
+## keeps a transposed chord inside its part's range for free.
+func transposed(semitones: int) -> Chord:
+	var chord := Chord.new()
+	chord.symbol = symbol
+	chord.root = posmod(root + semitones, 12)
+	chord.intervals = intervals.duplicate()
+	return chord
+
+
 ## Every chord tone between [param low] and [param high] inclusive, ascending:
 ## what an arp climbs and what a melody leans on at the downbeat.
 func tones_between(low: int, high: int) -> Array[int]:
