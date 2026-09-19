@@ -71,6 +71,11 @@ const DEMOS: Array[Dictionary] = [
 		"path": "res://core/audio/audio_demo.tscn",
 		"blurb": "Bus sliders and mutes, loop layers, the smoothed effect fader.",
 	},
+	{
+		"name": "Contacts",
+		"path": "res://features/scoring_sound/contact_sound_demo.tscn",
+		"blurb": "Scoring contact sound. 1-6 hold a contact, Space fires a burst.",
+	},
 ]
 
 const BACKGROUND := Color(0.08, 0.085, 0.1)
