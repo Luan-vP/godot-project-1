@@ -94,10 +94,15 @@ func test_reset_starts_again_from_the_given_time() -> void:
 ## LoopLayerScheduler.set_clock] for the same change there.
 func test_a_tempo_change_does_not_refire_steps() -> void:
 	var sequencer := StepSequencer.new(_clock)
+	var target := 8.0 * _clock.beats_at_step(1)
 	var beats := 0.0
-	while beats < 8.0 * _clock.beats_at_step(1):
+	while beats < target:
 		sequencer.update(beats)
 		beats += 0.01
+	# The accumulation loop above stops just short of the boundary (float
+	# drift), so flush the step due exactly at it before the tempo change.
+	beats = target
+	sequencer.update(beats)
 	var faster := MusicClock.new(140.0, 4)
 	sequencer.set_clock(faster)
 	var next := sequencer.update(beats + faster.beats_at_step(1))

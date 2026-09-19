@@ -62,15 +62,15 @@ func test_a_tempo_change_does_not_double_fire_or_skip_grid_steps() -> void:
 	var sixteenth := 0.25  # A step, in beats: tempo-independent (#74).
 
 	for i in 8:
-		_scripted.advance(sixteenth)
 		fired.append_array(sequencer.update(_scripted.get_beats()))
+		_scripted.advance(sixteenth)
 
 	# Tempo nudges up mid-song, same as #72's repeated taps.
 	sequencer.set_clock(MusicClock.new(72.0, 4))
 
 	for i in 24:
-		_scripted.advance(sixteenth)
 		fired.append_array(sequencer.update(_scripted.get_beats()))
+		_scripted.advance(sixteenth)
 
 	var expected: Array[int] = []
 	for i in 32:
