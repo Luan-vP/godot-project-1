@@ -4,10 +4,16 @@ extends RefCounted
 ## once per sample rate and cached. No recorded samples, so there is nothing
 ## to license.
 ##
-## Each hit is a short mono buffer peaking at [constant HIT_PEAK]. They are
-## meant to be mixed at exact sample offsets by [StepPattern], not played
-## directly: triggering a hit from script lands on a mix-block boundary, which
-## is audibly loose on a sixteenth-note grid.
+## Each hit is a short mono buffer peaking at [constant HIT_PEAK]. Two things
+## play them: [method StepPattern.mix] mixes them at exact sample offsets into
+## a loop, sample-accurate but with a tempo baked into the render; [DrumKit]
+## triggers them straight from script instead, one hit at a time, which lands
+## on a mix-block boundary and costs onset accuracy — measured at up to 20 ms
+## behind the grid, see core/audio/README.md — in exchange for a tempo that
+## costs nothing to change and patterns that can swap mid-song. Use the
+## rendered path where the loop stack already fits (see [LoopLayer]); use
+## [DrumKit] where the drums have to follow live musical state, the way
+## [EyeBand] does.
 ##
 ## Noise comes from a fixed seed per hit, so a hit is identical every time it
 ## is built.
