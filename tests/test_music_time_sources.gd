@@ -26,24 +26,43 @@ func test_the_default_time_source_is_the_wall_clock() -> void:
 
 func test_a_wall_clock_reads_zero_until_started_and_after_stopping() -> void:
 	var wall := WallClockMusicTime.new()
-	assert_eq(wall.get_seconds(), 0.0, "Before start")
+	wall.set_tempo_bpm(120.0)  # 2 beats/sec.
+	assert_eq(wall.get_beats(), 0.0, "Before start")
 	wall.start()
 	assert_true(wall.is_running(), "Running")
 	await wait_seconds(0.05)
-	assert_gt(wall.get_seconds(), 0.03, "Climbs while running")
+	assert_gt(wall.get_beats(), 0.06, "Climbs while running")
 	wall.stop()
-	assert_eq(wall.get_seconds(), 0.0, "Zero once stopped")
+	assert_eq(wall.get_beats(), 0.0, "Zero once stopped")
 	assert_eq(wall.get_lookahead(), 0.0, "No lookahead while stopped")
+
+
+## The reason beats are the port's unit at all (#74): a tempo change only
+## changes the rate future beats accumulate at, so the position already
+## reached does not jump, however long the clock has been running.
+func test_wall_clock_tempo_change_does_not_jump_the_position() -> void:
+	var wall := WallClockMusicTime.new()
+	wall.set_tempo_bpm(120.0)
+	wall.start()
+	await wait_seconds(0.05)
+	var before := wall.get_beats()
+	wall.set_tempo_bpm(240.0)
+	var immediately_after := wall.get_beats()
+	assert_almost_eq(
+		immediately_after, before, 0.05, "Changing tempo must not itself move the position"
+	)
+	await wait_seconds(0.05)
+	assert_gt(wall.get_beats(), immediately_after, "But it keeps climbing, now at the new rate")
 
 
 func test_scripted_time_moves_only_when_told() -> void:
 	_scripted.start()
 	_scripted.advance(1.5)
-	assert_eq(_scripted.get_seconds(), 1.5, "Advanced")
-	_scripted.set_seconds(4.0)
-	assert_eq(_scripted.get_seconds(), 4.0, "Jumped")
+	assert_eq(_scripted.get_beats(), 1.5, "Advanced")
+	_scripted.set_beats(4.0)
+	assert_eq(_scripted.get_beats(), 4.0, "Jumped")
 	_scripted.start()
-	assert_eq(_scripted.get_seconds(), 0.0, "Start rewinds")
+	assert_eq(_scripted.get_beats(), 0.0, "Start rewinds")
 
 
 func test_audio_manager_bar_changes_follow_the_injected_time_source() -> void:
@@ -57,8 +76,8 @@ func test_audio_manager_bar_changes_follow_the_injected_time_source() -> void:
 	AudioManager.play_loops()
 	await wait_frames(2)
 
-	var bar := 60.0 / TEMPO * 4.0
-	_scripted.set_seconds(bar * 0.4)
+	var bar_beats := 4.0  # beats_per_bar, tempo-independent (#74).
+	_scripted.set_beats(bar_beats * 0.4)
 	AudioManager.set_layer_active("pad", true)
 	await wait_frames(3)
 	assert_false(
@@ -66,7 +85,7 @@ func test_audio_manager_bar_changes_follow_the_injected_time_source() -> void:
 	)
 	assert_eq(AudioManager.get_current_bar(), 0, "Bar comes from the scripted time")
 
-	_scripted.set_seconds(bar * 1.01)
+	_scripted.set_beats(bar_beats * 1.01)
 	await wait_frames(2)
 	assert_true(AudioManager.is_layer_active("pad"), "Lands when the scripted time crosses the bar")
 	assert_eq(AudioManager.get_current_bar(), 1)
@@ -81,7 +100,7 @@ func test_step_clock_fires_steps_from_the_injected_time_source() -> void:
 	assert_signal_not_emitted(clock, "step", "Nothing while stopped")
 
 	_scripted.start()
-	var step := 60.0 / TEMPO / 4.0
+	var step := 0.25  # A sixteenth, in beats — tempo-independent (#74).
 	for i in 18:
 		clock.advance()
 		_scripted.advance(step)

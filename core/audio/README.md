@@ -138,7 +138,7 @@ That part — queuing a layer's on/off request and releasing it only once
 playback crosses a bar boundary — is hand-rolled as
 [`LoopLayerScheduler`](loop_layer_scheduler.gd), driven by a
 [`MusicClock`](music_clock.gd). Both are deliberately pure (no `AudioServer`
-access), so a test can "advance" them with an arbitrary seconds value instead
+access), so a test can "advance" them with an arbitrary beats value instead
 of waiting on real playback.
 
 The scheduler's clock is *not* `AudioStreamPlayer.get_playback_position()`,
@@ -147,23 +147,28 @@ looping streams: position is measured within the stream's own buffer, so it
 wraps back to the loop point every time playback loops instead of continuing
 to climb. A bar longer than the loop then never arrives, since `MusicClock`
 keeps being handed a position from earlier in the same loop cycle and the
-scheduler sits in bar 0 forever. `AudioManager._get_loop_playback_seconds()`
-instead runs its own monotonic clock, started in `play_loops()` via
-`Time.get_ticks_usec()`, which has no such ceiling. The trade-off is losing
-the mix-buffer-accurate correction `get_time_since_last_mix()` and
-`get_output_latency()` would give a position-based clock — negligible at
-musical-bar granularity, and moot since `AudioStreamSynchronized` already
-guarantees the layers themselves share one playback position regardless of
-what the scheduler measures against.
+scheduler sits in bar 0 forever. `AudioManager._get_loop_playback_beats()`
+instead reads its [`MusicTimeSource`](time/music_time_source.gd), which
+integrates beats from its own monotonic clock (`Time.get_ticks_usec()` for
+the default `WallClockMusicTime`, started in `play_loops()`), which has no
+such ceiling. The trade-off is losing the mix-buffer-accurate correction
+`get_time_since_last_mix()` and `get_output_latency()` would give a
+position-based clock — negligible at musical-bar granularity, and moot since
+`AudioStreamSynchronized` already guarantees the layers themselves share one
+playback position regardless of what the scheduler measures against.
 
 A second, subtler version of the same "which clock" question: changing tempo
-mid-playback swaps in a new `MusicClock` with a different seconds-per-bar
-scale, so the bar number a given playback position maps to changes too.
-`LoopLayerScheduler.set_clock()` rebases its notion of the current bar onto
-the new clock at the moment of the swap — without that, the next `update()`
-compares a new-clock bar against an old-clock one, the mismatch reads as a
-boundary crossing, and anything pending releases immediately instead of
-waiting for a real bar to pass.
+mid-playback used to swap in a new `MusicClock` with a different
+seconds-per-bar scale, so the bar number a given playback position mapped to
+changed too — nudging the tempo reinterpreted the whole song's history and
+the position jumped. Musical position is beats, not derived seconds (#74):
+each beat accumulates against whatever tempo was in force while it elapsed,
+so a tempo change only changes the rate future beats accumulate at, and a
+given beats position reads as the same bar and the same phase within it no
+matter which `MusicClock` reads it. That is what let the rebasing in
+`LoopLayerScheduler.set_clock()` and `StepSequencer.set_clock()` go away
+entirely — swapping the clock is just swapping which tempo wall-time
+conversions use from here on.
 
 ### Using it
 
@@ -306,7 +311,7 @@ for the floaty-synthwave direction. `core/audio/groove_demo.tscn`
 | [`time/music_time_source.gd`](time/music_time_source.gd) | `MusicTimeSource` — port: where musical time comes from. |
 | [`time/sources/wall_clock_music_time.gd`](time/sources/wall_clock_music_time.gd) | `WallClockMusicTime` — the current adapter: a session wall clock. |
 | [`time/sources/scripted_music_time.gd`](time/sources/scripted_music_time.gd) | `ScriptedMusicTime` — time moved by hand, for tests. |
-| [`music_clock.gd`](music_clock.gd) | `MusicClock` — now also steps: `step_at`, `seconds_per_step`, `steps_per_bar`. |
+| [`music_clock.gd`](music_clock.gd) | `MusicClock` — beats to bar/step (`bar_at`, `step_at`, `steps_per_bar`), and beats to/from wall seconds (`seconds_per_step`, `beats_from_seconds`) for what genuinely needs them. |
 | [`step_sequencer.gd`](step_sequencer.gd) | `StepSequencer` — pure: which steps have come due, each once, in order. |
 | [`step_clock.gd`](step_clock.gd) | `StepClock` — node emitting `step(index, bar, step_in_bar)` while music plays. |
 | [`drum_synth.gd`](drum_synth.gd) | `DrumSynth` — kick, snare, clap, closed and open hat, synthesised. |
@@ -323,6 +328,11 @@ clock driven from the audio thread, say — is a new adapter and one call:
 AudioManager.set_music_time_source(MyBetterClock.new())
 ```
 
+The port reports beats, not seconds (#74): position accumulates against
+whatever tempo was in force while it elapsed, via `set_tempo_bpm()`, so a
+tempo change changes only the rate beats accumulate at from then on, never
+the position already reached — see the doc comment on
+[`MusicTimeSource`](time/music_time_source.gd) and `tests/test_tempo_independence.gd`.
 `tests/test_music_time_sources.gd` drives both bar changes and steps from a
 `ScriptedMusicTime`, which is what proves nothing is reading a clock behind the
 port's back.

@@ -70,7 +70,7 @@ func _process(_delta: float) -> void:
 		_status.text = "stopped — Space to play"
 		return
 	var clock := AudioManager.get_music_clock()
-	var step := clock.step_at(AudioManager.get_music_time_source().get_seconds())
+	var step := clock.step_at(AudioManager.get_music_time_source().get_beats())
 	_status.text = (
 		"bar %d  step %2d   beat:%s shimmer:%s bass:%s pads:%s"
 		% [
