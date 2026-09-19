@@ -48,9 +48,14 @@ extends EdgeSource
 ## Neighbour offsets used to walk a hysteresis mask when tracing runs,
 ## 8-connected.
 const _NEIGHBOUR_OFFSETS: Array[Vector2i] = [
-	Vector2i(-1, -1), Vector2i(0, -1), Vector2i(1, -1),
-	Vector2i(-1, 0), Vector2i(1, 0),
-	Vector2i(-1, 1), Vector2i(0, 1), Vector2i(1, 1),
+	Vector2i(-1, -1),
+	Vector2i(0, -1),
+	Vector2i(1, -1),
+	Vector2i(-1, 0),
+	Vector2i(1, 0),
+	Vector2i(-1, 1),
+	Vector2i(0, 1),
+	Vector2i(1, 1),
 ]
 
 ## Equirectangular panorama to detect edges in. Left [code]null[/code],
