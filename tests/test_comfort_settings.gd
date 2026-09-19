@@ -90,6 +90,4 @@ func test_settings_survive_a_reload_from_disk() -> void:
 func test_changing_a_setting_emits_its_signal() -> void:
 	watch_signals(ComfortSettings)
 	ComfortSettings.set_distortion_multiplier(0.3)
-	assert_signal_emitted_with_parameters(
-		ComfortSettings, "distortion_multiplier_changed", [0.3]
-	)
+	assert_signal_emitted_with_parameters(ComfortSettings, "distortion_multiplier_changed", [0.3])

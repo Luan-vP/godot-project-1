@@ -74,7 +74,8 @@ const DEMOS: Array[Dictionary] = [
 	{
 		"name": "Comfort",
 		"path": "res://features/ui/comfort_settings/comfort_settings_demo.tscn",
-		"blurb": "Distortion, look sensitivity, floater overshoot — adjust, then open a panorama level.",
+		"blurb":
+		"Distortion, look sensitivity, floater overshoot — adjust, then open a panorama level.",
 	},
 ]
 
