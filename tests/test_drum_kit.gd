@@ -53,6 +53,20 @@ func test_a_snare_does_not_choke_an_open_hat() -> void:
 	assert_eq(_sounding_players().size(), 2, "Only a closed hat chokes; both still sound")
 
 
+func test_laid_back_offset_delays_playback() -> void:
+	_kit.laid_back_offset_ms = 50.0
+	_kit.play(DrumSynth.Hit.KICK, 1.0)
+	assert_eq(_sounding_players().size(), 0, "Not yet, still waiting out the offset")
+	await wait_seconds(0.08)
+	assert_eq(_sounding_players().size(), 1, "Plays once the offset elapses")
+
+
+func test_zero_offset_plays_immediately() -> void:
+	assert_eq(_kit.laid_back_offset_ms, 0.0, "Default is on the grid")
+	_kit.play(DrumSynth.Hit.KICK, 1.0)
+	assert_eq(_sounding_players().size(), 1, "No delay by default")
+
+
 func test_pick_player_prefers_an_idle_one() -> void:
 	assert_eq(DrumKit.pick_player([true, false, true], [10, 20, 30]), 1, "The idle one")
 

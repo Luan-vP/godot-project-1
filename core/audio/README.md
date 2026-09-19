@@ -374,8 +374,8 @@ if velocity > 0.0:
 
 Nothing is baked in, so a tempo change or a pattern swap costs nothing —
 `EyeBand` plays every one of its drum parts this way, for exactly that reason
-(#75). The trade is the onset cost below, accepted deliberately and worth
-listening to rather than assuming: `scripts/run.sh band`, kick against bass.
+(#75). The trade is the onset cost below, worth listening to rather than
+assuming: `scripts/run.sh band`, kick against bass.
 
 ### How tight, measured
 
@@ -388,18 +388,32 @@ Recorded from the Music bus, onsets measured against the ideal grid:
   `DrumKit`'s number too, since it triggers the same way.
 - **Rendered drum loop** at 70 and 120 bpm: every kick within ±1 sample of
   the grid.
-- **Live synth notes against that loop**, at 70 bpm: about 16–20 ms behind it,
-  with about 10 ms of spread. Keeping synth voices playing silently between
-  notes did not change that, so it was left out. This is the wonk a better
-  `MusicTimeSource` would remove — and it is what `DrumKit` inherits too, at
-  roughly 5–9% of a sixteenth at 70 bpm. Held in reserve if that turns out to
-  be audible: a sample-accurate `MusicTimeSource` (the port most of this
-  system already runs against), or running `StepPattern.mix`'s logic
-  continuously into an `AudioStreamGenerator` rather than per-bar into a WAV —
-  sample-accurate and live-tunable, but measured at ~7 ms of main-thread time
-  per second of audio for one synth voice (see "Why wavetables, not
-  `AudioStreamGenerator`" above), and by far the most code of the three
-  options.
+- **Live synth notes against that loop**, at 70 bpm, before compensating for
+  output latency: about 16–20 ms behind it, with about 10 ms of spread.
+  Keeping synth voices playing silently between notes did not change that, so
+  it was left out. On the Steam Deck this read as a steady, audible lag on
+  `DrumKit` specifically — a live kick against a live bass note, not jitter
+  (#78) — which pointed at the platform's fixed output latency rather than
+  the mix-block quantization `get_time_to_next_mix()` already corrects for.
+  `WallClockMusicTime.get_lookahead()` now also adds
+  `AudioServer.get_output_latency()`
+  ([`use_output_latency_compensation`](time/sources/wall_clock_music_time.gd),
+  on by default), so every step fires that much earlier and the driver's
+  fixed delay is scheduled for instead of landing as lag. This still needs a
+  re-measure by ear on the Deck against `main` before it can be trusted — a
+  headless CI run has no output device to measure latency against, so the
+  numbers above are the pre-fix baseline, not a confirmation the fix closed
+  the gap. Held in reserve if it turns out not to be enough: a sample-accurate
+  `MusicTimeSource` (the port most of this system already runs against), or
+  running `StepPattern.mix`'s logic continuously into an `AudioStreamGenerator`
+  rather than per-bar into a WAV — sample-accurate and live-tunable, but
+  measured at ~7 ms of main-thread time per second of audio for one synth
+  voice (see "Why wavetables, not `AudioStreamGenerator`" above), and by far
+  the most code of the three options.
+- **Laid-back feel, on purpose.** `DrumKit.laid_back_offset_ms` (0 by default)
+  delays every hit from that kit by a fixed number of milliseconds after it
+  is due, so the same lag can be dialled back in deliberately per kit instead
+  of arriving as an uncompensated side effect.
 
 ### The kit
 

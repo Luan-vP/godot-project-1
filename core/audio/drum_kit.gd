@@ -26,6 +26,14 @@ static var _stream_cache := {}
 ## Bus every player plays through.
 @export var bus: StringName = &"Music"
 
+## Deliberate delay behind the grid, in milliseconds, on top of whatever the
+## [MusicTimeSource] already compensates for. 0 by default: hits land on the
+## grid. Not what produced the "16-20 ms behind" lag (#78) — that was an
+## uncompensated driver latency, now corrected for at the source — but a way
+## to dial a laid-back feel back in on purpose, cheaply, once it is not a side
+## effect of anything else.
+@export var laid_back_offset_ms: float = 0.0
+
 var _players: Array[AudioStreamPlayer] = []
 var _started_usec: Array[int] = []
 var _open_hat_index := -1
@@ -43,10 +51,20 @@ func _ready() -> void:
 
 ## Trigger [param hit] at [param velocity] (0..1, 0 plays nothing) and
 ## [param level_db] of headroom under that — a part mixed quieter than another
-## is a lower [param level_db], not a different path.
+## is a lower [param level_db], not a different path. Delayed by
+## [member laid_back_offset_ms] when that is set.
 func play(hit: DrumSynth.Hit, velocity: float, level_db: float = 0.0) -> void:
 	if velocity <= 0.0 or _players.is_empty():
 		return
+	if laid_back_offset_ms <= 0.0:
+		_play_now(hit, velocity, level_db)
+		return
+	get_tree().create_timer(laid_back_offset_ms / 1000.0).timeout.connect(
+		_play_now.bind(hit, velocity, level_db)
+	)
+
+
+func _play_now(hit: DrumSynth.Hit, velocity: float, level_db: float) -> void:
 	if hit == DrumSynth.Hit.CLOSED_HAT and _open_hat_index >= 0:
 		_players[_open_hat_index].stop()
 		_open_hat_index = -1
