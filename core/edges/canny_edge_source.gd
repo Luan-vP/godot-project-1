@@ -270,12 +270,8 @@ static func _non_max_suppression(
 			else:
 				dx = -1
 				dy = 1
-			var before := magnitude[
-				clampi(y - dy, 0, height - 1) * width + posmod(x - dx, width)
-			]
-			var after := magnitude[
-				clampi(y + dy, 0, height - 1) * width + posmod(x + dx, width)
-			]
+			var before := magnitude[clampi(y - dy, 0, height - 1) * width + posmod(x - dx, width)]
+			var after := magnitude[clampi(y + dy, 0, height - 1) * width + posmod(x + dx, width)]
 			if strength >= before and strength >= after:
 				suppressed[index] = strength
 	return suppressed
@@ -376,7 +372,9 @@ static func _trace_runs(
 					run.append(next)
 					visited[next.y * width + next.x] = 1
 					current = next
-					neighbors = _unvisited_neighbors(mask, visited, width, height, current.x, current.y)
+					neighbors = _unvisited_neighbors(
+						mask, visited, width, height, current.x, current.y
+					)
 				if run.size() >= min_run_length:
 					runs.append(run)
 	return runs

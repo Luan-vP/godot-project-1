@@ -59,8 +59,7 @@ const DEMOS: Array[Dictionary] = [
 	{
 		"name": "Canny Edges",
 		"path": "res://features/edges/canny_edge_debug.tscn",
-		"blurb":
-		"Traced edges over a synthetic panorama. Up/down blur, [/] and +/- thresholds.",
+		"blurb": "Traced edges over a synthetic panorama. Up/down blur, [/] and +/- thresholds.",
 	},
 	{
 		"name": "Synth",

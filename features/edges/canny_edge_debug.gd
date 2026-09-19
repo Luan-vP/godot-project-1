@@ -160,9 +160,7 @@ static func _build_demo_panorama() -> ImageTexture:
 
 ## Fills a [param width]x[param height] rectangle at [param x]/[param y],
 ## wrapping horizontally so a rectangle can straddle the seam.
-static func _fill_rect(
-	image: Image, x: int, y: int, width: int, height: int, color: Color
-) -> void:
+static func _fill_rect(image: Image, x: int, y: int, width: int, height: int, color: Color) -> void:
 	var image_height := image.get_height()
 	var image_width := image.get_width()
 	for row in height:
