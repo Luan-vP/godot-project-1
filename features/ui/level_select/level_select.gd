@@ -39,9 +39,7 @@ const PANORAMA_LEVEL_SCENE := "res://features/levels/panorama/panorama_level.tsc
 ## The one entry [method get_entries] never discovers — see the class doc.
 const SECRET_LEVEL_NAME := "Eyes"
 const SECRET_LEVEL_SCENE := "res://features/levels/secret_eyes/fluid_demo.tscn"
-const SECRET_LEVEL_BLURB := (
-	"Secret level: the eye tank. Drag to stir and paint, arrows tilt, Space jogs."
-)
+const SECRET_LEVEL_BLURB := "Secret level: the eye tank. Drag to stir and paint, arrows tilt, Space jogs."
 
 const BACKGROUND := Color(0.08, 0.085, 0.1)
 const TEXT := Color(0.86, 0.87, 0.9)
@@ -106,22 +104,28 @@ func get_level() -> Node:
 func get_entries() -> Array[Dictionary]:
 	var entries: Array[Dictionary] = []
 	for level in discover_levels():
-		entries.append(
-			{
-				"name": _display_name(level),
-				"level": level,
-				"scene_path": level_scene_path,
-				"blurb": level.blurb,
-			}
+		(
+			entries
+			. append(
+				{
+					"name": _display_name(level),
+					"level": level,
+					"scene_path": level_scene_path,
+					"blurb": level.blurb,
+				}
+			)
 		)
 	if _secret_revealed:
-		entries.append(
-			{
-				"name": SECRET_LEVEL_NAME,
-				"level": null,
-				"scene_path": secret_scene_path,
-				"blurb": SECRET_LEVEL_BLURB,
-			}
+		(
+			entries
+			. append(
+				{
+					"name": SECRET_LEVEL_NAME,
+					"level": null,
+					"scene_path": secret_scene_path,
+					"blurb": SECRET_LEVEL_BLURB,
+				}
+			)
 		)
 	return entries
 
