@@ -54,7 +54,9 @@ func test_set_tempo_resets_the_pitch_scale_baseline() -> void:
 func test_set_tempo_bpm_scales_loop_pitch_relative_to_the_rendered_tempo() -> void:
 	var layers: Array[LoopLayer] = []
 	AudioManager.configure_loop_layers(layers)  # Rendered at 70 bpm, from before_each.
-	assert_almost_eq(AudioManager.get_loop_pitch_scale(), 1.0, 0.001, "Unscaled at the rendered tempo")
+	assert_almost_eq(
+		AudioManager.get_loop_pitch_scale(), 1.0, 0.001, "Unscaled at the rendered tempo"
+	)
 
 	AudioManager.set_tempo_bpm(35.0)
 	assert_almost_eq(AudioManager.get_loop_pitch_scale(), 0.5, 0.001, "Half tempo, half pitch")
