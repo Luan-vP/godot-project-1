@@ -40,13 +40,20 @@ extends RefCounted
 ## near zero, which a gyroscope should be at rest and an accelerometer packing
 ## real buttons or pads should not.
 ##
-## [b]Scale.[/b] [constant UNITS_PER_G] is reasoned the same way: the captured
-## sample's accelerometer magnitude is about 4341 counts, and gravity is always
-## about 1 g regardless of orientation, so units-per-g is about 4341. 4096 is the
-## nearest value a real IMU would actually report (an 8g-range, 16-bit sensor —
-## common, and consistent with a device meant to survive being dropped), within
-## the sample's quantisation and bias. The old evdev path's 16384 units/g does
-## not fit this sample at all — it would put a resting Deck at a quarter of a g.
+## [b]Scale.[/b] [constant UNITS_PER_G] was first set to 4096 by the reasoning
+## above, off the one captured report assumed — without a Deck to check it
+## against — to be at rest. Driving this decoder live on real hardware (a
+## [DeckMotionSource] resting on a flat surface, sampled over 180 frames) showed
+## that assumption was short by exactly half: [code]gravity.length()[/code] read
+## 4.89 m/s^2 against gravity's 9.80665, a ratio of almost precisely 2. Since the
+## reading scales as [code]1 / UNITS_PER_G[/code], halving the constant doubles
+## the reading — 2048 is what the live measurement pins, not 4096. That also
+## means the captured report this class doc still cites was not at rest when it
+## was taken: at 2048 units per g its ~4341-count magnitude is about 2 g, not 1.
+## 2048 units per g fits a +/-16g-range 16-bit sensor rather than +/-8g — no less
+## plausible for a device meant to survive being dropped. The old evdev path's
+## 16384 units/g fits neither reading: it would put a resting Deck at an eighth
+## of a g.
 ##
 ## [b]Axis mapping — unverified.[/b] The evdev path's Y/Z swap was specific to
 ## how [code]hid-steam[/code] remapped the sensor for its virtual input device;
@@ -73,9 +80,9 @@ const ACCEL_OFFSET := 48
 ## has nowhere to carry it — but named so the layout is complete in one place.
 const GYRO_OFFSET := 54
 
-## Reported units per g. See the class doc for how this was read off a captured
-## sample rather than assumed.
-const UNITS_PER_G := 4096.0
+## Reported units per g. See the class doc for how this was corrected against
+## a live measurement on real hardware rather than left as a guess.
+const UNITS_PER_G := 2048.0
 
 const GRAVITY := 9.80665
 
