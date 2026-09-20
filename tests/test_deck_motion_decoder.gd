@@ -87,6 +87,18 @@ func test_readings_are_scaled_to_metres_per_second_squared() -> void:
 	assert_almost_eq(_decoder.acceleration.y, -G * 0.5, 0.001, "Half a g is half of 9.8")
 
 
+func test_a_known_at_rest_report_decodes_to_one_g() -> void:
+	# 2048 is written here as a literal, not as UNIT (== UNITS_PER_G), so this
+	# pins the scale against what a live Deck actually measured at rest rather
+	# than against whatever the constant under test currently says. A Deck
+	# playtest found gravity.length() reading 4.89 m/s^2 — half of 9.80665 —
+	# with the old UNITS_PER_G of 4096; this is the corrected value.
+	_decoder.feed(_report(Vector3(0.0, 2048.0, 0.0)))
+	assert_almost_eq(
+		_decoder.acceleration.length(), G, 0.01, "2048 counts on one axis is 1 g, measured live"
+	)
+
+
 func test_the_gyroscope_is_ignored() -> void:
 	# The report carries both sensors in the same 64 bytes. Reading a gyro
 	# field as an accelerometer field would be an enormous, noisy tilt.
