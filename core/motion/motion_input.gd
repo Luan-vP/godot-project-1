@@ -81,6 +81,7 @@ var _jog := JogDetector.new()
 var _candidates: Array[MotionSource] = []
 var _probe_elapsed: float = 0.0
 var _probing: bool = true
+var _logged_source_choice: bool = false
 
 
 func _ready() -> void:
@@ -190,9 +191,12 @@ func _probe_for_sensors(delta: float) -> void:
 		return
 	if _source.is_available():
 		_probing = false
+		_log_source_choice()
 		return
 	_probe_elapsed += delta
 	if _probe_elapsed >= PROBE_SECONDS:
+		var message := "MotionInput: %s reported nothing in %.2gs, trying the next source"
+		print(message % [_source.describe(), PROBE_SECONDS])
 		_probe_elapsed = 0.0
 		_install_next_candidate()
 
@@ -204,8 +208,20 @@ func _install_next_candidate() -> void:
 	if _candidates.is_empty():
 		_install_source(KeyboardMotionSource.new())
 		_probing = false
+		_log_source_choice()
 		return
 	_install_source(_candidates.pop_front())
+
+
+## Say once, to the log, which source the probe landed on. Without this the
+## difference between "sensors chosen" and "silently fell back to the
+## keyboard" is only visible in a debug overlay — nowhere on a Deck build
+## running full screen with no console in view.
+func _log_source_choice() -> void:
+	if _logged_source_choice:
+		return
+	_logged_source_choice = true
+	print("MotionInput: using %s" % _source.describe())
 
 
 func _install_source(source: MotionSource) -> void:

@@ -77,22 +77,35 @@ sensors at all ([godot-proposals#2829](https://github.com/godotengine/godot-prop
 so `DeviceMotionSource` reports nothing there and the Deck would be a desktop
 with no keyboard.
 
-Linux publishes the sensors itself, without Steam. The kernel's `hid-steam`
-driver registers a second input device beside the controller, named
-`Steam Deck Motion Sensors`, streaming `input_event` records continuously:
-the accelerometer on `ABS_X/Y/Z` at 16384 units per g, the gyroscope on
-`ABS_RX/RY/RZ`. `DeckMotionSource` finds that device by name under
-`/sys/class/input` and reads it.
+Linux publishes the sensors itself, without Steam — but not, on real
+hardware, the way the first version of this assumed. That version looked for
+an evdev device named `Steam Deck Motion Sensors`, the way `hid-steam`'s own
+documentation describes it. On a Deck running
+`6.11.11-valve27-1-neptune-611` that device does not exist: `hid_steam` loads
+with only its `lizard_mode` parameter, nothing under `/sys/class/input`
+matches, and the IMU is not on IIO either. **Retrying the evdev path from the
+godot-proposals thread alone will not find it on this kernel** — it needs a
+different device entirely.
+
+What is there, and readable without root, is a `hidraw` node for the
+controller's own raw HID interface — the same one Steam itself reads for
+gyro input, and multiple readers are allowed, so reading it alongside Steam
+is fine. `hid-steam` binds several `hidraw` nodes to one physical controller
+(mouse, keyboard, controller state); the motion-streaming one is identified
+by its `uevent` naming driver `hid-steam` and a phys ending `input2`.
+`DeckMotionSource` finds that node under `/sys/class/hidraw` and reads it.
+`DeckMotionDecoder` has the 64-byte report's layout, and the reasoning behind
+it, in its class doc.
 
 **It reads through `cat`.** `FileAccess` refuses anything that is not a
-regular file, so `/dev/input/event*` cannot be opened from GDScript at all.
-That leaves a GDExtension — native code to build, ship and keep in step with
-the engine version, for one vector — or borrowing a process that already does
-the one thing needed. `OS.execute_with_pipe` gives a pipe whose
-`get_length()` is a `FIONREAD` count, so the stream is drained without ever
-blocking a frame, and the reader is bounded: a device that cannot be read
-ends in a source that reports nothing rather than a process started every
-frame forever.
+regular file, so a character device such as `/dev/hidraw*` cannot be opened
+from GDScript at all. That leaves a GDExtension — native code to build, ship
+and keep in step with the engine version, for one vector — or borrowing a
+process that already does the one thing needed. `OS.execute_with_pipe` gives
+a pipe whose `get_length()` is a `FIONREAD` count, so the stream is drained
+without ever blocking a frame, and the reader is bounded: a device that
+cannot be read ends in a source that reports nothing rather than a process
+started every frame forever.
 
 **Only the accelerometer is read.** Tilt is an orientation against gravity,
 which the accelerometer gives directly and without drift. The gyroscope would
@@ -144,27 +157,19 @@ fires on nothing but gravity.
 
 ## Not verified
 
-No device or GPU has run any of this. Both sensor adapters' behaviour against
-real hardware — axis conventions in particular — is reasoned from the API and
-the driver, not observed. The calibration is orientation-agnostic by
-construction, which should absorb axis surprises, but a device build is where
-that gets settled.
-
-For the Deck the reasoning is written down rather than guessed, and it is
-pinned by `tests/test_deck_motion_decoder.gd` so that changing it is a
-deliberate act:
-
-- `hid-steam` publishes the sensor's Y and Z swapped, so the evdev axes are
-  screen right, screen up, and **into** the screen — where `MotionSource`'s
-  third axis points out of it.
-- An accelerometer at rest reads the force holding the device up, which is
-  the opposite sign to the gravity the rest of this package works in.
-
-Both come out of the same negation, and both are what
-`SDL_hidapi_steamdeck.c` does with the same report.
+No device or GPU has run any of this. `DeckMotionSource` finding its hidraw
+node, and `DeckMotionDecoder`'s framing and header check, are grounded in
+bytes actually captured on a Deck at rest — see the class docs and
+`tests/test_deck_motion_decoder.gd`'s `test_a_report_captured_on_real_hardware…`
+test, which decodes that exact capture. What is still reasoned rather than
+observed is the **axis convention**: which raw field is screen-right,
+screen-up or out-of-screen, and in which sign, on the real device. The
+calibration is orientation-agnostic by construction, which should absorb
+axis surprises, but a device build is where that gets settled.
 
 `scripts/run.sh motion` is where this is settled on hardware: it shows the
 live source, the raw gravity axes, the tilt, and the scene leaning with it.
 Tilt the Deck right; if the horizon rolls the wrong way, a span on
-`MotionTiltDriver` goes negative. If a *raw axis* is wrong, the mapping in
-`DeckMotionDecoder` is, and its tests say exactly what was expected.
+`MotionTiltDriver` goes negative. If a *raw axis* is wrong, or does not move
+at all, the mapping or the offsets in `DeckMotionDecoder` are, and its class
+doc says exactly what was assumed and why.
