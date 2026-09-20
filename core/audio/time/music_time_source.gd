@@ -9,16 +9,21 @@ extends RefCounted
 ## driven from the audio thread would be a new adapter, not a rewrite. The same
 ## shape as [MotionSource] and [LookSource].
 ##
-## Seconds are musical time since [method start]: they keep climbing across
-## loop repeats, and [MusicClock] turns them into bars and steps.
+## Beats of musical time since [method start]: they keep climbing across loop
+## repeats and tempo changes alike, accumulating against whatever tempo was in
+## force at the time via [method set_tempo_bpm] — so a tempo change only
+## affects what accumulates next, never the position already reached.
+## [MusicClock] turns beats into bars and steps; wall seconds survive only
+## where audio genuinely needs them (note hold lengths, mix lookahead), via
+## [method get_lookahead].
 
 
-## Music has started now; [method get_seconds] counts from here.
+## Music has started now; [method get_beats] counts from here.
 func start() -> void:
 	pass
 
 
-## Music has stopped; [method get_seconds] reads 0 until the next start.
+## Music has stopped; [method get_beats] reads 0 until the next start.
 func stop() -> void:
 	pass
 
@@ -27,14 +32,22 @@ func is_running() -> bool:
 	return false
 
 
-## Seconds of musical time since [method start].
-func get_seconds() -> float:
+## Beats of musical time since [method start].
+func get_beats() -> float:
 	return 0.0
 
 
-## How far ahead of [method get_seconds] an event may be triggered so that it
+## Changes the tempo beats accumulate at, effective from now. Beats already
+## reached are unaffected — only the rate future ones accumulate at changes —
+## which is what keeps a tempo change from reinterpreting the song's history.
+func set_tempo_bpm(_tempo_bpm: float) -> void:
+	pass
+
+
+## How far ahead of [method get_beats] an event may be triggered so that it
 ## is heard closer to on time. An adapter that already reports audible time
-## exactly would return 0.
+## exactly would return 0. In seconds: a genuinely wall-clock quantity, unlike
+## [method get_beats].
 func get_lookahead() -> float:
 	return 0.0
 

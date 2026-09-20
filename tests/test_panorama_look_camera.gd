@@ -73,6 +73,16 @@ func test_angular_velocity_reflects_the_clamp_not_the_raw_input() -> void:
 	assert_almost_eq(_camera.angular_velocity.y, expected, 0.0001, "Rate should reflect the clamp")
 
 
+func test_sensitivity_scales_every_source_uniformly() -> void:
+	_camera.sensitivity = 2.0
+	_step(Vector2(0.1, 0.0))
+	assert_almost_eq(_camera.yaw, -0.2, 0.0001, "Doubled sensitivity should double the turn")
+
+
+func test_default_sensitivity_leaves_sources_untouched() -> void:
+	assert_almost_eq(_camera.sensitivity, 1.0, 0.0001, "Neutral by default")
+
+
 func test_zero_delta_time_is_ignored() -> void:
 	_step(Vector2(0.2, 0.2), 0.0)
 	assert_eq(_camera.yaw, 0.0, "Should not divide by a zero delta")

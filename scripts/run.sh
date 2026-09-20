@@ -26,11 +26,14 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
   menu       Click into any of the demos below; Backspace comes back.
   eyes       Secret level: the eye tank. Drag to stir and paint, arrows tilt,
              Space jogs, B blinks, R empties the tank, C recalibrates.
+  band       The eye tank as a band: each eye plays one part of a 70 bpm loop
+             while it floats clear of the walls. Arrows tilt, drag stirs.
   vitreous   Out-of-focus floaters drifting in a coasting gel. Drag to push,
              arrows tilt, Space jogs, +/- floaters, F toggles focus, R stills.
-  panorama   Look-around camera on the panorama sky. Mouse or right stick to
-             look, Esc frees the cursor, click to recapture. No panorama image
-             is checked in yet, so the sky is empty.
+  overcast   Panorama level: bright overcast sky, floaters unmissable. Mouse
+             or right stick to look, Esc frees the cursor, click to recapture.
+  interior   Panorama level: dim interior, floaters barely there. Same
+             controls as overcast.
   refraction Clear medium over a checkerboard: only the bend shows. Drag to
              stir, +/- tune strength down to zero, R stills.
   synth      Synth voices. A-K hold notes, Up/Down glide, 1/2/3 waveform,
@@ -39,6 +42,9 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
              pads on the step grid. Space plays, 1/2 drum layers, B bass, P pads.
   audio      Audio foundation: bus sliders and mutes, loop layers, the
              smoothed effect fader.
+  comfort    Comfort options (#17): distortion strength, look sensitivity,
+             floater overshoot reduction. Open a panorama level afterwards to
+             feel a change take effect.
   contacts   Scoring contact sound. 1-6 hold a simulated floater's contact,
              Space fires a flickering burst.
 
@@ -53,12 +59,15 @@ scene_for() {
 	case "$1" in
 		menu) echo "res://features/ui/demo_menu/demo_menu.tscn" ;;
 		eyes | secret-eyes | fluid) echo "res://features/levels/secret_eyes/fluid_demo.tscn" ;;
+		band | eye-band) echo "res://features/levels/secret_eyes/eye_band_demo.tscn" ;;
 		vitreous | floaters) echo "res://features/levels/vitreous/vitreous_tank.tscn" ;;
-		panorama) echo "res://features/levels/panorama/panorama_level.tscn" ;;
+		overcast | panorama) echo "res://features/levels/panorama/overcast_sky.tscn" ;;
+		interior) echo "res://features/levels/panorama/dim_interior.tscn" ;;
 		refraction) echo "res://features/fluid/refraction_demo.tscn" ;;
 		synth) echo "res://core/audio/synth_demo.tscn" ;;
 		groove) echo "res://core/audio/groove_demo.tscn" ;;
 		audio) echo "res://core/audio/audio_demo.tscn" ;;
+		comfort) echo "res://features/ui/comfort_settings/comfort_settings_demo.tscn" ;;
 		contacts) echo "res://features/scoring_sound/contact_sound_demo.tscn" ;;
 		*) return 1 ;;
 	esac

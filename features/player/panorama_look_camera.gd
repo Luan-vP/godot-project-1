@@ -22,6 +22,11 @@ extends Camera3D
 ## it; a click recaptures.
 @export var capture_mouse: bool = true
 
+## Multiplies every [LookSource]'s contribution before it turns the camera. A
+## level sets this once instead of retuning every source's own sensitivity;
+## see [member Level.look_sensitivity].
+@export_range(0.1, 5.0, 0.05) var sensitivity: float = 1.0
+
 ## Radians/second this frame produced, x = yaw rate, y = pitch rate. The
 ## floaters mechanic hangs off this number, so it is computed once, here,
 ## rather than every consumer re-deriving it from the rotation.
@@ -49,7 +54,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if delta <= 0.0:
 		return
-	var raw := _look.poll(delta)
+	var raw := _look.poll(delta) * sensitivity
 	var previous_pitch := pitch
 
 	yaw = wrapf(yaw - raw.x, -PI, PI)

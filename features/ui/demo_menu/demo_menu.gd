@@ -29,14 +29,27 @@ const DEMOS: Array[Dictionary] = [
 		"blurb": "Secret level: the eye tank. Drag to stir and paint, arrows tilt, Space jogs.",
 	},
 	{
+		"name": "Eye band",
+		"path": "res://features/levels/secret_eyes/eye_band_demo.tscn",
+		"blurb":
+		"Each eye plays a part while it stays off the walls. Tilt or stir to thin the music.",
+	},
+	{
 		"name": "Vitreous",
 		"path": "res://features/levels/vitreous/vitreous_tank.tscn",
 		"blurb": "Out-of-focus floaters in a coasting gel. Drag to push, +/- floaters.",
 	},
 	{
-		"name": "Panorama",
-		"path": "res://features/levels/panorama/panorama_level.tscn",
-		"blurb": "Look-around camera. Mouse or right stick to look, Esc frees the cursor.",
+		"name": "Overcast Sky",
+		"path": "res://features/levels/panorama/overcast_sky.tscn",
+		"blurb":
+		"Bright panorama level, floaters unmissable. Mouse/stick to look, Esc frees cursor.",
+	},
+	{
+		"name": "Dim Interior",
+		"path": "res://features/levels/panorama/dim_interior.tscn",
+		"blurb":
+		"Dim panorama level, floaters barely there. Mouse/stick to look, Esc frees cursor.",
 	},
 	{
 		"name": "Refraction",
@@ -57,6 +70,12 @@ const DEMOS: Array[Dictionary] = [
 		"name": "Audio",
 		"path": "res://core/audio/audio_demo.tscn",
 		"blurb": "Bus sliders and mutes, loop layers, the smoothed effect fader.",
+	},
+	{
+		"name": "Comfort",
+		"path": "res://features/ui/comfort_settings/comfort_settings_demo.tscn",
+		"blurb":
+		"Distortion, look sensitivity, floater overshoot — adjust, then open a panorama level.",
 	},
 	{
 		"name": "Contacts",

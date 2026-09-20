@@ -339,7 +339,3 @@ two shaders.
   and the gaze; both read straight off the fluid.
 - Bodies do not displace the fluid geometrically — they only push it. The
   mask the solve now reads exists; nothing stamps a body into it yet.
-- A tank rendered with `FluidRefractionRenderer` still runs the dye pass every
-  frame even though nothing reads the result. Skipping it for clear-medium
-  levels is a real saving; left as its own issue so it can be done and
-  measured separately.

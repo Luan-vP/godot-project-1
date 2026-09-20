@@ -25,6 +25,7 @@ func after_each() -> void:
 	AudioManager.set_bus_mute(AudioManager.MUSIC_BUS, false)
 	AudioManager.set_bus_mute(AudioManager.SFX_BUS, false)
 	AudioManager.stop_music()
+	AudioManager.set_tempo(120.0, 4)
 
 
 func test_the_committed_layout_provides_all_three_buses() -> void:
@@ -116,3 +117,26 @@ func test_remove_bus_effect_actually_removes_it() -> void:
 	var index := AudioManager.add_bus_effect(AudioManager.SFX_BUS, AudioEffectReverb.new())
 	AudioManager.remove_bus_effect(AudioManager.SFX_BUS, index)
 	assert_null(AudioManager.get_bus_effect(AudioManager.SFX_BUS, index))
+
+
+func test_get_tempo_reads_back_what_set_tempo_wrote() -> void:
+	AudioManager.set_tempo(90.0, 3)
+	assert_almost_eq(AudioManager.get_tempo(), 90.0, 0.001)
+	assert_eq(AudioManager.get_music_clock().beats_per_bar, 3)
+
+
+func test_set_bpm_changes_tempo_without_touching_bar_length() -> void:
+	AudioManager.set_tempo(90.0, 3)
+	AudioManager.set_bpm(120.0)
+	assert_almost_eq(AudioManager.get_tempo(), 120.0, 0.001)
+	assert_eq(
+		AudioManager.get_music_clock().beats_per_bar, 3, "Bar length survives a bpm-only change"
+	)
+
+
+func test_tempo_changed_is_emitted_by_set_tempo_and_set_bpm() -> void:
+	watch_signals(AudioManager)
+	AudioManager.set_tempo(100.0, 4)
+	assert_signal_emitted_with_parameters(AudioManager, "tempo_changed", [100.0])
+	AudioManager.set_bpm(110.0)
+	assert_signal_emitted_with_parameters(AudioManager, "tempo_changed", [110.0])
