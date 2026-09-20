@@ -76,12 +76,42 @@ so it produces no seam.
 contribution in one place — what `Level.look_sensitivity` drives — rather
 than a level having to retune each source's own sensitivity individually.
 
+## Tilting the device tilts the scene
+
+The level owns a `MotionInput` and a
+[`MotionTiltDriver`](../../player/motion_tilt_driver.gd), so on a handheld —
+the Steam Deck, a phone — leaning the device leans the view. On a desktop the
+arrow keys stand in for the sensors, which is how the feel gets judged without
+one; see [`core/motion`](../../../core/motion/README.md).
+
+**A lean, not a turn.** Tilt lands on `PanoramaLookCamera.tilt_offset` rather
+than on its yaw and pitch. Looking around accumulates — a stick held over
+means keep turning — and a held tilt does not: it means hold the scene at that
+angle, and letting go brings it back. Integrating it into the heading would
+give a lean that never comes back and a horizon that drifts away from level
+whenever the player's hands do.
+
+The scene tilts the way the view through a window does: tip the device right
+and the horizon rolls left, staying where it was in the world rather than
+following the screen round. Spans are small (12° of roll, 6° of pitch at full
+tilt) because this sits on top of wherever looking around has left the camera.
+
+`tilt_offset` is deliberately **not** in `angular_velocity`. That number is
+how fast the player is looking around and the floaters mechanic hangs off it;
+a device held at a lean is not a gaze sweeping across the view, and feeding it
+in would swish the medium for as long as the lean was held.
+
+`recentre_tilt` — `C`, or the right stick click — takes whatever pose the
+player is holding as level. A handheld is never held the way the last player
+held it, and `MotionCalibration` assumes no hold orientation, so this is the
+control that makes the rest of it work.
+
 ## Comfort options
 
 [`ComfortSettings`](../../../autoload/ComfortSettings.gd) (issue #17) lets a
 player pull back from a level's tuned `distortion_strength` and
-`look_sensitivity`, and reduce how much a floater lags and overshoots behind
-the current — the whole mechanic is "move the view, watch the image distort",
+`look_sensitivity`, scale back how far device tilt leans the scene, and reduce
+how much a floater lags and overshoots behind the current — the whole mechanic is "move the view, watch the image distort",
 which some players find sickening. `PanoramaLevel._apply_level` and
 `_rebuild_medium` scale a level's numbers through it before applying them, so
 the values above stay the tuned defaults a player starts from, not the
