@@ -80,9 +80,28 @@ jobs:
           echo "Compiled $count compute shaders."
 
       - name: Run GUT test suite
+        # The job's shell here is sh, not bash, so no pipefail: capture the
+        # output to a file, print it, then exit on Godot's own status.
         run: |
+          status=0
           godot --headless -s addons/gut/gut_cmdln.gd \
-            -gdir=res://tests -gexit -gjunit_xml_file=res://gut_results.xml
+            -gdir=res://tests -gexit -gjunit_xml_file=res://gut_results.xml \
+            > gut_output.log 2>&1 || status=$?
+          cat gut_output.log
+          exit $status
+
+      # A test file that fails to parse is skipped with a warning, not failed:
+      # GUT ignores what it cannot load, the run stays green, and the tests in
+      # it silently stop being run. That is how tests/test_eye_band_live_state.gd
+      # went unnoticed on main.
+      - name: Verify every test file loaded
+        run: |
+          if grep -q 'Failed to load script "res://tests/' gut_output.log; then
+            echo "These test files did not load, so their tests never ran:"
+            grep -oE 'Failed to load script "res://tests/[^"]*"' gut_output.log | sort -u
+            grep -B4 'Failed to load script "res://tests/' gut_output.log
+            exit 1
+          fi
 
       # A run that collects nothing still exits 0, which is exactly how this
       # job passed while doing nothing. Assert that tests were actually run.
