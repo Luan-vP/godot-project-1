@@ -27,6 +27,14 @@ func is_available() -> bool:
 	return false
 
 
+## Release anything the adapter holds open — a device, a helper process. The
+## port carries this because an adapter can own more than a function call:
+## [DeckMotionSource] runs a reader alongside the game, and nothing else knows
+## to shut it down. Adapters that hold nothing need not implement it.
+func stop() -> void:
+	pass
+
+
 ## Short human-readable name, for debug overlays and logs.
 func describe() -> String:
 	return "none"

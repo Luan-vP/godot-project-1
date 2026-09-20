@@ -23,6 +23,7 @@ extends Node3D
 
 var _world_environment: WorldEnvironment
 var _camera: PanoramaLookCamera
+var _motion: MotionInput
 var _overlay: CanvasLayer
 
 
@@ -35,7 +36,28 @@ func _ready() -> void:
 	_camera.current = true
 	add_child(_camera)
 
+	# Device tilt leans the scene where there is a device to tilt — the Steam
+	# Deck, a phone — and the arrow keys stand in for it everywhere else, so
+	# the feel can be judged without one. MotionInput picks; nothing here
+	# knows which it got. See core/motion/README.md.
+	_motion = MotionInput.new()
+	_motion.name = "MotionInput"
+	add_child(_motion)
+
+	var tilt_driver := MotionTiltDriver.new()
+	tilt_driver.name = "MotionTiltDriver"
+	add_child(tilt_driver)
+
 	_apply_level()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	# Whatever pose the player is holding becomes level. MotionCalibration
+	# assumes no hold orientation on purpose, and a handheld is never held the
+	# way the last player held it, so this is the control that makes the rest
+	# of the tilt pipeline usable rather than merely correct.
+	if _motion != null and event.is_action_pressed(MotionInput.RECENTRE_ACTION):
+		_motion.calibrate()
 
 
 func _apply_level() -> void:

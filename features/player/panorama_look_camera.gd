@@ -27,6 +27,13 @@ extends Camera3D
 ## see [member Level.look_sensitivity].
 @export_range(0.1, 5.0, 0.05) var sensitivity: float = 1.0
 
+## Rotation laid over the looked-at heading, radians: x rolls the horizon, y
+## pitches the view. This is where device tilt lands — [MotionTiltDriver]
+## writes it — and it is an offset rather than part of [member yaw] and
+## [member pitch] because tilting is not looking: it recentres itself when the
+## device comes back to level, and it must not accumulate into a heading.
+var tilt_offset: Vector2 = Vector2.ZERO
+
 ## Radians/second this frame produced, x = yaw rate, y = pitch rate. The
 ## floaters mechanic hangs off this number, so it is computed once, here,
 ## rather than every consumer re-deriving it from the rotation.
@@ -60,12 +67,17 @@ func _process(delta: float) -> void:
 	yaw = wrapf(yaw - raw.x, -PI, PI)
 	var limit := deg_to_rad(max_pitch_degrees)
 	pitch = clampf(pitch - raw.y, -limit, limit)
-	rotation = Vector3(pitch, yaw, 0.0)
+	rotation = Vector3(pitch + tilt_offset.y, yaw, tilt_offset.x)
 
 	# Yaw is never clamped, so its true delta is always -raw.x. Pitch can be
 	# clamped, so its rate has to come from what actually happened rather than
 	# what was asked for — otherwise a stick held hard against the limit would
 	# report a rate the camera was not actually turning at.
+	#
+	# The tilt offset is left out on purpose. This number is how fast the
+	# player is looking around, and the floaters mechanic hangs off it: a
+	# device held at a lean is not a gaze sweeping across the view, and
+	# feeding it in would swish the medium for as long as the lean was held.
 	angular_velocity = Vector2(-raw.x, pitch - previous_pitch) / delta
 
 

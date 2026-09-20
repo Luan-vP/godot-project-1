@@ -14,7 +14,8 @@ three adapters behind it:
 
 | Adapter | For |
 | --- | --- |
-| `DeviceMotionSource` | the real sensors |
+| `DeviceMotionSource` | a phone's sensors, through `Input` |
+| `DeckMotionSource` | the Steam Deck's IMU, read from Linux directly |
 | `KeyboardMotionSource` | desktop — arrows tilt, space jogs |
 | `ScriptedMotionSource` | tests, and replaying a recorded gesture |
 
@@ -43,6 +44,9 @@ motion.tilt_changed.connect(_on_tilt)   # Vector2, length 1 = fully tilted
 motion.jogged.connect(_on_jog)          # Vector2, once per shake
 ```
 
+`MotionTiltDriver` joins it to a `PanoramaLookCamera`, which is how tilting a
+device tilts a level — see [the panorama level's README](../../features/levels/panorama/README.md#tilting-the-device-tilts-the-scene).
+
 Consumers find it through the `motion_input` group. It is a plain node rather
 than an autoload so a test — or a second local player — can own its own;
 promote it in `project.godot` if it ever needs to be global.
@@ -52,6 +56,53 @@ To swap the source, in a test or for a replay:
 ```gdscript
 motion.set_source(my_source)   # also ends the startup sensor probe
 ```
+
+## Picking a source
+
+`MotionInput` tries the real sources in turn, giving each `PROBE_SECONDS` to
+report, and falls back to the keyboard once they are exhausted. A source that
+could not possibly be there is never waited on: `DeckMotionSource` is only
+tried where the Deck's sensor device actually exists, which is a look at
+`/sys` and costs nothing anywhere else.
+
+Whatever it lands on, it is something that reports. That is the invariant the
+probe exists for — a control wired to a silent source is dead, and silently
+so.
+
+## The Steam Deck
+
+The Deck has a six-axis IMU and **none of it reaches Godot**. `Input`'s sensor
+functions are fed on Android and iOS only, and Godot exposes no gamepad
+sensors at all ([godot-proposals#2829](https://github.com/godotengine/godot-proposals/issues/2829)),
+so `DeviceMotionSource` reports nothing there and the Deck would be a desktop
+with no keyboard.
+
+Linux publishes the sensors itself, without Steam. The kernel's `hid-steam`
+driver registers a second input device beside the controller, named
+`Steam Deck Motion Sensors`, streaming `input_event` records continuously:
+the accelerometer on `ABS_X/Y/Z` at 16384 units per g, the gyroscope on
+`ABS_RX/RY/RZ`. `DeckMotionSource` finds that device by name under
+`/sys/class/input` and reads it.
+
+**It reads through `cat`.** `FileAccess` refuses anything that is not a
+regular file, so `/dev/input/event*` cannot be opened from GDScript at all.
+That leaves a GDExtension — native code to build, ship and keep in step with
+the engine version, for one vector — or borrowing a process that already does
+the one thing needed. `OS.execute_with_pipe` gives a pipe whose
+`get_length()` is a `FIONREAD` count, so the stream is drained without ever
+blocking a frame, and the reader is bounded: a device that cannot be read
+ends in a source that reports nothing rather than a process started every
+frame forever.
+
+**Only the accelerometer is read.** Tilt is an orientation against gravity,
+which the accelerometer gives directly and without drift. The gyroscope would
+only make a fast tilt arrive sooner — a complementary filter is the obvious
+follow-up if it ever feels laggy — and `MotionSource` has nowhere to carry it.
+
+**Permissions.** The device is readable by whoever holds the seat, which is
+the player in Game Mode and in Desktop Mode, but not an ssh session logged in
+alongside them. A denied read comes back as no readings, plus one warning
+naming what the reader said, and the keyboard takes over.
 
 ## Calibration
 
@@ -93,8 +144,27 @@ fires on nothing but gravity.
 
 ## Not verified
 
-No device or GPU has run any of this. The sensor adapter's behaviour against
-real hardware — axis conventions in particular — is reasoned from Godot's API,
-not observed. The calibration is orientation-agnostic by construction, which
-should absorb axis surprises, but the first device build is where that gets
-settled.
+No device or GPU has run any of this. Both sensor adapters' behaviour against
+real hardware — axis conventions in particular — is reasoned from the API and
+the driver, not observed. The calibration is orientation-agnostic by
+construction, which should absorb axis surprises, but a device build is where
+that gets settled.
+
+For the Deck the reasoning is written down rather than guessed, and it is
+pinned by `tests/test_deck_motion_decoder.gd` so that changing it is a
+deliberate act:
+
+- `hid-steam` publishes the sensor's Y and Z swapped, so the evdev axes are
+  screen right, screen up, and **into** the screen — where `MotionSource`'s
+  third axis points out of it.
+- An accelerometer at rest reads the force holding the device up, which is
+  the opposite sign to the gravity the rest of this package works in.
+
+Both come out of the same negation, and both are what
+`SDL_hidapi_steamdeck.c` does with the same report.
+
+`scripts/run.sh motion` is where this is settled on hardware: it shows the
+live source, the raw gravity axes, the tilt, and the scene leaning with it.
+Tilt the Deck right; if the horizon rolls the wrong way, a span on
+`MotionTiltDriver` goes negative. If a *raw axis* is wrong, the mapping in
+`DeckMotionDecoder` is, and its tests say exactly what was expected.
