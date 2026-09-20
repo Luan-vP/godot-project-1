@@ -29,23 +29,24 @@ func after_each() -> void:
 	_recording_path = ""
 
 
-func _event(type: int, code: int, value: int) -> PackedByteArray:
+## One 64-byte HID report, with the accelerometer filled in and everything
+## else — header included — left zero. [DeckMotionDecoder] only checks the
+## length byte, so this is enough to decode as a report.
+func _hid_report(x: int, y: int, z: int) -> PackedByteArray:
 	var bytes := PackedByteArray()
-	bytes.resize(DeckMotionDecoder.EVENT_SIZE)
-	bytes.encode_u16(16, type)
-	bytes.encode_u16(18, code)
-	bytes.encode_s32(20, value)
+	bytes.resize(DeckMotionDecoder.REPORT_SIZE)
+	bytes.encode_u8(DeckMotionDecoder.LENGTH_OFFSET, DeckMotionDecoder.REPORT_SIZE)
+	bytes.encode_s16(DeckMotionDecoder.ACCEL_OFFSET, x)
+	bytes.encode_s16(DeckMotionDecoder.ACCEL_OFFSET + 2, y)
+	bytes.encode_s16(DeckMotionDecoder.ACCEL_OFFSET + 4, z)
 	return bytes
 
 
-## A file of sensor records, and the path a reader can open it by.
+## A file of HID reports, and the path a reader can open it by.
 func _recording(x: int, y: int, z: int, repeats: int = 1) -> String:
 	var bytes := PackedByteArray()
 	for _i in repeats:
-		bytes.append_array(_event(DeckMotionDecoder.EV_ABS, DeckMotionDecoder.ABS_X, x))
-		bytes.append_array(_event(DeckMotionDecoder.EV_ABS, DeckMotionDecoder.ABS_Y, y))
-		bytes.append_array(_event(DeckMotionDecoder.EV_ABS, DeckMotionDecoder.ABS_Z, z))
-		bytes.append_array(_event(DeckMotionDecoder.EV_SYN, DeckMotionDecoder.SYN_REPORT, 0))
+		bytes.append_array(_hid_report(x, y, z))
 	_recording_path = "user://test_deck_motion_%d.bin" % Time.get_ticks_usec()
 	var file := FileAccess.open(_recording_path, FileAccess.WRITE)
 	file.store_buffer(bytes)

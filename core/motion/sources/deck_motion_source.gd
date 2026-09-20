@@ -8,28 +8,48 @@ extends MotionSource
 ## [DeviceMotionSource] reports nothing and [MotionInput] falls back to the
 ## keyboard. That is what this exists to fix.
 ##
-## Linux publishes the Deck's IMU itself, without Steam: the kernel's
-## [code]hid-steam[/code] driver registers a second input device named
-## [constant DEVICE_NAME] alongside the controller, streaming continuously.
-## This finds that device, reads it, and hands the result to the same pipeline
-## a phone's sensors would feed.
+## [b]evdev does not have it, on real hardware.[/b] The first version of this
+## looked for a [code]Steam Deck Motion Sensors[/code] evdev device, the way
+## [code]hid-steam[/code]'s own documentation describes it. On a real Deck
+## running [code]6.11.11-valve27-1-neptune-611[/code] that device does not
+## exist: [code]hid_steam[/code] loads with only its [code]lizard_mode[/code]
+## parameter, nothing named that appears under [code]/sys/class/input[/code],
+## and the IMU is not on IIO either — only the two ambient-light sensors are.
+## Retrying the evdev path from the godot-proposals thread alone will not find
+## it on this kernel.
+##
+## What is there, and readable without root, is a [code]hidraw[/code] node for
+## the controller's own raw HID interface — the same one Steam reads for gyro.
+## [code]hid-steam[/code] binds several [code]hidraw[/code] nodes to one
+## physical device (mouse, keyboard, controller state); the one that streams
+## motion is identified by its [code]uevent[/code] naming driver
+## [constant DEVICE_DRIVER] and a phys ending [constant DEVICE_PHYS_SUFFIX].
+## This finds that node, reads it, and hands the result to the same pipeline a
+## phone's sensors would feed. [DeckMotionDecoder] has the report layout.
 ##
 ## [b]Why it reads the device through [code]cat[/code].[/b] [FileAccess] refuses
-## anything that is not a regular file, so [code]/dev/input/event*[/code] cannot
-## be opened from GDScript at all. The alternatives are a GDExtension — native
-## code to build, ship and keep in step with the engine version, for one vector
-## — or borrowing a process that can already do the one thing needed.
-## [method OS.execute_with_pipe] gives a pipe whose [method FileAccess.get_length]
-## is a [code]FIONREAD[/code] count, so the stream is drained without ever
-## blocking the frame, and a missing device, a denied permission or a dead
-## reader all come out the same way: no readings, and [MotionInput] moves on to
-## the next source.
+## anything that is not a regular file, so a character device such as
+## [code]/dev/hidraw*[/code] cannot be opened from GDScript at all. The
+## alternatives are a GDExtension — native code to build, ship and keep in step
+## with the engine version, for one vector — or borrowing a process that can
+## already do the one thing needed. [method OS.execute_with_pipe] gives a pipe
+## whose [method FileAccess.get_length] is a [code]FIONREAD[/code] count, so the
+## stream is drained without ever blocking the frame, and a missing device, a
+## denied permission or a dead reader all come out the same way: no readings,
+## and [MotionInput] moves on to the next source.
 
-## What [code]hid-steam[/code] calls the Deck's sensor device.
-const DEVICE_NAME := "Steam Deck Motion Sensors"
+## What [code]hid-steam[/code] names itself as, in a hidraw node's
+## [code]device/uevent[/code].
+const DEVICE_DRIVER := "hid-steam"
 
-## Where Linux lists input devices, each with the name it reports.
-const INPUT_CLASS_DIR := "/sys/class/input"
+## The HID interface that streams motion, identified by the tail of its
+## [code]HID_PHYS[/code]. The same physical controller exposes other
+## [code]hidraw[/code] nodes for its mouse and keyboard emulation; this is what
+## tells them apart.
+const DEVICE_PHYS_SUFFIX := "input2"
+
+## Where Linux lists raw HID devices.
+const HIDRAW_CLASS_DIR := "/sys/class/hidraw"
 
 ## Readers to try, in order. Plain [code]cat[/code] is the fallback because
 ## [method OS.execute_with_pipe] resolves a bare name through [code]PATH[/code].
@@ -73,14 +93,18 @@ func _init(device_path: String = "") -> void:
 static func find_device() -> String:
 	if OS.get_name() != "Linux":
 		return ""
-	var dir := DirAccess.open(INPUT_CLASS_DIR)
+	var dir := DirAccess.open(HIDRAW_CLASS_DIR)
 	if dir == null:
 		return ""
 	for entry in dir.get_directories() + dir.get_files():
-		if not entry.begins_with("event"):
+		if not entry.begins_with("hidraw"):
 			continue
-		if _read_device_name("%s/%s/device/name" % [INPUT_CLASS_DIR, entry]) == DEVICE_NAME:
-			return "/dev/input/%s" % entry
+		var fields := _read_uevent("%s/%s/device/uevent" % [HIDRAW_CLASS_DIR, entry])
+		if fields.get("DRIVER", "") != DEVICE_DRIVER:
+			continue
+		if not String(fields.get("HID_PHYS", "")).ends_with(DEVICE_PHYS_SUFFIX):
+			continue
+		return "/dev/%s" % entry
 	return ""
 
 
@@ -132,13 +156,23 @@ func describe() -> String:
 	return "Steam Deck sensors (%s)" % _device_path
 
 
-static func _read_device_name(path: String) -> String:
+## A hidraw node's [code]device/uevent[/code], as [code]KEY=value[/code] pairs.
+## [code]DRIVER[/code] and [code]HID_PHYS[/code] are what tell one Valve HID
+## interface from another; the rest is read along with them and ignored.
+static func _read_uevent(path: String) -> Dictionary:
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
-		return ""
+		return {}
+	var fields := {}
 	# Read a bounded chunk rather than the file's length: a sysfs attribute
 	# reports a page as its size and then returns far less than that.
-	return file.get_buffer(256).get_string_from_utf8().strip_edges()
+	var text := file.get_buffer(4096).get_string_from_utf8()
+	for line in text.split("\n"):
+		var separator := line.find("=")
+		if separator == -1:
+			continue
+		fields[line.substr(0, separator)] = line.substr(separator + 1).strip_edges()
+	return fields
 
 
 ## Keep exactly one reader alive, and know when to stop trying.
@@ -183,7 +217,7 @@ func _drain() -> void:
 		return
 	_report_reader_errors()
 	var waiting := _stdio.get_length()
-	if waiting < DeckMotionDecoder.EVENT_SIZE:
+	if waiting < DeckMotionDecoder.REPORT_SIZE:
 		return
 	_decoder.feed(_stdio.get_buffer(mini(waiting, MAX_CHUNK)))
 
