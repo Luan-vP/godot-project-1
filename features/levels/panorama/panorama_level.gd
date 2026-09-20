@@ -44,6 +44,12 @@ func _ready() -> void:
 	_motion.name = "MotionInput"
 	add_child(_motion)
 
+	# Live tilt values on the device itself, where there is no console: F3, or
+	# the gamepad's Y button, hides them.
+	var motion_debug := MotionDebugOverlay.new()
+	motion_debug.name = "MotionDebugOverlay"
+	add_child(motion_debug)
+
 	var tilt_driver := MotionTiltDriver.new()
 	tilt_driver.name = "MotionTiltDriver"
 	add_child(tilt_driver)
