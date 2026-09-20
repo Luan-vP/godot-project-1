@@ -71,6 +71,12 @@ const DEMOS: Array[Dictionary] = [
 		"path": "res://core/audio/audio_demo.tscn",
 		"blurb": "Bus sliders and mutes, loop layers, the smoothed effect fader.",
 	},
+	{
+		"name": "Comfort",
+		"path": "res://features/ui/comfort_settings/comfort_settings_demo.tscn",
+		"blurb":
+		"Distortion, look sensitivity, floater overshoot — adjust, then open a panorama level.",
+	},
 ]
 
 const BACKGROUND := Color(0.08, 0.085, 0.1)

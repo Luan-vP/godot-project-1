@@ -27,7 +27,7 @@ A 2D game about floaty eye thingies, in a painterly style. Godot 4.4.
   manual demo scene to prove it makes a sound. See its
   [README](core/audio/README.md).
 - `autoload/` — global singletons (`EventBus`, `GameState`, `AudioManager`,
-  `SaveManager`).
+  `SaveManager`, `ComfortSettings`).
 - `addons/` — vendored third-party code; see [addons/README.md](addons/README.md).
 - `tests/` — GUT suite.
 
@@ -50,6 +50,7 @@ scripts/run.sh refraction  # the clear medium bending a checkerboard
 scripts/run.sh synth       # play the synth voices from the keyboard
 scripts/run.sh groove      # synthwave loop: drums on the step grid, bass and pads
 scripts/run.sh audio       # buses, loop layers, the effect fader
+scripts/run.sh comfort     # distortion, look sensitivity, floater overshoot
 ```
 
 It finds Godot from `$GODOT`, then `godot4`/`godot` on `PATH`, then
@@ -59,6 +60,24 @@ the compiled copies — Godot misses edits to the shared
 `fluid_params.glslinc` on its own, and the fluid then silently stops moving.
 `--fresh` forces that recompile; anything after `--` goes to Godot, e.g.
 `scripts/run.sh eyes -- --resolution 1280x720`.
+
+## Building on the Steam Deck
+
+The Deck builds its own export: the compute shaders compile against its own
+GPU, and the result is exactly what it will run. From your dev machine, over
+Tailscale:
+
+```sh
+scripts/deck.sh setup   # once: Godot + templates in ~/.local, a checkout, a `deck` git remote
+scripts/deck.sh build   # push HEAD to the Deck, import, export to ~/Games/godot-project-1
+scripts/deck.sh run     # launch it on the Deck's screen (stop / logs / ssh too)
+```
+
+`build` sends committed work only. On the Deck itself, the build runs from
+`~/dev/godot-project-1/scripts/deck-build.sh`. To play from Game Mode, add
+`~/Games/godot-project-1/godot-project-1.x86_64` once as a non-Steam game
+(Desktop Mode → Steam → *Add a Game* → *Add a Non-Steam Game*; the entry is
+listed as `godot-project-1`). Later builds replace it in place.
 
 ## Running the tests
 

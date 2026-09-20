@@ -46,7 +46,7 @@ func _apply_level() -> void:
 	if _world_environment == null or level == null:
 		return
 	_apply_panorama()
-	_camera.sensitivity = level.look_sensitivity
+	_camera.sensitivity = ComfortSettings.apply_to_look_sensitivity(level.look_sensitivity)
 	_rebuild_medium()
 
 
@@ -85,7 +85,7 @@ func _rebuild_medium() -> void:
 	var renderer := FluidRefractionRenderer.new()
 	renderer.name = "Distortion"
 	var style := RefractionStyle.new()
-	style.strength = level.distortion_strength
+	style.strength = ComfortSettings.apply_to_distortion(level.distortion_strength)
 	renderer.style = style
 	_overlay.add_child(renderer)
 
@@ -94,6 +94,9 @@ func _rebuild_medium() -> void:
 	floaters.count = level.floater_count
 	floaters.radius_range = level.floater_radius_range
 	floaters.size_skew = level.floater_size_skew
+	# Comfort setting, not level tuning — see ComfortSettings' note on
+	# reducing a floater's inertial lag and overshoot (#17).
+	floaters.drag = ComfortSettings.apply_to_floater_drag(floaters.drag)
 	# Real floaters sit too close to the retina to ever be crisp; see the
 	# floaters README's "Depth of field" section.
 	floaters.depths = FloaterDepth.vitreous_bands()

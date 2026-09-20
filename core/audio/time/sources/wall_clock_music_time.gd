@@ -16,6 +16,12 @@ extends MusicTimeSource
 ## Why not [method AudioStreamPlayer.get_playback_position]: for a looping
 ## stream it wraps back every loop instead of climbing, so a bar longer than
 ## the loop would never arrive.
+##
+## Beats are integrated from wall time rather than derived from it: each
+## stretch of elapsed wall time is converted to beats at whatever tempo
+## [method set_tempo_bpm] last set, and accumulated. A tempo change only
+## changes the rate applied to time from then on, so [method get_beats] never
+## jumps — see [method set_tempo_bpm].
 
 ## Report the time to the next audio mix as lookahead, so a step due before
 ## that block fires this frame instead of the first frame after it. Measured at
@@ -28,12 +34,18 @@ var use_mix_lookahead := true
 ## above all — land on the grid rather than a steady step behind it.
 var use_output_latency_compensation := true
 
-var _start_usec: int = 0
+var _tempo_bpm: float = 120.0
 var _running := false
+
+## Beats accumulated up to [member _usec_at_tempo_change], under whatever
+## tempo was in force before it.
+var _beats_at_tempo_change: float = 0.0
+var _usec_at_tempo_change: int = 0
 
 
 func start() -> void:
-	_start_usec = Time.get_ticks_usec()
+	_usec_at_tempo_change = Time.get_ticks_usec()
+	_beats_at_tempo_change = 0.0
 	_running = true
 
 
@@ -45,10 +57,22 @@ func is_running() -> bool:
 	return _running
 
 
-func get_seconds() -> float:
+func get_beats() -> float:
 	if not _running:
 		return 0.0
-	return (Time.get_ticks_usec() - _start_usec) / 1_000_000.0
+	var elapsed_seconds := (Time.get_ticks_usec() - _usec_at_tempo_change) / 1_000_000.0
+	return _beats_at_tempo_change + elapsed_seconds * _tempo_bpm / 60.0
+
+
+## Changes the tempo beats accumulate at from now on. Snapshots the beats
+## reached so far so they are preserved exactly, then restarts accumulation
+## at the new rate — the reason a tempo change here is continuous instead of
+## rescaling everything since [method start].
+func set_tempo_bpm(tempo_bpm: float) -> void:
+	if _running:
+		_beats_at_tempo_change = get_beats()
+		_usec_at_tempo_change = Time.get_ticks_usec()
+	_tempo_bpm = tempo_bpm
 
 
 func get_lookahead() -> float:
