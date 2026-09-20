@@ -60,7 +60,7 @@ func test_key_offset_transposes_chords_bass_arp_and_pads_together() -> void:
 	)
 
 	var pad_notes := expected_chord.voice(_song.pad_range.x, _song.pad_range.y)
-	var pad_voices := _band._synths["pads"].get_voices()
+	var pad_voices: Array = _band._synths["pads"].get_voices()
 	for i in pad_notes.size():
 		assert_almost_eq(
 			pad_voices[i].target_frequency,
