@@ -49,7 +49,7 @@ without turning back. 120 fps on an M2 Max; 100 pressure passes at 128² cost
 about as much as 25 at 256².
 
 Floaters use `drag = 12` so they are carried by the gel rather than coasting
-through it, and `buoyancy = 3` so they settle only slowly.
+through it, and `weight = 3` so they settle only slowly.
 
 ## Not yet
 

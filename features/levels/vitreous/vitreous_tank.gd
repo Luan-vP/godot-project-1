@@ -107,7 +107,7 @@ func _spawn_floaters() -> void:
 	_floaters.color = Color(0.22, 0.24, 0.28, 0.5)
 	# Embedded in the gel: carried by it exactly, and settling only slowly.
 	_floaters.drag = 12.0
-	_floaters.buoyancy = 3.0
+	_floaters.weight = 3.0
 	# Only the very blurriest band: nothing in this tank is ever near focus.
 	var blurriest: Array[FloaterDepth] = [FloaterDepth.vitreous_bands().back()]
 	_floaters.depths = blurriest

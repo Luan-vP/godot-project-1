@@ -12,6 +12,12 @@ extends Node2D
 ## with no change here — [MotionInput] picks the source.
 
 const EYE_COUNT := 7
+
+## What an eye weighs, in pixels/second^2 of pull it cannot shed — see
+## [member FluidBody.weight]. Small on purpose: eyes are nearly the density of
+## what they float in, so they answer a held tilt over a second or two rather
+## than dropping.
+const EYE_WEIGHT := 26.0
 const SEED_BLOBS := 5
 const FLOATER_COUNT := 70
 
@@ -137,6 +143,9 @@ func _make_eye(index: int, extent: Vector2) -> FloatyEye:
 	eye.wake_radius = eye.radius * 2.2
 	eye.wake_strength = 5.0 + eye.radius * 0.07
 	eye.drag = 4.4 - eye.radius * 0.03
+	# Barely denser than what they float in: enough that a held tilt walks them
+	# into the low corner, not so much that they drop out of the current.
+	eye.weight = EYE_WEIGHT
 	eye.paint_amount = 0.55
 	eye.paint_color = eye.iris_color.lerp(Color(0.9, 0.95, 1.0), 0.35)
 	eye.paint_radius = eye.radius * 1.4

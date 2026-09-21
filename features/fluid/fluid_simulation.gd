@@ -49,6 +49,7 @@ var _dye_paints: Array[Vector4] = []
 var _dye_weights: Array[float] = []
 var _elapsed: float = 0.0
 var _current_bias: Vector2 = Vector2.ZERO
+var _gravity: Vector2 = Vector2.DOWN
 var _pending_nudge: Vector2 = Vector2.ZERO
 var _clear_requested: bool = false
 var _frames_to_readback: int = 1
@@ -167,6 +168,22 @@ func add_paint(
 ## pour, so what floats in it stays floating.
 func set_current_bias(world_acceleration: Vector2) -> void:
 	_current_bias = world_acceleration
+
+
+## Which way is down for whatever floats in here, as a direction. The water
+## itself does not fall — a full tank has nowhere to fall to, which is what
+## [method set_current_bias] models — but a body denser than the water does,
+## and it has to fall the way the tank is actually being held rather than down
+## the screen. A zero vector is ignored, so a tank never loses its down.
+func set_gravity(direction: Vector2) -> void:
+	if direction != Vector2.ZERO:
+		_gravity = direction.normalized()
+
+
+## The direction bodies with weight are pulled in. Down the screen until a
+## caller says otherwise.
+func get_gravity() -> Vector2:
+	return _gravity
 
 
 ## Shove the entire tank at once, in pixels/second, as if the container were

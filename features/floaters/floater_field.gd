@@ -67,8 +67,8 @@ const BOKEH_SHADER := preload("res://features/floaters/shaders/bokeh.gdshader")
 ## coast through it.
 @export var drag: float = 2.2
 
-## Sinking rate copied onto every floater; see [member FluidBody.buoyancy].
-@export var buoyancy: float = 12.0
+## Sinking rate copied onto every floater; see [member FluidBody.weight].
+@export var weight: float = 12.0
 
 ## Speed cap copied onto every floater.
 @export var max_speed: float = 140.0
@@ -179,7 +179,7 @@ func _make_floater(rect: Rect2, depth_index: int) -> Floater:
 	# Inside a band the layer only records coverage; its composite owns colour.
 	floater.color = color if depth_index < 0 else Color.WHITE
 	floater.drag = drag
-	floater.buoyancy = buoyancy
+	floater.weight = weight
 	floater.max_speed = max_speed
 	floater.global_position = rect.position + Vector2(_rng.randf(), _rng.randf()) * rect.size
 	return floater

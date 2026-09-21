@@ -11,6 +11,13 @@ extends Node
 ## Current bias at full tilt, in pixels/second^2.
 @export_range(0.0, 4000.0, 10.0) var tilt_acceleration: float = 900.0
 
+## How far a full tilt swings the tank's down, as a fraction of a right angle.
+## 1 means a full tilt puts down 45 degrees off the screen's own down, which
+## is what makes weighted bodies slide towards the low corner rather than
+## merely drifting with the current. Zero keeps down down, whatever the device
+## is doing.
+@export_range(0.0, 2.0, 0.05) var tilt_gravity_authority: float = 1.0
+
 ## Tank speed added per unit of jog strength, in pixels/second.
 @export_range(0.0, 1500.0, 10.0) var nudge_speed: float = 260.0
 
@@ -44,6 +51,10 @@ func _on_tilt_changed(tilt: Vector2) -> void:
 	if _simulation == null:
 		return
 	_simulation.set_current_bias(tilt * tilt_acceleration)
+	# The lean above moves the water; this moves what the water cannot hold up.
+	# Down stays down and is leaned away from it, so a level device still sinks
+	# things straight down and a tilt slides them without ever flipping.
+	_simulation.set_gravity(Vector2.DOWN + tilt * tilt_gravity_authority)
 
 
 func _on_jogged(direction: Vector2) -> void:

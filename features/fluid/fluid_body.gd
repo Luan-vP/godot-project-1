@@ -16,8 +16,17 @@ extends Node2D
 ## flow; low values let it coast through eddies with its own momentum.
 @export var drag: float = 3.2
 
-## Constant drift, in pixels/second^2. Negative rises.
-@export var buoyancy: float = 0.0
+## How heavily the fluid fails to hold this body up, in pixels/second^2:
+## everything left over once the water has pushed back. Positive sinks,
+## negative rises, zero floats wherever the current leaves it. It is an
+## acceleration rather than a mass because nothing here integrates forces —
+## the drift law takes what the body does per second and nothing else needs
+## to know how heavy it is.
+##
+## The pull runs along the tank's own down ([method FluidSimulation.get_gravity]),
+## so a tilted tank sends every body with weight sliding the way the device is
+## being held, not down the screen.
+@export var weight: float = 0.0
 
 ## Speed ceiling in pixels/second, so a violent eddy cannot fling the body.
 @export var max_speed: float = 420.0
@@ -63,7 +72,7 @@ func _physics_process(delta: float) -> void:
 
 	var current := _simulation.sample_velocity(global_position)
 	var slip := velocity - current
-	velocity = drift(velocity, current, drag, buoyancy, max_speed, delta)
+	velocity = drift(velocity, current, drag, _simulation.get_gravity() * weight, max_speed, delta)
 	global_position += velocity * delta
 
 	if contained:
@@ -76,20 +85,24 @@ func _physics_process(delta: float) -> void:
 
 
 ## The drift law, kept pure so it can be checked on its own: pull the body
-## towards the flow at a rate set by [param drag_rate], add [param rise], cap
+## towards the flow at a rate set by [param drag_rate], add [param pull], cap
 ## the result. A [param drag_rate] * [param delta] of 1 or more snaps the body
 ## straight onto the current, which is what keeps large steps stable.
+##
+## [param pull] is a vector rather than a sink rate because down is wherever
+## the tank is being held. It is added after the drag term, so weight is what
+## the current cannot carry away: a body pinned hard to the flow still creeps
+## along it, and one that coasts falls through it.
 static func drift(
 	body_velocity: Vector2,
 	flow: Vector2,
 	drag_rate: float,
-	rise: float,
+	pull: Vector2,
 	speed_limit: float,
 	delta: float
 ) -> Vector2:
 	var pulled := body_velocity - (body_velocity - flow) * clampf(drag_rate * delta, 0.0, 1.0)
-	pulled.y += rise * delta
-	return pulled.limit_length(speed_limit)
+	return (pulled + pull * delta).limit_length(speed_limit)
 
 
 ## Kick the body, in pixels/second.
