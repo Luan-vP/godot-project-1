@@ -159,8 +159,8 @@ func test_the_recentre_action_is_in_the_input_map() -> void:
 
 
 func test_the_probe_lands_on_a_source_that_actually_reports() -> void:
-	# The startup probe walks the real sources in turn — a Deck's sensors where
-	# there is a Deck, then a phone's — and falls back to the keyboard once
+	# The startup probe walks the real sources in turn — Steam Input where
+	# Steam is running, then a phone's sensors — and falls back to the keyboard once
 	# they are exhausted. Whatever it lands on, it must be something that
 	# reports: a probe that settles on a silent source is a dead control.
 	var motion := MotionInput.new()
@@ -173,7 +173,7 @@ func test_the_probe_lands_on_a_source_that_actually_reports() -> void:
 
 
 func test_a_machine_with_no_sensors_ends_up_on_the_keyboard() -> void:
-	if DeckMotionSource.find_device() != "":
+	if SteamInputMotionSource.is_steam_available():
 		pass_test("Running on a device with sensors; the fallback is not the case here.")
 		return
 	var motion := MotionInput.new()
@@ -185,7 +185,7 @@ func test_a_machine_with_no_sensors_ends_up_on_the_keyboard() -> void:
 
 
 func test_swapping_the_source_lets_go_of_the_old_one() -> void:
-	# A source can hold a device or a helper process open — DeckMotionSource
+	# A source can hold a device or a session open — SteamInputMotionSource
 	# runs a reader alongside the game — and nothing but this knows to shut it
 	# down when it is replaced.
 	var first := ScriptedMotionSource.new()

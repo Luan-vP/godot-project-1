@@ -21,3 +21,7 @@ Thumbs.db
 
 # GUT test output
 gut_results.xml
+
+# Steam Input reaches a running client through this; it is per-machine dev
+# state, and Valve advise against shipping it.
+steam_appid.txt

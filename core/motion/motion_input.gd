@@ -178,10 +178,13 @@ func is_calibrated() -> bool:
 ## [constant PROBE_SECONDS] of keyboard-less startup if it stays silent.
 func _build_candidates() -> Array[MotionSource]:
 	var candidates: Array[MotionSource] = []
-	# Only where the device is actually present, so no reader is started on a
-	# desktop and no other Linux machine pays for the Deck's existence.
-	if DeckMotionSource.find_device() != "":
-		candidates.append(DeckMotionSource.new())
+	# Steam first: it covers every controller Steam supports — a Deck, a
+	# DualSense, a Pro pad — where Godot's own sensor functions cover none of
+	# them. Only constructed where the extension exists, so no Steam call is
+	# made on a build without it.
+	if SteamInputMotionSource.is_steam_available():
+		candidates.append(SteamInputMotionSource.new())
+	# Then a phone, which is the one platform Godot does feed.
 	candidates.append(DeviceMotionSource.new())
 	return candidates
 

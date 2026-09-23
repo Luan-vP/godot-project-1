@@ -14,8 +14,8 @@ three adapters behind it:
 
 | Adapter | For |
 | --- | --- |
+| `SteamInputMotionSource` | every controller Steam supports — a Deck, a DualSense, a Pro pad |
 | `DeviceMotionSource` | a phone's sensors, through `Input` |
-| `DeckMotionSource` | the Steam Deck's IMU, read from Linux directly |
 | `KeyboardMotionSource` | desktop — arrows tilt, space jogs |
 | `ScriptedMotionSource` | tests, and replaying a recorded gesture |
 
@@ -61,61 +61,51 @@ motion.set_source(my_source)   # also ends the startup sensor probe
 
 `MotionInput` tries the real sources in turn, giving each `PROBE_SECONDS` to
 report, and falls back to the keyboard once they are exhausted. A source that
-could not possibly be there is never waited on: `DeckMotionSource` is only
-tried where the Deck's sensor device actually exists, which is a look at
-`/sys` and costs nothing anywhere else.
+could not possibly be there is never waited on: `SteamInputMotionSource` is
+only constructed where the GodotSteam extension exists at all, which is one
+`ClassDB` lookup and costs nothing in a build without it.
 
 Whatever it lands on, it is something that reports. That is the invariant the
 probe exists for — a control wired to a silent source is dead, and silently
 so.
 
-## The Steam Deck
+## Controllers, and why Steam reads them
 
-The Deck has a six-axis IMU and **none of it reaches Godot**. `Input`'s sensor
-functions are fed on Android and iOS only, and Godot exposes no gamepad
-sensors at all ([godot-proposals#2829](https://github.com/godotengine/godot-proposals/issues/2829)),
-so `DeviceMotionSource` reports nothing there and the Deck would be a desktop
-with no keyboard.
+A Steam Deck has a six-axis IMU, a DualSense has one, a Switch Pro pad has
+one, and **none of them reach Godot**. `Input`'s sensor functions are fed on
+Android and iOS only, and Godot exposes no gamepad sensors at all
+([godot-proposals#2829](https://github.com/godotengine/godot-proposals/issues/2829)),
+so `DeviceMotionSource` reports nothing on any of them, and a Deck would be a
+desktop with no keyboard.
 
-Linux publishes the sensors itself, without Steam — but not, on real
-hardware, the way the first version of this assumed. That version looked for
-an evdev device named `Steam Deck Motion Sensors`, the way `hid-steam`'s own
-documentation describes it. On a Deck running
-`6.11.11-valve27-1-neptune-611` that device does not exist: `hid_steam` loads
-with only its `lizard_mode` parameter, nothing under `/sys/class/input`
-matches, and the IMU is not on IIO either. **Retrying the evdev path from the
-godot-proposals thread alone will not find it on this kernel** — it needs a
-different device entirely.
+Steam already reads those sensors for its own gyro configurations, and
+`ISteamInput` hands the result over sensor-fused, in known units, for every
+controller it supports. `SteamInputMotionSource` asks it once a frame:
+`runFrame()`, the first connected controller handle, then `getMotionData()`.
 
-What is there, and readable without root, is a `hidraw` node for the
-controller's own raw HID interface — the same one Steam itself reads for
-gyro input, and multiple readers are allowed, so reading it alongside Steam
-is fine. `hid-steam` binds several `hidraw` nodes to one physical controller
-(mouse, keyboard, controller state); the motion-streaming one is identified
-by its `uevent` naming driver `hid-steam` and a phys ending `input2`.
-`DeckMotionSource` finds that node under `/sys/class/hidraw` and reads it.
-`DeckMotionDecoder` has the 64-byte report's layout, and the reasoning behind
-it, in its class doc.
+**Why not read the device directly.** An earlier version of this read the
+Deck's raw HID stream from `/dev/hidraw*` through `cat`, since `FileAccess`
+refuses a character device. It worked in the narrow sense — numbers arrived
+and moved when the device moved — but every byte offset and scale in it was
+reverse-engineered by fitting a single resting pose, and it showed: gravity
+measured **0.92 g held upright and 0.49 g in a stand**, where a resting
+accelerometer reads 1 g in *every* orientation. It was also one device's
+report format on one kernel version, for one machine on the shelf. Steam
+Input is the interface Valve maintains, and shipping on Steam means it is
+there anyway.
 
-**It reads through `cat`.** `FileAccess` refuses anything that is not a
-regular file, so a character device such as `/dev/hidraw*` cannot be opened
-from GDScript at all. That leaves a GDExtension — native code to build, ship
-and keep in step with the engine version, for one vector — or borrowing a
-process that already does the one thing needed. `OS.execute_with_pipe` gives
-a pipe whose `get_length()` is a `FIONREAD` count, so the stream is drained
-without ever blocking a frame, and the reader is bounded: a device that
-cannot be read ends in a source that reports nothing rather than a process
-started every frame forever.
+**What Steam needs.** The client running, and an app ID — `DEV_APP_ID` (480,
+Valve's public test app) until the game has its own. Failing to initialise is
+not an error worth reporting: it is what happens on any machine without Steam,
+and the probe simply moves on to the next source. Exported builds want a
+`steam_appid.txt` holding that ID beside the binary while there is no real
+app ID; `scripts/deck-build.sh` writes one. Leave it out of a shipped build.
 
-**Only the accelerometer is read.** Tilt is an orientation against gravity,
-which the accelerometer gives directly and without drift. The gyroscope would
-only make a fast tilt arrive sooner — a complementary filter is the obvious
-follow-up if it ever feels laggy — and `MotionSource` has nowhere to carry it.
-
-**Permissions.** The device is readable by whoever holds the seat, which is
-the player in Game Mode and in Desktop Mode, but not an ssh session logged in
-alongside them. A denied read comes back as no readings, plus one warning
-naming what the reader said, and the keyboard takes over.
+**Only the accelerometer is used.** Tilt is an orientation against gravity,
+which acceleration gives directly and without drift. Steam also reports
+absolute rotation and angular velocity; a complementary filter using them is
+the obvious follow-up if a fast tilt ever feels late to arrive, and
+`MotionSource` has nowhere to carry them today.
 
 ## Calibration
 
@@ -155,21 +145,22 @@ accelerometer works, the adapter low-passes the raw signal to estimate gravity
 itself — otherwise the whole signal reads as player motion and the jog detector
 fires on nothing but gravity.
 
-## Not verified
+## Settling it on hardware
 
-No device or GPU has run any of this. `DeckMotionSource` finding its hidraw
-node, and `DeckMotionDecoder`'s framing and header check, are grounded in
-bytes actually captured on a Deck at rest — see the class docs and
-`tests/test_deck_motion_decoder.gd`'s `test_a_report_captured_on_real_hardware…`
-test, which decodes that exact capture. What is still reasoned rather than
-observed is the **axis convention**: which raw field is screen-right,
-screen-up or out-of-screen, and in which sign, on the real device. The
-calibration is orientation-agnostic by construction, which should absorb
-axis surprises, but a device build is where that gets settled.
+CI has no Steam and no controller, so the tests cover the pipeline and the
+silent path: a source that cannot start reports nothing and hands on. What
+only a device can settle is the **axis convention** — which reported axis is
+screen-right, screen-up or out-of-screen, and in which sign. Calibration is
+orientation-agnostic by construction, which should absorb surprises there,
+but the sign of a roll is not something a test can tell you.
 
-`scripts/run.sh motion` is where this is settled on hardware: it shows the
-live source, the raw gravity axes, the tilt, and the scene leaning with it.
-Tilt the Deck right; if the horizon rolls the wrong way, a span on
-`MotionTiltDriver` goes negative. If a *raw axis* is wrong, or does not move
-at all, the mapping or the offsets in `DeckMotionDecoder` are, and its class
-doc says exactly what was assumed and why.
+`scripts/run.sh motion` shows the live source, the raw gravity axes, the tilt,
+and a scene leaning with it. Tilt right; if the horizon rolls the wrong way, a
+span on `MotionTiltDriver` goes negative. Any level with tilt also carries
+`MotionDebugOverlay` (F3, or the gamepad's Y button, hides it), which is the
+same readout on top of real gameplay.
+
+The check worth making first, because it catches a whole class of unit and
+axis mistakes at once: **gravity's magnitude must read about 9.81 in every
+orientation.** A magnitude that changes as the device turns means the units or
+the axes are wrong, whatever the direction looks like.

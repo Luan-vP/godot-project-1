@@ -88,6 +88,12 @@ cp -a "$stage"/. "$INSTALL_DIR/"
 chmod +x "$INSTALL_DIR/$NAME.x86_64"
 git -C "$ROOT" log -1 --format='%h %s' >"$INSTALL_DIR/BUILD" 2>/dev/null || true
 
+# Steam Input needs an app ID to reach a running Steam client, and a build
+# launched over ssh rather than from Steam has no other way to be told one.
+# 480 is Valve's public test app; a shipped build gets the real ID compiled in
+# and no such file. See core/motion/README.md.
+echo "480" >"$INSTALL_DIR/steam_appid.txt"
+
 mkdir -p "$HOME/.local/share/applications"
 cat >"$HOME/.local/share/applications/$build_name.desktop" <<DESKTOP
 [Desktop Entry]

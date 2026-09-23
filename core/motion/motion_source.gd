@@ -29,7 +29,7 @@ func is_available() -> bool:
 
 ## Release anything the adapter holds open — a device, a helper process. The
 ## port carries this because an adapter can own more than a function call:
-## [DeckMotionSource] runs a reader alongside the game, and nothing else knows
+## [SteamInputMotionSource] holds a Steam Input session open, and nothing else knows
 ## to shut it down. Adapters that hold nothing need not implement it.
 func stop() -> void:
 	pass
