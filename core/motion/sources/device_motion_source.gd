@@ -32,9 +32,12 @@ func poll(delta: float) -> MotionReading:
 	# this the whole signal would be read as player motion and the jog detector
 	# would fire on nothing but gravity.
 	if gravity.length_squared() < MIN_GRAVITY_SQUARED and raw.length_squared() > 0.0:
-		_gravity_estimate = _gravity_estimate.lerp(
-			raw, 1.0 - exp(-maxf(delta, 0.0) / GRAVITY_TIME_CONSTANT)
-		)
+		# A zero step is a reading taken out of band — MotionInput.calibrate()
+		# takes one — and no time has passed for the estimate to move in.
+		if delta > 0.0:
+			_gravity_estimate = MotionFilter.smooth3(
+				_gravity_estimate, raw, GRAVITY_TIME_CONSTANT, delta
+			)
 		gravity = _gravity_estimate
 
 	_reading.gravity = gravity

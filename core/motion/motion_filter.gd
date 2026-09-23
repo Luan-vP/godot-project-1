@@ -21,6 +21,17 @@ static func smooth(
 	return previous.lerp(target, 1.0 - exp(-delta / time_constant))
 
 
+## The same smoothing for a three-dimensional signal, used where a source has
+## to estimate gravity by low-passing its accelerometer — the part of the
+## signal that does not change — rather than being handed it by the platform.
+static func smooth3(
+	previous: Vector3, target: Vector3, time_constant: float, delta: float
+) -> Vector3:
+	if time_constant <= 0.0 or delta <= 0.0:
+		return target
+	return previous.lerp(target, 1.0 - exp(-delta / time_constant))
+
+
 ## Suppress small readings, rescaling what is left so the output ramps from
 ## zero at the edge of the zone instead of jumping straight to [param deadzone].
 ##
