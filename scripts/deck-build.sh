@@ -88,6 +88,18 @@ cp -a "$stage"/. "$INSTALL_DIR/"
 chmod +x "$INSTALL_DIR/$NAME.x86_64"
 git -C "$ROOT" log -1 --format='%h %s' >"$INSTALL_DIR/BUILD" 2>/dev/null || true
 
+# Game Mode's "Add a Non-Steam Game" file picker only lists .application,
+# .exe, .sh and .AppImage — a bare extensionless binary like $NAME.x86_64
+# never shows up in it. A .sh wrapper does, and Steam Input only attributes a
+# controller to a process it launched itself, so this wrapper is the actual
+# way to add and run a build from Game Mode.
+cat >"$INSTALL_DIR/launch.sh" <<LAUNCH
+#!/usr/bin/env bash
+cd "\$(dirname "\$0")"
+exec ./$NAME.x86_64 "\$@"
+LAUNCH
+chmod +x "$INSTALL_DIR/launch.sh"
+
 mkdir -p "$HOME/.local/share/applications"
 cat >"$HOME/.local/share/applications/$build_name.desktop" <<DESKTOP
 [Desktop Entry]

@@ -75,9 +75,15 @@ scripts/deck.sh run     # launch it on the Deck's screen (stop / logs / ssh too)
 
 `build` sends committed work only. On the Deck itself, the build runs from
 `~/dev/godot-project-1/scripts/deck-build.sh`. To play from Game Mode, add
-`~/Games/godot-project-1/godot-project-1.x86_64` once as a non-Steam game
-(Desktop Mode → Steam → *Add a Game* → *Add a Non-Steam Game*; the entry is
-listed as `godot-project-1`). Later builds replace it in place.
+`~/Games/godot-project-1/launch.sh` once as a non-Steam game (Desktop Mode →
+Steam → *Add a Game* → *Add a Non-Steam Game*; the entry is listed as
+`launch.sh` — rename it in Steam if you like). The picker only lists
+`.application`, `.exe`, `.sh` and `.AppImage`, so `launch.sh` — a one-line
+wrapper `deck-build.sh` writes beside the real `godot-project-1.x86_64` — is
+what shows up and what to pick, not the binary itself. Launching this way
+also matters beyond the file picker: Steam Input only attributes a
+controller to a process Steam itself launched, so it's how the game sees
+motion or gyro from a controller at all. Later builds replace it in place.
 
 ## Running the tests
 
