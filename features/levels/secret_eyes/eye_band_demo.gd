@@ -102,7 +102,11 @@ func _draw_rings() -> void:
 		var ring_radius := eye.radius + RING_GAP
 		var pending := _band.pending(part)
 		if pending != EyeBand.Pending.NONE:
-			color = PENDING_START_COLOR if pending == EyeBand.Pending.STARTING else PENDING_STOP_COLOR
+			color = (
+				PENDING_START_COLOR
+				if pending == EyeBand.Pending.STARTING
+				else PENDING_STOP_COLOR
+			)
 			var sweep := TAU * countdown
 			_overlay.draw_arc(
 				eye.global_position,
