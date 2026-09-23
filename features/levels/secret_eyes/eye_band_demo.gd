@@ -86,8 +86,9 @@ func _process(delta: float) -> void:
 ## line arrives (see [method EyeBand.pending]).
 func _draw_rings() -> void:
 	var font := ThemeDB.fallback_font
+	var seconds_per_bar := AudioManager.get_music_clock().seconds_per_bar()
 	var countdown := EyeBand.countdown_fraction(
-		AudioManager.get_seconds_until_next_bar(), AudioManager.get_music_clock().seconds_per_bar()
+		AudioManager.get_seconds_until_next_bar(), seconds_per_bar
 	)
 	for child in get_children():
 		var eye := child as FloatyEye
