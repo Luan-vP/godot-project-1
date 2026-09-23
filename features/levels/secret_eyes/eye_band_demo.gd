@@ -20,6 +20,12 @@ const PLAYING_COLOR := Color(1.0, 1.0, 1.0, 0.8)
 const SILENT_COLOR := Color(1.0, 1.0, 1.0, 0.14)
 const TOUCHING_COLOR := Color(0.95, 0.45, 0.38, 0.85)
 
+## Countdown ring while a part is about to start (white) or stop (red) — see
+## [enum EyeBand.Pending].
+const PENDING_START_COLOR := Color(1.0, 1.0, 1.0, 0.95)
+const PENDING_STOP_COLOR := Color(0.95, 0.25, 0.2, 0.95)
+const PENDING_RING_WIDTH := 3.0
+
 var _band: EyeBand
 var _overlay: Node2D
 var _parts_label: Label
@@ -75,8 +81,14 @@ func _process(delta: float) -> void:
 
 ## A ring round each eye: bright while its part plays, red while it is pressed
 ## against a wall, faint while it waits silent. Its part is written beneath.
+## While a part is due to start or stop at the next bar, the ring becomes a
+## countdown instead — white or red, its arc shrinking to nothing as the bar
+## line arrives (see [method EyeBand.pending]).
 func _draw_rings() -> void:
 	var font := ThemeDB.fallback_font
+	var countdown := EyeBand.countdown_fraction(
+		AudioManager.get_seconds_until_next_bar(), AudioManager.get_music_clock().seconds_per_bar()
+	)
 	for child in get_children():
 		var eye := child as FloatyEye
 		if eye == null:
@@ -88,7 +100,22 @@ func _draw_rings() -> void:
 		if _band.is_touching(eye):
 			color = TOUCHING_COLOR
 		var ring_radius := eye.radius + RING_GAP
-		_overlay.draw_arc(eye.global_position, ring_radius, 0.0, TAU, 48, color, 2.0, true)
+		var pending := _band.pending(part)
+		if pending != EyeBand.Pending.NONE:
+			color = PENDING_START_COLOR if pending == EyeBand.Pending.STARTING else PENDING_STOP_COLOR
+			var sweep := TAU * countdown
+			_overlay.draw_arc(
+				eye.global_position,
+				ring_radius,
+				-PI / 2.0,
+				-PI / 2.0 + sweep,
+				48,
+				color,
+				PENDING_RING_WIDTH,
+				true
+			)
+		else:
+			_overlay.draw_arc(eye.global_position, ring_radius, 0.0, TAU, 48, color, 2.0, true)
 		var text_at := eye.global_position + Vector2(-ring_radius, ring_radius + 16.0)
 		_overlay.draw_string(
 			font, text_at, part, HORIZONTAL_ALIGNMENT_CENTER, ring_radius * 2.0, 13, color

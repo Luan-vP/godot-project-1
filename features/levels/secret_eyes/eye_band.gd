@@ -27,6 +27,10 @@ signal contact_changed(part: String, touching: bool)
 ## Emitted once the band has chosen what to play.
 signal song_started(title: String)
 
+## What [method pending] reports for a part: nothing due, due to start next
+## bar, or due to stop next bar.
+enum Pending { NONE, STARTING, STOPPING }
+
 ## Heaviest first; eyes are matched to these by size.
 const PARTS: Array[String] = ["beat", "bass", "pads", "melody", "arp", "ghost", "shimmer"]
 const LOOP_PARTS: Array[String] = ["beat", "ghost", "shimmer"]
@@ -210,6 +214,17 @@ func is_playing(part: String) -> bool:
 	return _playing.get(part, false)
 
 
+## Whether [param part] is due to start next bar, due to stop next bar, or
+## settled — what is sounding now already agrees with what is wanted. A HUD
+## ring counts down to the bar line while this is not [constant Pending.NONE];
+## see [method countdown_fraction].
+func pending(part: String) -> Pending:
+	var wants := wants_part(part)
+	if wants == is_playing(part):
+		return Pending.NONE
+	return Pending.STARTING if wants else Pending.STOPPING
+
+
 func is_touching(eye: FloatyEye) -> bool:
 	var i := _eyes.find(eye)
 	return i >= 0 and _touching[i]
@@ -283,6 +298,16 @@ static func parts_by_size(radii: Array[float], part_count: int) -> Array[int]:
 
 static func midi_to_hz(note: int) -> float:
 	return 440.0 * pow(2.0, (note - 69) / 12.0)
+
+
+## Fraction of a bar left before the next bar line: 1.0 just after a bar
+## starts, shrinking to 0.0 as it ends. Pure, so a countdown ring's sweep can
+## be tested without playback; see [method AudioManager.get_seconds_until_next_bar]
+## and [method MusicClock.seconds_per_bar] for the live values this is given.
+static func countdown_fraction(seconds_until_next_bar: float, seconds_per_bar: float) -> float:
+	if seconds_per_bar <= 0.0:
+		return 0.0
+	return clampf(seconds_until_next_bar / seconds_per_bar, 0.0, 1.0)
 
 
 func _on_step(_index: int, bar: int, step_in_bar: int) -> void:
