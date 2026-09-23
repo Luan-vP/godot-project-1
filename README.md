@@ -75,11 +75,14 @@ scripts/deck.sh build   # push HEAD to the Deck, import, export to ~/Games/godot
 scripts/deck.sh run     # launch it on the Deck's screen (stop / logs / ssh too)
 ```
 
-Tilting the Deck tilts a panorama level: the Deck's IMU is read straight from
-Linux, without Steam Input, and the right stick click recentres whatever pose
-you are holding. `scripts/run.sh motion` shows what the sensors are reporting
-— the first thing to look at on hardware, since none of it has been run on a
-Deck yet. See [`core/motion`](core/motion/README.md).
+Tilting the Deck tilts a panorama level: motion is read through Steam Input,
+sensor-fused and in known units for every controller Steam supports, and the
+right stick click recentres whatever pose you are holding. That needs the
+Steam client running and the game launched *from* Steam — a build started
+over `ssh` initialises Steam but Steam attributes no controllers to it, so
+launch it as a non-Steam shortcut instead. `scripts/run.sh motion` shows what
+the sensors are reporting — the first thing to look at on hardware. See
+[`core/motion`](core/motion/README.md).
 
 `build` sends committed work only. On the Deck itself, the build runs from
 `~/dev/godot-project-1/scripts/deck-build.sh`. To play from Game Mode, add

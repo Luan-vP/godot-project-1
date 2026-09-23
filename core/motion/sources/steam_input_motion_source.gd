@@ -82,8 +82,7 @@ func poll(delta: float) -> MotionReading:
 	# Directly rather than waiting on the callback pump, for a reading that
 	# belongs to this frame rather than the last one.
 	Steam.runFrame()
-	if _handle == 0:
-		_handle = _first_controller()
+	_handle = _resolve_controller(_handle)
 	if _handle == 0:
 		_reading.available = false
 		return _reading
@@ -118,17 +117,35 @@ func is_available() -> bool:
 	return _seen_data
 
 
+func stop() -> void:
+	if not _started:
+		return
+	Steam.inputShutdown()
+	Steam.steamShutdown()
+	_started = false
+	_handle = 0
+	_seen_data = false
+
+
 func describe() -> String:
 	if not _started:
 		return "Steam Input (not running)"
 	return "Steam Input (controller %d)" % _handle
 
 
-## The first controller Steam is willing to talk about. Motion belongs to a
-## specific one, and a handle goes stale when a controller sleeps, so this is
-## re-asked for whenever the current handle is gone.
-func _first_controller() -> int:
+## The controller motion belongs to. [param current] is kept only while Steam
+## still lists it among [method Steam.getConnectedControllers] — a handle goes
+## stale when its controller sleeps or disconnects, and holding onto a stale
+## one would read as a live pad that has simply stopped moving, rather than
+## one that is gone. Dropping it also clears [member _seen_data], so a
+## different controller taking its place is not credited with data the old
+## one produced.
+func _resolve_controller(current: int) -> int:
 	var handles: Array = Steam.getConnectedControllers()
+	if current != 0 and handles.has(current):
+		return current
+	if current != 0:
+		_seen_data = false
 	if handles.is_empty():
 		return 0
 	return int(handles[0])
