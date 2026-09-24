@@ -77,6 +77,11 @@ const DEMOS: Array[Dictionary] = [
 		"blurb":
 		"Distortion, look sensitivity, floater overshoot — adjust, then open a panorama level.",
 	},
+	{
+		"name": "Contacts",
+		"path": "res://features/scoring_sound/contact_sound_demo.tscn",
+		"blurb": "Scoring contact sound. 1-6 hold a contact, Space fires a burst.",
+	},
 ]
 
 const BACKGROUND := Color(0.08, 0.085, 0.1)

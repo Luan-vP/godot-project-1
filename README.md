@@ -26,6 +26,12 @@ A 2D game about floaty eye thingies, in a painterly style. Godot 4.4.
 - `core/audio/` — the audio foundation: bus layout, `AudioManager`, and a
   manual demo scene to prove it makes a sound. See its
   [README](core/audio/README.md).
+- `core/scoring/` — the data contract between the scorer and the music
+  system: a contact's edge, floater, and position along the edge, as plain
+  data with no audio or scene-tree knowledge.
+- `features/scoring_sound/` — turns a scoring contact into sound, pitched by
+  its position along the edge. See its
+  [README](features/scoring_sound/README.md).
 - `autoload/` — global singletons (`EventBus`, `GameState`, `AudioManager`,
   `SaveManager`, `ComfortSettings`).
 - `addons/` — vendored third-party code; see [addons/README.md](addons/README.md).
@@ -51,6 +57,7 @@ scripts/run.sh synth       # play the synth voices from the keyboard
 scripts/run.sh groove      # synthwave loop: drums on the step grid, bass and pads
 scripts/run.sh audio       # buses, loop layers, the effect fader
 scripts/run.sh comfort     # distortion, look sensitivity, floater overshoot
+scripts/run.sh contacts    # scoring contact sound, pitched by edge position
 ```
 
 It finds Godot from `$GODOT`, then `godot4`/`godot` on `PATH`, then

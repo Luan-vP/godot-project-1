@@ -45,6 +45,8 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
   comfort    Comfort options (#17): distortion strength, look sensitivity,
              floater overshoot reduction. Open a panorama level afterwards to
              feel a change take effect.
+  contacts   Scoring contact sound. 1-6 hold a simulated floater's contact,
+             Space fires a flickering burst.
 
 Options:
   --fresh    Delete compiled compute shaders and reimport before running.
@@ -66,6 +68,7 @@ scene_for() {
 		groove) echo "res://core/audio/groove_demo.tscn" ;;
 		audio) echo "res://core/audio/audio_demo.tscn" ;;
 		comfort) echo "res://features/ui/comfort_settings/comfort_settings_demo.tscn" ;;
+		contacts) echo "res://features/scoring_sound/contact_sound_demo.tscn" ;;
 		*) return 1 ;;
 	esac
 }
