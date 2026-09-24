@@ -11,9 +11,11 @@ extends Control
 ## things that outlive them: a captured mouse, and music loops still playing on
 ## [code]AudioManager[/code].
 ##
-## A development tool, and [code]run/main_scene[/code] only until a main level
-## exists. It lists the secret eye level, which is meant to be reached with
-## Shift once there is a game to hide it behind — see that level's README.
+## A development tool only — [code]run/main_scene[/code] is
+## [code]LevelSelect[/code] now (see [code]features/ui/level_select/[/code]),
+## which is how a player reaches the game, including its secret eye level.
+## This menu keeps listing that level too, openly, since it exists to make
+## every demo and level reachable for development regardless of any secret.
 
 ## Emitted after a demo has been instanced and made the current scene.
 signal demo_opened(path: String)

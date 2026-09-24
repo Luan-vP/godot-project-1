@@ -1,0 +1,33 @@
+[gd_resource type="Resource" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://features/levels/level.gd" id="1_level"]
+[ext_resource type="Script" path="res://features/fluid/fluid_config.gd" id="2_fluid_config"]
+
+[sub_resource type="Gradient" id="Gradient_1"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(0.9, 0.93, 0.97, 1, 0.8, 0.84, 0.9, 1, 0.64, 0.68, 0.76, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_1"]
+gradient = SubResource("Gradient_1")
+width = 4
+height = 256
+fill_from = Vector2(0.5, 0)
+fill_to = Vector2(0.5, 1)
+
+[sub_resource type="Resource" id="FluidConfig_1"]
+script = ExtResource("2_fluid_config")
+viscosity = 200.0
+vorticity = 10.0
+ambient_current = 6.0
+
+[resource]
+script = ExtResource("1_level")
+display_name = "Overcast Sky"
+blurb = "Bright panorama, floaters unmissable. Mouse or right stick to look."
+panorama_texture = SubResource("GradientTexture2D_1")
+fluid_config = SubResource("FluidConfig_1")
+floater_count = 220
+floater_radius_range = Vector2(3, 14)
+floater_size_skew = 1.4
+distortion_strength = 0.02
+look_sensitivity = 1.0
