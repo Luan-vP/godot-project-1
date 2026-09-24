@@ -77,6 +77,11 @@ const DEMOS: Array[Dictionary] = [
 		"blurb":
 		"Distortion, look sensitivity, floater overshoot — adjust, then open a panorama level.",
 	},
+	{
+		"name": "Arrangement",
+		"path": "res://core/audio/arrangement_demo.tscn",
+		"blurb": "Scoring drives the layer stack (#34). +/- floaters, C clustered/scattered.",
+	},
 ]
 
 const BACKGROUND := Color(0.08, 0.085, 0.1)
