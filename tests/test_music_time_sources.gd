@@ -55,6 +55,29 @@ func test_wall_clock_tempo_change_does_not_jump_the_position() -> void:
 	assert_gt(wall.get_beats(), immediately_after, "But it keeps climbing, now at the new rate")
 
 
+func test_wall_clock_lookahead_includes_output_latency_by_default() -> void:
+	var wall := WallClockMusicTime.new()
+	wall.start()
+	assert_almost_eq(
+		wall.get_lookahead(),
+		AudioServer.get_time_to_next_mix() + AudioServer.get_output_latency(),
+		0.005,
+		"Mix-block lookahead and output latency both folded in by default"
+	)
+
+
+func test_wall_clock_lookahead_output_latency_can_be_disabled() -> void:
+	var wall := WallClockMusicTime.new()
+	wall.use_output_latency_compensation = false
+	wall.start()
+	assert_almost_eq(
+		wall.get_lookahead(),
+		AudioServer.get_time_to_next_mix(),
+		0.005,
+		"Only the mix-block lookahead left"
+	)
+
+
 func test_scripted_time_moves_only_when_told() -> void:
 	_scripted.start()
 	_scripted.advance(1.5)

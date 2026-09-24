@@ -34,10 +34,10 @@ func test_songs_are_slow_and_have_room_to_branch() -> void:
 		assert_gt(song.sections.size(), 2, "%s has at least three sections" % song.title)
 
 
-func test_songs_carry_every_loop_part_and_a_fill() -> void:
+func test_songs_carry_every_drum_part_and_a_fill() -> void:
 	for song in EyeBandSongs.all():
-		for layer in EyeBand.LOOP_PARTS + [EyeBand.FILL]:
-			assert_has(song.drums, layer, "%s: %s" % [song.title, layer])
+		for part in EyeBand.DRUM_PARTS + [EyeBand.FILL]:
+			assert_has(song.drums, part, "%s: %s" % [song.title, part])
 
 
 func test_nothing_climbs_above_a4() -> void:

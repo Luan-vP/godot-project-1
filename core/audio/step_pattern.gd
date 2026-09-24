@@ -8,7 +8,10 @@ extends Resource
 ## spread from frame triggers and 10.3 ms at best. Rendered here, the spread is
 ## zero by construction. Play the result as a [LoopLayer] and it runs on the
 ## same shared playback clock as every other loop, and swapping patterns is
-## toggling layers on a bar boundary.
+## toggling layers on a bar boundary. Where drums must instead follow live
+## musical state — a tempo or an arrangement that can change mid-song — see
+## [DrumKit], which plays [method parse]'s notation one hit at a time instead
+## and accepts the onset cost that comes with it.
 ##
 ## [codeblock]
 ## var pattern := StepPattern.parse({

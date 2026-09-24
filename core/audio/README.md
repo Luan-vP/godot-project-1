@@ -315,7 +315,8 @@ for the floaty-synthwave direction. `core/audio/groove_demo.tscn`
 | [`step_sequencer.gd`](step_sequencer.gd) | `StepSequencer` — pure: which steps have come due, each once, in order. |
 | [`step_clock.gd`](step_clock.gd) | `StepClock` — node emitting `step(index, bar, step_in_bar)` while music plays. |
 | [`drum_synth.gd`](drum_synth.gd) | `DrumSynth` — kick, snare, clap, closed and open hat, synthesised. |
-| [`step_pattern.gd`](step_pattern.gd) | `StepPattern` — a bar of drums, rendered sample-accurately into a loop. |
+| [`step_pattern.gd`](step_pattern.gd) | `StepPattern` — a bar of drums as notation, rendered sample-accurately into a loop, or read hit by hit for live playback. |
+| [`drum_kit.gd`](drum_kit.gd) | `DrumKit` — plays a `StepPattern`'s hits live, one-shot, off the step grid. |
 
 ### Musical time is a port
 
@@ -339,10 +340,11 @@ port's back.
 
 ### Two ways onto the grid
 
-**Rendered, for anything that must be tight.** A `StepPattern` mixes each hit
-in at its exact sample offset and renders the bar into a looping stream. Play
-it as a `LoopLayer` and it runs on the loop stack's shared playback position;
-switching patterns is toggling layers on a bar.
+**Rendered, where the loop stack already fits.** A `StepPattern` mixes each
+hit in at its exact sample offset and renders the bar into a looping stream.
+Play it as a `LoopLayer` and it runs on the loop stack's shared playback
+position; switching patterns is toggling layers on a bar. `groove_demo.tscn`
+and `audio_demo.tscn` play their drums this way.
 
 ```gdscript
 var beat := StepPattern.parse({
@@ -355,10 +357,35 @@ layer.stream = beat.render(70.0, 4, int(AudioServer.get_mix_rate()))
 
 Digits are velocity out of 9, `x` is full, `.` is a rest. Tails wrap into the
 next bar, and a closed hat chokes an open one. Kit build 41 ms, one bar 26 ms,
-done before playback.
+done before playback. The cost is that a render bakes in a tempo:
+`StepPattern.render(tempo_bpm, ...)` mixes a buffer exactly
+`60/bpm × beats_per_bar × rate` samples long, and re-rendering on every tempo
+change is a ~26 ms-per-layer hitch that also restarts `configure_loop_layers`.
+Fine for a fixed arrangement; wrong for one where the tempo, or which patterns
+play, has to move while the music keeps going.
 
-**Live, for game-driven notes.** Connect to `StepClock.step` and play a synth
-note. Good enough, with some wonk — see below.
+**Live, off the same `StepClock` the melodic parts already use.** `DrumKit`
+reads a `StepPattern`'s notation (`StepPattern.parse` and `.velocity(hit,
+step)` — `.render`/`.mix` are not involved) and plays each hit as a one-shot
+from a pool of `AudioStreamPlayer`s, `Synth`'s shape: velocity becomes
+`volume_db`, and past the pool size a new hit steals an idle player first,
+then whichever has sounded longest. The open-hat choke moves from a fade
+baked into a render to a closed hat stopping a sounding open hat's player
+outright.
+
+```gdscript
+var kit := DrumKit.new()
+add_child(kit)
+# from StepClock.step(index, bar, step_in_bar):
+var velocity := beat.velocity(DrumSynth.Hit.KICK, step_in_bar)
+if velocity > 0.0:
+	kit.play(DrumSynth.Hit.KICK, velocity, -6.0)  # -6.0 dB: this part's level
+```
+
+Nothing is baked in, so a tempo change or a pattern swap costs nothing —
+`EyeBand` plays every one of its drum parts this way, for exactly that reason
+(#75). The trade is the onset cost below, worth listening to rather than
+assuming: `scripts/run.sh band`, kick against bass.
 
 ### How tight, measured
 
@@ -367,13 +394,36 @@ Recorded from the Music bus, onsets measured against the ideal grid:
 - **Script-triggered sixteenths** at 120 bpm (`play()` when the wall clock
   crosses a step): 17.7 ms spread, every onset on a 512-sample mix-block
   boundary. With `AudioServer.get_time_to_next_mix()` as lookahead: 10.3 ms —
-  one mix block, as tight as starting sound from script gets.
+  one mix block, as tight as starting sound from script gets. This is
+  `DrumKit`'s number too, since it triggers the same way.
 - **Rendered drum loop** at 70 and 120 bpm: every kick within ±1 sample of
   the grid.
-- **Live synth notes against that loop**, at 70 bpm: about 16–20 ms behind it,
-  with about 10 ms of spread. Keeping synth voices playing silently between
-  notes did not change that, so it was left out. This is the wonk a better
-  `MusicTimeSource` would remove.
+- **Live synth notes against that loop**, at 70 bpm, before compensating for
+  output latency: about 16–20 ms behind it, with about 10 ms of spread.
+  Keeping synth voices playing silently between notes did not change that, so
+  it was left out. On the Steam Deck this read as a steady, audible lag on
+  `DrumKit` specifically — a live kick against a live bass note, not jitter
+  (#78) — which pointed at the platform's fixed output latency rather than
+  the mix-block quantization `get_time_to_next_mix()` already corrects for.
+  `WallClockMusicTime.get_lookahead()` now also adds
+  `AudioServer.get_output_latency()`
+  ([`use_output_latency_compensation`](time/sources/wall_clock_music_time.gd),
+  on by default), so every step fires that much earlier and the driver's
+  fixed delay is scheduled for instead of landing as lag. This still needs a
+  re-measure by ear on the Deck against `main` before it can be trusted — a
+  headless CI run has no output device to measure latency against, so the
+  numbers above are the pre-fix baseline, not a confirmation the fix closed
+  the gap. Held in reserve if it turns out not to be enough: a sample-accurate
+  `MusicTimeSource` (the port most of this system already runs against), or
+  running `StepPattern.mix`'s logic continuously into an `AudioStreamGenerator`
+  rather than per-bar into a WAV — sample-accurate and live-tunable, but
+  measured at ~7 ms of main-thread time per second of audio for one synth
+  voice (see "Why wavetables, not `AudioStreamGenerator`" above), and by far
+  the most code of the three options.
+- **Laid-back feel, on purpose.** `DrumKit.laid_back_offset_ms` (0 by default)
+  delays every hit from that kit by a fixed number of milliseconds after it
+  is due, so the same lag can be dialled back in deliberately per kit instead
+  of arriving as an uncompensated side effect.
 
 ### The kit
 
@@ -382,7 +432,8 @@ shapes rather than acoustic ones: a kick swept from about 150 Hz to 45 Hz, a
 snare with a 185/330 Hz body under high-passed noise, a clap of three noise
 bursts and a tail, and hats built from the TR-808's six square-wave partials
 through a high-pass. Every hit is normalised to the same peak and built from a
-fixed noise seed, so it is identical every time.
+fixed noise seed, so it is identical every time — whether it ends up mixed
+into a render or played live by a `DrumKit`, the buffer is the same.
 
 ## Songs: chords that branch
 
