@@ -72,6 +72,11 @@ const DEMOS: Array[Dictionary] = [
 		"blurb": "Bus sliders and mutes, loop layers, the smoothed effect fader.",
 	},
 	{
+		"name": "Motion",
+		"path": "res://core/motion/motion_demo.tscn",
+		"blurb": "Device tilt: which source is live, what it reports, the scene leaning with it.",
+	},
+	{
 		"name": "Comfort",
 		"path": "res://features/ui/comfort_settings/comfort_settings_demo.tscn",
 		"blurb":

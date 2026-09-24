@@ -28,6 +28,11 @@ signal source_changed(description: String)
 ## Nodes register here so drivers can find the input without wiring.
 const GROUP_NAME := "motion_input"
 
+## The input action a recentre button is bound to, named here so every screen
+## that offers one offers the same one. Nothing in this node reads it: when a
+## pose becomes neutral is the consumer's call, not the pipeline's.
+const RECENTRE_ACTION := "recentre_tilt"
+
 ## How long to wait for sensors to report before falling back to the keyboard.
 ## Sensors are not always live on the first frame.
 const PROBE_SECONDS := 0.75
@@ -63,12 +68,20 @@ const TILT_EPSILON := 0.001
 ## Latest smoothed tilt. Length 1 means fully tilted.
 var tilt: Vector2 = Vector2.ZERO
 
+## Gravity exactly as the source last reported it, in device axes and m/s^2.
+## Nothing in the pipeline reads this; it is here because a debug readout is
+## the only way to settle what a new device's axes mean, and re-polling the
+## source to find out would take a reading out of the pipeline's hands.
+var gravity: Vector3 = Vector3.ZERO
+
 var _announced: Vector2 = Vector2.ZERO
 var _source: MotionSource
 var _calibration := MotionCalibration.new()
 var _jog := JogDetector.new()
+var _candidates: Array[MotionSource] = []
 var _probe_elapsed: float = 0.0
 var _probing: bool = true
+var _logged_source_choice: bool = false
 
 
 func _ready() -> void:
@@ -78,8 +91,16 @@ func _ready() -> void:
 	# had a fair chance to report. This deliberately does not go through
 	# set_source, which stops probing — an explicit choice by a caller should
 	# not be second-guessed a moment later by the fallback.
-	_install_source(DeviceMotionSource.new())
 	_probing = true
+	_candidates = _build_candidates()
+	_install_next_candidate()
+
+
+func _exit_tree() -> void:
+	# A source can hold a device or a helper process open; leaving the tree is
+	# the last moment anything here knows to let go of it.
+	if _source != null:
+		_source.stop()
 
 
 func _process(delta: float) -> void:
@@ -89,6 +110,7 @@ func _process(delta: float) -> void:
 	_probe_for_sensors(delta)
 	if not reading.available:
 		return
+	gravity = reading.gravity
 
 	if auto_calibrate and not _calibration.is_calibrated():
 		_calibration.calibrate(reading.gravity)
@@ -112,6 +134,7 @@ func _process(delta: float) -> void:
 ## replaced by the keyboard fallback.
 func set_source(source: MotionSource) -> void:
 	_install_source(source)
+	_candidates.clear()
 	_probing = false
 
 
@@ -150,19 +173,60 @@ func is_calibrated() -> bool:
 	return _calibration.is_calibrated()
 
 
+## Every real source worth trying, best first. Sensors that could not possibly
+## be there are left out rather than waited on: a source in this list costs
+## [constant PROBE_SECONDS] of keyboard-less startup if it stays silent.
+func _build_candidates() -> Array[MotionSource]:
+	var candidates: Array[MotionSource] = []
+	# Only where the device is actually present, so no reader is started on a
+	# desktop and no other Linux machine pays for the Deck's existence.
+	if DeckMotionSource.find_device() != "":
+		candidates.append(DeckMotionSource.new())
+	candidates.append(DeviceMotionSource.new())
+	return candidates
+
+
 func _probe_for_sensors(delta: float) -> void:
 	if not _probing:
 		return
 	if _source.is_available():
 		_probing = false
+		_log_source_choice()
 		return
 	_probe_elapsed += delta
 	if _probe_elapsed >= PROBE_SECONDS:
+		var message := "MotionInput: %s reported nothing in %.2gs, trying the next source"
+		print(message % [_source.describe(), PROBE_SECONDS])
+		_probe_elapsed = 0.0
+		_install_next_candidate()
+
+
+## The next source to try, or the keyboard once they are exhausted — which also
+## ends the probe, since the keyboard is always there and there is nothing left
+## to wait for.
+func _install_next_candidate() -> void:
+	if _candidates.is_empty():
 		_install_source(KeyboardMotionSource.new())
 		_probing = false
+		_log_source_choice()
+		return
+	_install_source(_candidates.pop_front())
+
+
+## Say once, to the log, which source the probe landed on. Without this the
+## difference between "sensors chosen" and "silently fell back to the
+## keyboard" is only visible in a debug overlay — nowhere on a Deck build
+## running full screen with no console in view.
+func _log_source_choice() -> void:
+	if _logged_source_choice:
+		return
+	_logged_source_choice = true
+	print("MotionInput: using %s" % _source.describe())
 
 
 func _install_source(source: MotionSource) -> void:
+	if _source != null and _source != source:
+		_source.stop()
 	_source = source
 	_jog.reset()
 	if source != null:
