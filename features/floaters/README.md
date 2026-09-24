@@ -36,7 +36,7 @@ add_child(floater)
 
 ## Behaviour
 
-- **Not neutrally buoyant.** `Floater` sets `buoyancy` positive by default, so
+- **Not neutrally buoyant.** `Floater` sets `weight` positive by default, so
   with the tank at rest floaters sink slowly out of view, the way real
   floaters settle when you hold still.
 - **Current-dominated, not current-locked.** `Floater` loosens `drag` below
@@ -79,7 +79,7 @@ describe a real population. All of them default to the old behaviour.
 - `strand_wander` — how straight strands are.
 - `random_rotation` — every `FloaterShape` is built lying left to right, so
   without this a population of strands reads as hatching.
-- `drag`, `buoyancy`, `max_speed` — copied onto every floater; the defaults
+- `drag`, `weight`, `max_speed` — copied onto every floater; the defaults
   match `Floater`'s own. A thick medium wants a higher `drag` so floaters ride
   with it.
 

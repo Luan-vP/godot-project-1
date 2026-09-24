@@ -27,8 +27,8 @@ func _init() -> void:
 	# Loose enough to lag and overshoot when the medium swishes, rather than
 	# snapping straight onto the current the way a tightly-coupled body would.
 	drag = 2.2
-	# Positive sinks (see FluidBody.buoyancy) — floaters are debris, not fish.
-	buoyancy = 12.0
+	# Positive sinks (see FluidBody.weight) — floaters are debris, not fish.
+	weight = 12.0
 	max_speed = 140.0
 	# Too small to stir or stain the medium; see the class docstring.
 	wake_strength = 0.0
