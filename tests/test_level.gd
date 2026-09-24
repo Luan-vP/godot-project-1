@@ -64,3 +64,32 @@ func test_overcast_sky_and_dim_interior_read_differently() -> void:
 		interior_top.r + interior_top.g + interior_top.b,
 		"Overcast sky reads brighter than the interior"
 	)
+
+
+func test_pure_exploration_has_no_score_goal_or_edges() -> void:
+	# Issue #22: level 1 is pure exploration — no scoring is configured, and
+	# none of Level's own fields describe a timer or an end condition.
+	var level := Level.pure_exploration()
+	assert_null(level.edge_source, "Nothing to score floaters against")
+
+
+func test_pure_exploration_favors_legibility_over_overcast_skys_drama() -> void:
+	var exploration := Level.pure_exploration()
+	var overcast := Level.overcast_sky()
+	var interior := Level.dim_interior()
+
+	assert_true(exploration.panorama_texture is Texture2D, "Has a background")
+	assert_gt(exploration.floater_count, interior.floater_count, "More than barely there")
+	assert_gt(
+		overcast.floater_count, exploration.floater_count, "Fewer than overcast's crowded field"
+	)
+	assert_gt(
+		overcast.distortion_strength,
+		exploration.distortion_strength,
+		"Less bend than overcast, so the background does not fight a floater for attention"
+	)
+	assert_gt(
+		exploration.floater_radius_range.x,
+		0.0,
+		"Floaters are large enough to track, not tiny specks"
+	)

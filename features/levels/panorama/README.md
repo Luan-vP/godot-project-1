@@ -26,6 +26,29 @@ levels — the medium overlay has to be sized against the actual viewport, and
 changing `level` tears down and rebuilds the overlay rather than editing it
 in place.
 
+## Level 1: pure exploration
+
+[`level_one.tscn`](level_one.tscn) is the first level a player actually
+plays, built the same way as the two examples below: a single node whose
+script assigns `Level.pure_exploration()` before calling up to
+`PanoramaLevel._ready()`. See [issue #22](https://github.com/Luan-vP/godot-project-1/issues/22).
+
+Per [issue #9](https://github.com/Luan-vP/godot-project-1/issues/9), it has no
+score, no timer, and no end condition — `edge_source` is left `null`, and
+nothing outside `Level` tracks time or progress. Leaving is the only way it
+ends.
+
+It reuses `overcast_sky()`'s idea — a bright, high-key sky where floaters read
+against a broad, uniform field — but tunes for legibility over that preset's
+crowded drama: fewer, larger floaters and less background bend, so a first-time
+player can follow a single floater rather than take in a whole swarm. Worth
+checking on a real playthrough (this is a content-and-tuning issue, judged by
+looking, not by tests) against the three behaviours the floaters mechanic
+promises: the lag, the settling, and whether a floater evades a straight-on
+look. That last one needs the medium to react to where the player is looking,
+which nothing does yet — see "Not yet" below — so until that lands, level 1 can
+only prove the first two.
+
 ## Two examples
 
 `Level.overcast_sky()` and `Level.dim_interior()` are tuned presets — the
