@@ -88,11 +88,25 @@ motion or gyro from a controller at all. Later builds replace it in place.
 ### Play-testing pull requests on the Deck
 
 The demo menu's **Pull requests** screen lists the open PRs from GitHub. Pick
-one and the Deck fetches it into `~/dev/godot-project-1-prs`, builds it to
-`~/Games/pr-<number>` (skipped if that commit is already built), then closes
-the game and runs the PR build in its place. Select on the PR build's demo
+one and the Deck fetches it, checks it out in its own worktree, builds it
+(skipped if that commit is already built), then closes the game and runs the
+PR build in its place. Select on the PR build's demo
 menu quits it and brings back the list, so you can switch between PRs with
 back and pick. Select while a PR is still building stops the build.
+
+Everything lives beside the Deck's checkout and main build:
+
+```
+~/dev/godot-project-1/               the checkout deck.sh pushes to; the one
+                                     repository (gets a GitHub `origin` remote)
+~/dev/godot-project-1-prs/pr-94/     PR #94's worktree, detached at its head
+~/Games/godot-project-1/             the main build, with the picker
+~/Games/godot-project-1-prs/pr-94/   PR #94's build
+```
+
+Each worktree keeps its own import cache, seeded from the main checkout's on
+first use. Delete a PR's directories when you're done with it; the next swap
+prunes the stale worktree entry.
 
 The swap is done by `scripts/deck-demo.sh`. `deck-build.sh` copies it, along
 with itself, into `tools/` beside every build, and the picker runs the copy
