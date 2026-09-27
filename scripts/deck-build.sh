@@ -5,6 +5,9 @@
 #   scripts/deck-build.sh --fresh    recompile the compute shaders first
 #   scripts/deck-build.sh --as NAME  install to ~/Games/NAME instead, so
 #                                    builds can sit side by side to compare
+#   scripts/deck-build.sh --root DIR build the project checked out at DIR
+#                                    with these scripts (the in-game PR
+#                                    picker builds PRs this way)
 #
 # Runs on the Deck, from its checkout (see scripts/deck.sh for driving it from
 # another machine). Expects Godot 4.4.1 at ~/.local/bin/godot4 with matching
@@ -15,9 +18,8 @@
 
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-IMPORTED="$ROOT/.godot/imported"
-SHADER_DIR="$ROOT/features/fluid/shaders/compute"
+SCRIPTS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(dirname "$SCRIPTS")"
 NAME="godot-project-1"
 GODOT_BIN="${GODOT:-$HOME/.local/bin/godot4}"
 
@@ -40,15 +42,19 @@ fi
 
 build_name="$NAME"
 fresh=0
+other_root=0
 while [ $# -gt 0 ]; do
 	case "$1" in
 		--fresh) fresh=1 ;;
 		--as) build_name="${2:?--as needs a name}"; shift ;;
+		--root) ROOT="$(cd "${2:?--root needs a directory}" && pwd)"; other_root=1; shift ;;
 		*) echo "Unknown option: $1" >&2; exit 2 ;;
 	esac
 	shift
 done
 INSTALL_DIR="$HOME/Games/$build_name"
+IMPORTED="$ROOT/.godot/imported"
+SHADER_DIR="$ROOT/features/fluid/shaders/compute"
 
 if [ "$fresh" -eq 1 ]; then
 	echo "Clearing compiled compute shaders."
@@ -99,6 +105,20 @@ cd "\$(dirname "\$0")"
 exec ./$NAME.x86_64 "\$@"
 LAUNCH
 chmod +x "$INSTALL_DIR/launch.sh"
+
+# The PR picker swaps the running build for another with tools/deck-demo.sh,
+# which builds with tools/deck-build.sh. They are copied from these scripts,
+# not from the project being built, so a PR older than the picker still builds
+# and swaps the same way.
+mkdir -p "$INSTALL_DIR/tools"
+cp "$SCRIPTS/deck-demo.sh" "$SCRIPTS/deck-build.sh" "$INSTALL_DIR/tools/"
+chmod +x "$INSTALL_DIR/tools/"*.sh
+
+# PR builds are reached through the picker; a launcher entry each would pile up.
+if [ "$other_root" -eq 1 ]; then
+	echo "Installed $(cat "$INSTALL_DIR/BUILD" 2>/dev/null || echo build) to $INSTALL_DIR"
+	exit 0
+fi
 
 mkdir -p "$HOME/.local/share/applications"
 cat >"$HOME/.local/share/applications/$build_name.desktop" <<DESKTOP
