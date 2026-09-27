@@ -73,7 +73,7 @@ func start_build(number: int) -> void:
 		return
 	var log_path := ProjectSettings.globalize_path(LOG_PATH)
 	var pid := OS.create_process(
-		"setsid", demo_args(demo_script, number, OS.get_process_id(), log_path)
+		"bash", demo_args(demo_script, number, OS.get_process_id(), log_path)
 	)
 	if pid <= 0:
 		_set_status("Could not start %s." % demo_script)
@@ -93,8 +93,10 @@ func start_build(number: int) -> void:
 func cancel_build() -> void:
 	if not is_building():
 		return
-	# setsid made the script a process group leader, so its pid is the group.
-	OS.execute("kill", ["-TERM", "--", "-%d" % _build_pid])
+	# Godot starts a child as the leader of a new session, so its pid is also
+	# its process group. OS.execute goes through sh, whose kill builtin takes
+	# a negative pid for a group but not a "--" before it.
+	OS.execute("kill", ["-TERM", "-%d" % _build_pid])
 	_end_build("Stopped building PR #%d." % _building)
 
 
@@ -103,12 +105,12 @@ static func demo_script_path() -> String:
 	return OS.get_executable_path().get_base_dir().path_join("tools/deck-demo.sh")
 
 
-## Arguments for [code]setsid[/code] that run the swap script for [param number].
+## Arguments for [code]bash[/code] that run the swap script for [param number].
 static func demo_args(
 	demo_script: String, number: int, pid: int, log_path: String
 ) -> PackedStringArray:
 	return PackedStringArray(
-		["bash", demo_script, str(number), "--launcher-pid", str(pid), "--log", log_path]
+		[demo_script, str(number), "--launcher-pid", str(pid), "--log", log_path]
 	)
 
 
@@ -196,7 +198,10 @@ func _on_pulls_received(
 		_set_status("GitHub answered %d. R or Y tries again." % code)
 		return
 	var entries := entries_from_json(JSON.parse_string(body.get_string_from_utf8()))
+	# Out of the list now, not at the end of the frame, so the first card
+	# focused below is a new one.
 	for child in _list.get_children():
+		_list.remove_child(child)
 		child.queue_free()
 	var now := int(Time.get_unix_time_from_system())
 	for entry in entries:

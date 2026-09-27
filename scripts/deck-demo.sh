@@ -61,9 +61,9 @@ if [ -n "$log" ]; then
 	exec >"$log" 2>&1
 fi
 
-# The picker starts this under setsid, so this shell leads a process group of
-# its own, and stopping a build from the picker signals the whole group: the
-# import and export under it stop too.
+# Godot starts this as the leader of a new session, so this shell leads a
+# process group of its own, and stopping a build from the picker signals the
+# whole group: the import and export under it stop too.
 
 if [ ! -d "$REPO/.git" ]; then
 	echo "No checkout at $REPO. Run 'scripts/deck.sh setup' from your dev machine." >&2

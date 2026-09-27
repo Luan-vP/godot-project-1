@@ -60,15 +60,7 @@ func test_demo_args_run_the_script_with_the_pr_pid_and_log() -> void:
 	var args := PrPicker.demo_args("/g/tools/deck-demo.sh", 94, 1234, "/u/pr_build.log")
 	assert_eq(
 		Array(args),
-		[
-			"bash",
-			"/g/tools/deck-demo.sh",
-			"94",
-			"--launcher-pid",
-			"1234",
-			"--log",
-			"/u/pr_build.log"
-		]
+		["/g/tools/deck-demo.sh", "94", "--launcher-pid", "1234", "--log", "/u/pr_build.log"]
 	)
 
 
