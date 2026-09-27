@@ -12,9 +12,9 @@ as a secret rather than throw away.
 
 ## Controls
 
-Drag to stir and paint, arrows to tilt, `Space` to jog, `C` to recalibrate,
+Drag to stir and paint, WASD to tilt, `Space` to jog, `C` to recalibrate,
 `R` to empty the tank, `B` to make everyone blink. On a device with sensors
-the arrows and space give way to the real accelerometer with no code change.
+WASD and space give way to the real accelerometer with no code change.
 
 ## Secret access
 
@@ -41,7 +41,9 @@ Each time the band starts it picks one of four songs from
 arp) and *Slow Orbit* (E minor, 60 bpm). A song is sections of chords that
 branch into one another as it plays, so the progression wanders instead of
 looping four bars; a fill plays over the beat on the last bar of each section.
-The readout shows the song and the section playing. Push an eye against a wall (tilt with the arrows, or stir) and
+The arrows move the tempo, as in every scene; the live parts follow at once,
+and the rendered drums play faster or slower to keep up.
+The readout shows the song and the section playing. Push an eye against a wall (tilt with WASD, or stir) and
 its part drops out at the next bar; let it drift free and it comes back.
 
 Left alone, eyes in this tank random-walk into the walls within about ten

@@ -1,6 +1,6 @@
 extends "res://features/levels/secret_eyes/fluid_demo.gd"
 ## The eye tank, with a band in it: each eye plays one part of the music while
-## it floats clear of the walls. Tilt (arrows) or stir to push eyes against a
+## it floats clear of the walls. Tilt (WASD) or stir to push eyes against a
 ## wall and strip the arrangement back; let them drift free to fill it out.
 ##
 ## Everything else — the tank, the eyes, the controls — is the secret level as

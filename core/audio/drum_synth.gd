@@ -49,6 +49,24 @@ static func render(hit: Hit, sample_rate: int) -> PackedFloat32Array:
 	return _cache[key]
 
 
+## [method render] as a one-shot mono 16-bit stream, for a hit played the
+## moment something happens rather than on the grid — a player's own tap, say,
+## where landing on the next mix block is exactly right, since that is as soon
+## as anything can sound.
+static func one_shot(hit: Hit, sample_rate: int) -> AudioStreamWAV:
+	var samples := render(hit, sample_rate)
+	var data := PackedByteArray()
+	data.resize(samples.size() * 2)
+	for i in samples.size():
+		data.encode_s16(i * 2, int(round(clampf(samples[i], -1.0, 1.0) * 32767.0)))
+	var stream := AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = sample_rate
+	stream.stereo = false
+	stream.data = data
+	return stream
+
+
 static func _build(hit: Hit, rate: float) -> PackedFloat32Array:
 	match hit:
 		Hit.KICK:

@@ -140,3 +140,13 @@ func test_tempo_changed_is_emitted_by_set_tempo_and_set_bpm() -> void:
 	assert_signal_emitted_with_parameters(AudioManager, "tempo_changed", [100.0])
 	AudioManager.set_bpm(110.0)
 	assert_signal_emitted_with_parameters(AudioManager, "tempo_changed", [110.0])
+
+
+func test_rendered_loops_play_faster_or_slower_to_follow_a_live_tempo() -> void:
+	AudioManager.set_tempo(70.0, 4)
+	AudioManager.configure_loop_layers([] as Array[LoopLayer])
+	assert_almost_eq(AudioManager.get_loop_playback_rate(), 1.0, 0.0001, "As rendered")
+	AudioManager.set_bpm(80.0)
+	assert_almost_eq(AudioManager.get_loop_playback_rate(), 80.0 / 70.0, 0.0001, "Sped up")
+	AudioManager.configure_loop_layers([] as Array[LoopLayer])
+	assert_almost_eq(AudioManager.get_loop_playback_rate(), 1.0, 0.0001, "New loops, new base")

@@ -227,14 +227,32 @@ without the boids simulation:
 
 ---
 
-## Still open
+## First-try answers to what was left open
 
-- **Clumping rule:** what counts as loners forming a new flock (neighbour count,
-  radius, dwell time), and the minimum flock size before it starts sounding.
-- **Flock caps:** a maximum number of simultaneous flocks or distinct rhythms.
-- **Charge feedback:** how the building charge is shown and heard.
-- **Tempo:** whether the #72 arrow-key tempo control carries over to this level.
-- **Input:** which Steam Deck button is the snare, and whether a latency
-  calibration step is needed for the instant-plus-ghost reading to feel fair.
-- **Voices:** how a bird's voice is assigned (random from a scale, per-bird
-  register, etc.) so a large flock stays musical rather than a cluster.
+The level is built (`features/levels/boids/`, see its README); these were
+decided for it, to be revisited by ear:
+
+- **Snare button:** `B`, on the keyboard and the gamepad (the Deck's B).
+- **Tempo:** the #72 control is global, in every scene (`TempoControl`
+  autoload): ↑/↓ ±2 bpm, ←/→ ±10, d-pad too, clamped to 30-180. Keyboard
+  tilt in the tank levels moved from the arrows to WASD to make room.
+  Rendered drum loops (the eye band's) follow a tempo change by playing
+  faster or slower, pitch and all.
+- **Clumping:** four or more loners within 60 px of each other for 1.5 s
+  form a flock. Every flock sounds, whatever its size; one down to a single
+  bird dissolves.
+- **Flock caps:** at most five flocks, of at most fourteen birds. Same-rhythm
+  flocks that meet merge.
+- **Charge feedback:** an arc round the rhythm dial, in the winning rhythm's
+  colour; flocks that would be scattered tremble as it builds, and flocks
+  that would survive glow.
+- **Voices:** a note from D major pentatonic over two octaves and a timbre
+  (sine, square or saw) per bird, for life. A few members sing on each
+  pulse, in turn.
+- **Everyday weights:** fit maps to a weight from 0.7 (out of favour) to 1.6
+  (in favour), easing rather than jumping. It is scaled back towards neutral
+  until the window holds enough taps. The first try used 0.45 at the low
+  end; a headless balance run showed that alone turned the whole sky into
+  the favoured rhythm within half a minute, which made the scatter pointless.
+- **Latency:** no calibration step yet; `tap_offset_seconds` on the level is
+  the hook for one.
