@@ -88,6 +88,9 @@ var _loop_active_states: Dictionary = {}  # layer_name -> bool
 var _loop_clock: MusicClock
 var _loop_scheduler: LoopLayerScheduler
 var _time_source: MusicTimeSource = WallClockMusicTime.new()
+## Tempo the configured loop layers were rendered at; see
+## [method get_loop_playback_rate].
+var _loop_render_tempo: float = 0.0
 
 
 func _ready() -> void:
@@ -185,13 +188,29 @@ func _set_tempo(tempo_bpm: float, beats_per_bar: int) -> void:
 	_time_source.set_tempo_bpm(tempo_bpm)
 	_loop_clock = MusicClock.new(tempo_bpm, beats_per_bar)
 	_loop_scheduler.set_clock(_loop_clock)
+	if _loop_player != null:
+		_loop_player.pitch_scale = get_loop_playback_rate()
 	tempo_changed.emit(_loop_clock.tempo_bpm)
+
+
+## How fast the loop layers play relative to how they were rendered: the live
+## tempo over the tempo in force at [method configure_loop_layers]. A
+## rendered loop has its tempo baked into its samples, so following a live
+## tempo change (see [code]TempoControl[/code]) means playing it faster or
+## slower — which shifts its pitch too, about 2.3 semitones for 70 to 80 bpm.
+## Drums carry that well; anything tonal belongs on live [Synth] notes instead.
+func get_loop_playback_rate() -> float:
+	if _loop_render_tempo <= 0.0:
+		return 1.0
+	return _loop_clock.tempo_bpm / _loop_render_tempo
 
 
 ## Declares the set of loops available to layer together, as data (see
 ## [LoopLayer]) rather than paths hardcoded into a script. Stops playback and
 ## resets every layer to inactive; call [method play_loops] and
-## [method set_layer_active] afterwards to start again.
+## [method set_layer_active] afterwards to start again. The layers are taken to
+## be rendered at the tempo in force now — set it with [method set_tempo]
+## first — so a later tempo change can play them faster or slower to match.
 func configure_loop_layers(layers: Array[LoopLayer]) -> void:
 	if layers.size() > MAX_LOOP_LAYERS:
 		var msg := "AudioManager: %d loop layers requested, only %d supported; the rest are dropped"
@@ -212,6 +231,8 @@ func configure_loop_layers(layers: Array[LoopLayer]) -> void:
 
 	_loop_stream = sync
 	_loop_player.stream = _loop_stream
+	_loop_render_tempo = _loop_clock.tempo_bpm
+	_loop_player.pitch_scale = 1.0
 
 
 ## Starts the configured loop layers playing together. Layers switched on

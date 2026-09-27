@@ -24,12 +24,14 @@ usage() {
 Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
 
   menu       Click into any of the demos below; Backspace comes back.
-  eyes       Secret level: the eye tank. Drag to stir and paint, arrows tilt,
+  eyes       Secret level: the eye tank. Drag to stir and paint, WASD tilts,
              Space jogs, B blinks, R empties the tank, C recalibrates.
   band       The eye tank as a band: each eye plays one part of a 70 bpm loop
-             while it floats clear of the walls. Arrows tilt, drag stirs.
+             while it floats clear of the walls. WASD tilts, drag stirs.
+  birds      Flocks of birds singing 3-against-4. B is a snare: tap a rhythm
+             to favour its flocks; hold it and the others scatter.
   vitreous   Out-of-focus floaters drifting in a coasting gel. Drag to push,
-             arrows tilt, Space jogs, +/- floaters, F toggles focus, R stills.
+             WASD tilts, Space jogs, +/- floaters, F toggles focus, R stills.
   overcast   Panorama level: bright overcast sky, floaters unmissable. Mouse
              or right stick to look, Esc frees the cursor, click to recapture.
   interior   Panorama level: dim interior, floaters barely there. Same
@@ -48,6 +50,8 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
   prs        Open pull requests on GitHub. Picking one builds and swaps to it
              only on the Deck (scripts/deck-demo.sh); elsewhere it just lists.
 
+Everywhere: Up/Down nudge the tempo 2 bpm, Left/Right 10 bpm (d-pad on a pad).
+
 Options:
   --fresh    Delete compiled compute shaders and reimport before running.
   -h, --help Show this help.
@@ -60,6 +64,7 @@ scene_for() {
 		menu) echo "res://features/ui/demo_menu/demo_menu.tscn" ;;
 		eyes | secret-eyes | fluid) echo "res://features/levels/secret_eyes/fluid_demo.tscn" ;;
 		band | eye-band) echo "res://features/levels/secret_eyes/eye_band_demo.tscn" ;;
+		birds | boids) echo "res://features/levels/boids/boids_level.tscn" ;;
 		vitreous | floaters) echo "res://features/levels/vitreous/vitreous_tank.tscn" ;;
 		overcast | panorama) echo "res://features/levels/panorama/overcast_sky.tscn" ;;
 		interior) echo "res://features/levels/panorama/dim_interior.tscn" ;;
