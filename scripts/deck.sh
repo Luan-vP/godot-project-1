@@ -2,7 +2,10 @@
 # Drive builds on a Steam Deck from your dev machine, over ssh (Tailscale).
 #
 #   scripts/deck.sh setup     install Godot + export templates on the Deck,
-#                             create its checkout, add the `deck` git remote
+#                             create its checkout, add the `deck` git remote,
+#                             and add a Desktop Mode icon that builds and
+#                             plays the latest main (needs a `build` first,
+#                             so scripts/deck-play-main.sh exists to run)
 #   scripts/deck.sh build     push HEAD to the Deck and build there
 #                             (--as NAME installs it to ~/Games/NAME, so
 #                             builds can sit side by side to compare)
@@ -58,6 +61,25 @@ fi
 # Lets a push update the checked-out tree directly.
 git -C "$REPO" config receive.denyCurrentBranch updateInstead
 grep -q '.local/bin' "$HOME/.bashrc" 2>/dev/null || echo 'export PATH="$HOME/.local/bin:$PATH"' >>"$HOME/.bashrc"
+
+# A Desktop Mode icon that always plays the latest main, regardless of
+# whatever branch the checkout was last used to test. The .desktop file has
+# to be marked executable *and* trusted once by hand — right-click it in
+# Desktop Mode and choose "Trust and Launch" the first time.
+mkdir -p "$HOME/Desktop"
+cat >"$HOME/Desktop/godot-project-1-play-main.desktop" <<DESKTOP
+[Desktop Entry]
+Type=Application
+Name=godot-project-1 (main)
+Comment=Build the latest main and play it
+Exec=$REPO/scripts/deck-play-main.sh
+Path=$REPO
+Icon=applications-games
+Terminal=true
+Categories=Game;
+DESKTOP
+chmod +x "$HOME/Desktop/godot-project-1-play-main.desktop"
+
 echo "Godot: $("$HOME/.local/bin/godot4" --version)"
 REMOTE
 	if git remote get-url deck >/dev/null 2>&1; then
@@ -111,5 +133,5 @@ case "${1:-}" in
 	stop) stop "${2:-}" ;;
 	logs) logs "${2:-}" ;;
 	ssh) "${SSH[@]}" "$HOST" ;;
-	*) sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+	*) sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
 esac
