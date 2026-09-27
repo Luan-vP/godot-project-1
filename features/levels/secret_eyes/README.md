@@ -16,6 +16,12 @@ Drag to stir and paint, arrows to tilt, `Space` to jog, `C` to recalibrate,
 `R` to empty the tank, `B` to make everyone blink. On a device with sensors
 the arrows and space give way to the real accelerometer with no code change.
 
+In the eye band demo, L1/R1 (`Q`/`E`) move the band's key down/up a fourth
+and L2/R2 (`Z`/`X`) down/up a fifth, from the next step. The move is round the
+circle of fifths, so every part stays in its register: two fourths up lands a
+whole tone *below* where you started, not an octave and a third above. The
+readout shows where the key sits relative to the song, -5 to +6.
+
 ## Secret access
 
 **Decision:** once a main level exists, this scene is reached by holding

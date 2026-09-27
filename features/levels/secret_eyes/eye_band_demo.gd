@@ -2,6 +2,8 @@ extends "res://features/levels/secret_eyes/fluid_demo.gd"
 ## The eye tank, with a band in it: each eye plays one part of the music while
 ## it floats clear of the walls. Tilt (arrows) or stir to push eyes against a
 ## wall and strip the arrangement back; let them drift free to fill it out.
+## L1/R1 (or Q/E) move the key down/up a fourth, L2/R2 (or Z/X) a fifth — see
+## [KeyShiftInput].
 ##
 ## Everything else — the tank, the eyes, the controls — is the secret level as
 ## it is. See [EyeBand] for how eyes become parts.
@@ -23,6 +25,7 @@ const TOUCHING_COLOR := Color(0.95, 0.45, 0.38, 0.85)
 var _band: EyeBand
 var _overlay: Node2D
 var _parts_label: Label
+var _key_shift := KeyShiftInput.new()
 
 
 func _ready() -> void:
@@ -57,6 +60,13 @@ func _physics_process(delta: float) -> void:
 			eye.velocity += (centre - eye.global_position) * CENTRE_PULL * delta
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	var step := _key_shift.step_for(event)
+	if step != 0:
+		_band.set_key_offset(_band.get_key_offset() + step)
+		get_viewport().set_input_as_handled()
+
+
 func _process(delta: float) -> void:
 	super(delta)
 	_overlay.queue_redraw()
@@ -67,7 +77,14 @@ func _process(delta: float) -> void:
 			mark = "◐"
 		parts.append("%s %s" % [mark, part])
 	_parts_label.text = (
-		"♪ %s · %s\n" % [_band.song_title(), _band.current_section()]
+		(
+			"♪ %s · %s · key %+d\n"
+			% [
+				_band.song_title(),
+				_band.current_section(),
+				KeyShiftInput.display_offset(_band.get_key_offset()),
+			]
+		)
 		+ "   ".join(parts)
 		+ "      keep eyes off the walls to hear them"
 	)
