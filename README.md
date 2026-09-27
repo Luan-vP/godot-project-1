@@ -85,6 +85,25 @@ also matters beyond the file picker: Steam Input only attributes a
 controller to a process Steam itself launched, so it's how the game sees
 motion or gyro from a controller at all. Later builds replace it in place.
 
+### Play-testing pull requests on the Deck
+
+The demo menu's **Pull requests** screen lists the open PRs from GitHub. Pick
+one and the Deck fetches it into `~/dev/godot-project-1-prs`, builds it to
+`~/Games/pr-<number>` (skipped if that commit is already built), then closes
+the game and runs the PR build in its place. Select on the PR build's demo
+menu quits it and brings back the list, so you can switch between PRs with
+back and pick. Select while a PR is still building stops the build.
+
+The swap is done by `scripts/deck-demo.sh`. `deck-build.sh` copies it, along
+with itself, into `tools/` beside every build, and the picker runs the copy
+beside itself. So the swap always uses the scripts from the build you
+launched (build `main` with `scripts/deck.sh build` and launch that one), and
+PRs older than the picker still build. What a PR build can't get this way is
+the Select-to-go-back: it needs this code in the PR itself (merge `main` into
+the PR). Without it, leave through Steam's *Exit game* and launch again.
+Picking only works in a build installed on the Deck; elsewhere,
+`scripts/run.sh prs` just shows the list.
+
 ## Running the tests
 
 ```sh
