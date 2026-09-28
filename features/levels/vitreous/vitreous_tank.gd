@@ -120,7 +120,7 @@ func _build_hint() -> void:
 	var hint := Label.new()
 	hint.position = Vector2(16.0, 12.0)
 	hint.add_theme_color_override("font_color", Color(0.2, 0.22, 0.26, 0.55))
-	hint.text = "drag push · arrows tilt · space jog · C calibrate · R still · +/- count · F focus"
+	hint.text = "drag push · WASD tilt · space jog · C calibrate · R still · +/- count · F focus"
 	layer.add_child(hint)
 	add_child(layer)
 

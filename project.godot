@@ -11,26 +11,23 @@ config_version=5
 [application]
 
 config/name="godot-project-1"
-config/features=PackedStringArray("4.4", "Forward Plus")
 config/version="0.1.0"
 run/main_scene="res://features/ui/demo_menu/demo_menu.tscn"
+config/features=PackedStringArray("4.4", "Forward Plus")
 
-[editor_plugins]
+[audio]
 
-enabled=PackedStringArray("res://addons/gut/plugin.cfg")
+buses/default_bus_layout="res://resources/audio/default_bus_layout.tres"
 
 [autoload]
 
 EventBus="*res://autoload/EventBus.gd"
 GameState="*res://autoload/GameState.gd"
 AudioManager="*res://autoload/AudioManager.gd"
+TempoControl="*res://autoload/TempoControl.gd"
 SaveManager="*res://autoload/SaveManager.gd"
 ComfortSettings="*res://autoload/ComfortSettings.gd"
 
-[audio]
+[editor_plugins]
 
-buses/default_bus_layout="res://resources/audio/default_bus_layout.tres"
-
-[rendering]
-
-renderer/rendering_method="forward_plus"
+enabled=PackedStringArray("res://addons/gut/plugin.cfg")

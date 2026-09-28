@@ -107,10 +107,13 @@ run() {
 	# gamescope (Game Mode) and Plasma (Desktop Mode) both serve :0, sometimes
 	# with the cookie in a randomly named xauth_* file and sometimes with none.
 	# A transient user unit outlives the ssh session, which would otherwise
-	# take the game down with it.
+	# take the game down with it. ExitType=cgroup keeps the unit up while the
+	# PR picker hands the screen to a PR build: the game's own process ends
+	# then, and by default systemd would stop everything it left running.
 	remote "systemctl --user stop $build 2>/dev/null; systemctl --user reset-failed $build 2>/dev/null
 		auth=\$(ls -t /run/user/\$(id -u)/xauth_* 2>/dev/null | head -n 1)
 		systemd-run --user --quiet --unit=$build --working-directory=\$HOME/Games/$build \
+			--property=ExitType=cgroup \
 			--setenv=DISPLAY=:0 \${auth:+--setenv=XAUTHORITY=\$auth} \
 			\$HOME/Games/$build/$NAME.x86_64"
 	echo "Launched $build on the Deck. Logs: scripts/deck.sh logs $build"

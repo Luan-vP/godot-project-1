@@ -13,6 +13,8 @@ A 2D game about floaty eye thingies, in a painterly style. Godot 4.4.
   full of floaty eyes. See its [README](features/levels/secret_eyes/README.md).
 - `features/levels/vitreous/` — out-of-focus eye floaters drifting in a pale,
   gel-like vitreous. See its [README](features/levels/vitreous/README.md).
+- `features/levels/boids/` — flocks of birds that sing polyrhythms, played
+  with a snare. See its [README](features/levels/boids/README.md).
 - `features/levels/panorama/` — the main level's core mechanic: a camera at
   the centre of a look-around panoramic background. See its
   [README](features/levels/panorama/README.md).
@@ -27,7 +29,7 @@ A 2D game about floaty eye thingies, in a painterly style. Godot 4.4.
   manual demo scene to prove it makes a sound. See its
   [README](core/audio/README.md).
 - `autoload/` — global singletons (`EventBus`, `GameState`, `AudioManager`,
-  `SaveManager`, `ComfortSettings`).
+  `TempoControl`, `SaveManager`, `ComfortSettings`).
 - `addons/` — vendored third-party code; see [addons/README.md](addons/README.md).
 - `tests/` — GUT suite.
 
@@ -45,6 +47,7 @@ scripts/run.sh menu        # the clickable demo menu
 scripts/run.sh vitreous    # floaters in the vitreous gel
 scripts/run.sh eyes        # the secret eye tank
 scripts/run.sh band        # the eye tank as a band: eyes off the walls play parts
+scripts/run.sh birds       # flocks singing 3-against-4, played with a snare (B)
 scripts/run.sh panorama    # look-around camera (no panorama image yet)
 scripts/run.sh refraction  # the clear medium bending a checkerboard
 scripts/run.sh synth       # play the synth voices from the keyboard
@@ -52,6 +55,9 @@ scripts/run.sh groove      # synthwave loop: drums on the step grid, bass and pa
 scripts/run.sh audio       # buses, loop layers, the effect fader
 scripts/run.sh comfort     # distortion, look sensitivity, floater overshoot
 ```
+
+In every scene, the arrow keys (or d-pad) move the music's tempo: up and down
+by 2 bpm, left and right by 10. Tilt, where a level has it, is on WASD.
 
 It finds Godot from `$GODOT`, then `godot4`/`godot` on `PATH`, then
 `/Applications/Godot.app`. On first run it imports the project, and it
@@ -94,6 +100,39 @@ launches, in one double-click. It needs a `build` to have run at least once
 first, since it launches `scripts/deck-play-main.sh` from the checkout. A
 `.desktop` file needs trusting once — right-click it and choose *Trust and
 Launch* the first time.
+
+### Play-testing pull requests on the Deck
+
+The demo menu's **Pull requests** screen lists the open PRs from GitHub. Pick
+one and the Deck fetches it, checks it out in its own worktree, builds it
+(skipped if that commit is already built), then closes the game and runs the
+PR build in its place. Select on the PR build's demo
+menu quits it and brings back the list, so you can switch between PRs with
+back and pick. Select while a PR is still building stops the build.
+
+Everything lives beside the Deck's checkout and main build:
+
+```
+~/dev/godot-project-1/               the checkout deck.sh pushes to; the one
+                                     repository (gets a GitHub `origin` remote)
+~/dev/godot-project-1-prs/pr-94/     PR #94's worktree, detached at its head
+~/Games/godot-project-1/             the main build, with the picker
+~/Games/godot-project-1-prs/pr-94/   PR #94's build
+```
+
+Each worktree keeps its own import cache, seeded from the main checkout's on
+first use. Delete a PR's directories when you're done with it; the next swap
+prunes the stale worktree entry.
+
+The swap is done by `scripts/deck-demo.sh`. `deck-build.sh` copies it, along
+with itself, into `tools/` beside every build, and the picker runs the copy
+beside itself. So the swap always uses the scripts from the build you
+launched (build `main` with `scripts/deck.sh build` and launch that one), and
+PRs older than the picker still build. What a PR build can't get this way is
+the Select-to-go-back: it needs this code in the PR itself (merge `main` into
+the PR). Without it, leave through Steam's *Exit game* and launch again.
+Picking only works in a build installed on the Deck; elsewhere,
+`scripts/run.sh prs` just shows the list.
 
 ## Running the tests
 

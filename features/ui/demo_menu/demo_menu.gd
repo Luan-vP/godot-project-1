@@ -14,6 +14,12 @@ extends Control
 ## A development tool, and [code]run/main_scene[/code] only until a main level
 ## exists. It lists the secret eye level, which is meant to be reached with
 ## Shift once there is a game to hide it behind — see that level's README.
+##
+## Two command-line flags (after [code]--[/code]) serve the pull request picker
+## on the Deck: [code]--prs[/code] opens the picker straight away, and
+## [code]--from-picker[/code], which the picker's swap script passes to the PR
+## build it starts, makes back at the menu quit — the script then starts the
+## picker again.
 
 ## Emitted after a demo has been instanced and made the current scene.
 signal demo_opened(path: String)
@@ -21,18 +27,26 @@ signal demo_opened(path: String)
 ## Emitted after the running demo has been freed and the menu is showing.
 signal demo_closed
 
+const PR_PICKER_PATH := "res://features/ui/pr_picker/pr_picker.tscn"
+
 ## Every level and demo, in the order shown. Keep in step with scripts/run.sh.
 const DEMOS: Array[Dictionary] = [
 	{
 		"name": "Eyes",
 		"path": "res://features/levels/secret_eyes/fluid_demo.tscn",
-		"blurb": "Secret level: the eye tank. Drag to stir and paint, arrows tilt, Space jogs.",
+		"blurb": "Secret level: the eye tank. Drag to stir and paint, WASD tilts, Space jogs.",
 	},
 	{
 		"name": "Eye band",
 		"path": "res://features/levels/secret_eyes/eye_band_demo.tscn",
 		"blurb":
 		"Each eye plays a part while it stays off the walls. Tilt or stir to thin the music.",
+	},
+	{
+		"name": "Birds",
+		"path": "res://features/levels/boids/boids_level.tscn",
+		"blurb":
+		"Flocks sing 3-against-4. Tap B as a snare to favour a rhythm and scatter the rest.",
 	},
 	{
 		"name": "Vitreous",
@@ -77,6 +91,11 @@ const DEMOS: Array[Dictionary] = [
 		"blurb":
 		"Distortion, look sensitivity, floater overshoot — adjust, then open a panorama level.",
 	},
+	{
+		"name": "Pull requests",
+		"path": PR_PICKER_PATH,
+		"blurb": "Open PRs on GitHub. On the Deck, pick one to build and play it in place of this.",
+	},
 ]
 
 const BACKGROUND := Color(0.08, 0.085, 0.1)
@@ -86,14 +105,19 @@ const MUTED := Color(0.56, 0.58, 0.63)
 var _demo: Node
 var _overlay: CanvasLayer
 var _first_button: Button
+var _from_picker := false
 
 
 func _ready() -> void:
+	var args := OS.get_cmdline_user_args()
+	_from_picker = args.has("--from-picker")
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	_build()
 	_overlay = _build_overlay()
 	add_child(_overlay)
 	_first_button.grab_focus.call_deferred()
+	if args.has("--prs"):
+		open_demo.call_deferred(PR_PICKER_PATH)
 
 
 ## Whether a demo is running in front of the menu.
@@ -145,10 +169,14 @@ func close_demo() -> void:
 ## [code]_input[/code], not unhandled: demos take keys in their own unhandled
 ## handlers, and nothing a demo does should be able to swallow the way out.
 func _input(event: InputEvent) -> void:
-	if not is_demo_open() or not _is_back(event):
+	if not _is_back(event):
 		return
-	get_viewport().set_input_as_handled()
-	close_demo()
+	if is_demo_open():
+		get_viewport().set_input_as_handled()
+		close_demo()
+	elif _from_picker:
+		get_viewport().set_input_as_handled()
+		get_tree().quit()
 
 
 static func _is_back(event: InputEvent) -> bool:
@@ -176,7 +204,10 @@ func _build() -> void:
 	margin.add_child(column)
 
 	column.add_child(_label("Demos", 40, TEXT))
-	column.add_child(_label("Pick one. Backspace or Select comes back here.", 16, MUTED))
+	var hint := "Pick one. Backspace or Select comes back here."
+	if _from_picker:
+		hint += " Here, they go back to the pull requests."
+	column.add_child(_label(hint, 16, MUTED))
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL

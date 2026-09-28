@@ -416,3 +416,30 @@ while the order of sections varies.
 `problems()` on a song lists anything written wrong (a chord that does not
 parse, a section leading nowhere, a pattern of the wrong length); the eye
 band's songs are checked with it in `tests/test_eye_band_songs.gd`.
+
+## Live tempo
+
+The [`TempoControl`](../../autoload/TempoControl.gd) autoload gives every scene
+a live tempo control: ↑/↓ ±2 bpm, ←/→ ±10 (d-pad too), clamped to 30-180,
+with a short readout. It calls `AudioManager.set_bpm()` and nothing else;
+anything keeping time on the `MusicTimeSource` follows without knowing about
+it.
+
+Rendered loops have their tempo baked into their samples, so `AudioManager`
+plays them faster or slower to match: `get_loop_playback_rate()` is the live
+tempo over the tempo in force when `configure_loop_layers()` was called. That
+shifts their pitch as well (about 2.3 semitones from 70 to 80 bpm), which
+drums carry and tonal loops would not — keep anything tonal on live `Synth`
+notes.
+
+## Polyrhythms and reading taps
+
+[`rhythm/`](rhythm/) holds the polyrhythm model the birds level is built on:
+
+- [`Rhythm`](rhythm/rhythm.gd) — N even pulses across a shared bar, as data.
+- [`RhythmTable`](rhythm/rhythm_table.gd) — the rhythms in play, the grid
+  they fit on (the LCM of every pulse count and the bar's beats: 12 for 3, 4
+  and 6), and a weighted roll that tapping can bias.
+- [`TapReader`](rhythm/tap_reader.gd) — the last bar of a player's taps,
+  scored against every rhythm with a two-way least-squares fit, so a 3 is
+  not mistaken for a 6 just because 6 contains it.
