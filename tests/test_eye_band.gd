@@ -70,6 +70,37 @@ func test_a_part_with_no_eye_is_never_wanted() -> void:
 	assert_false(_band.wants_part("shimmer"), "Nobody plays the shimmer")
 
 
+func test_pending_is_none_when_playing_already_matches_wanted() -> void:
+	_band.bind_eyes([_eye(40.0, Vector2(500, 300))])
+	_band._playing["beat"] = true
+	assert_eq(_band.pending("beat"), EyeBand.Pending.NONE, "Free and already sounding")
+
+
+func test_pending_is_starting_when_wanted_but_not_yet_sounding() -> void:
+	_band.bind_eyes([_eye(40.0, Vector2(500, 300))])
+	_band._playing["beat"] = false
+	assert_eq(_band.pending("beat"), EyeBand.Pending.STARTING, "Free but waiting for the bar line")
+
+
+func test_pending_is_stopping_when_sounding_but_no_longer_wanted() -> void:
+	var eye := _eye(40.0, Vector2(500, 300))
+	_band.bind_eyes([eye])
+	eye.global_position = Vector2(35, 300)
+	_band.update_contacts(TANK)
+	_band._playing["beat"] = true
+	assert_eq(_band.pending("beat"), EyeBand.Pending.STOPPING, "Touching but still sounding")
+
+
+func test_countdown_fraction_shrinks_to_zero_at_the_bar_line() -> void:
+	assert_almost_eq(EyeBand.countdown_fraction(2.0, 2.0), 1.0, 0.001, "Bar just started")
+	assert_almost_eq(EyeBand.countdown_fraction(0.5, 2.0), 0.25, 0.001, "Most of the bar gone")
+	assert_almost_eq(EyeBand.countdown_fraction(0.0, 2.0), 0.0, 0.001, "Right at the bar line")
+
+
+func test_countdown_fraction_is_zero_without_a_bar_length() -> void:
+	assert_eq(EyeBand.countdown_fraction(1.0, 0.0), 0.0, "No bar length: no crash, no countdown")
+
+
 func _eye(radius: float, at: Vector2) -> FloatyEye:
 	var eye := FloatyEye.new()
 	eye.radius = radius
