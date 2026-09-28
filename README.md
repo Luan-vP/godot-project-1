@@ -85,6 +85,8 @@ also matters beyond the file picker: Steam Input only attributes a
 controller to a process Steam itself launched, so it's how the game sees
 motion or gyro from a controller at all. Later builds replace it in place.
 
+### Playing the latest main from the Desktop
+
 `setup` also drops a **"godot-project-1 (main)"** icon on the Deck's Desktop
 (Desktop Mode), for building and playing straight from `main` with no dev
 machine involved: it resets the checkout to `origin/main`, builds, and
