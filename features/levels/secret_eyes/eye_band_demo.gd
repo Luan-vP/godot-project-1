@@ -20,6 +20,18 @@ const PLAYING_COLOR := Color(1.0, 1.0, 1.0, 0.8)
 const SILENT_COLOR := Color(1.0, 1.0, 1.0, 0.14)
 const TOUCHING_COLOR := Color(0.95, 0.45, 0.38, 0.85)
 
+## Read straight from [Input], not [KeyShiftInput], so the debug line shows
+## whether the hardware event reaches Godot at all — independent of any bug
+## or remap in the key-shift path it would otherwise be used to diagnose.
+const DEBUG_BUTTONS := {
+	"L1": JOY_BUTTON_LEFT_SHOULDER,
+	"R1": JOY_BUTTON_RIGHT_SHOULDER,
+}
+const DEBUG_AXES := {
+	"L2": JOY_AXIS_TRIGGER_LEFT,
+	"R2": JOY_AXIS_TRIGGER_RIGHT,
+}
+
 ## Countdown ring while a part is about to start (white) or stop (red) — see
 ## [enum EyeBand.Pending].
 const PENDING_START_COLOR := Color(1.0, 1.0, 1.0, 0.95)
@@ -102,11 +114,10 @@ func _draw_rings() -> void:
 		var ring_radius := eye.radius + RING_GAP
 		var pending := _band.pending(part)
 		if pending != EyeBand.Pending.NONE:
-			color = (
-				PENDING_START_COLOR
-				if pending == EyeBand.Pending.STARTING
-				else PENDING_STOP_COLOR
-			)
+			if pending == EyeBand.Pending.STARTING:
+				color = PENDING_START_COLOR
+			else:
+				color = PENDING_STOP_COLOR
 			var sweep := TAU * countdown
 			_overlay.draw_arc(
 				eye.global_position,

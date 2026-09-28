@@ -48,6 +48,8 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
   prs        Open pull requests on GitHub. Picking one builds and swaps to it
              only on the Deck (scripts/deck-demo.sh); elsewhere it just lists.
 
+Everywhere: Up/Down nudge the tempo 2 bpm, Left/Right 10 bpm (d-pad on a pad).
+
 Options:
   --fresh    Delete compiled compute shaders and reimport before running.
   -h, --help Show this help.
