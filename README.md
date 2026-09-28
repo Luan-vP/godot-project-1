@@ -91,6 +91,16 @@ also matters beyond the file picker: Steam Input only attributes a
 controller to a process Steam itself launched, so it's how the game sees
 motion or gyro from a controller at all. Later builds replace it in place.
 
+### Playing the latest main from the Desktop
+
+`setup` also drops a **"godot-project-1 (main)"** icon on the Deck's Desktop
+(Desktop Mode), for building and playing straight from `main` with no dev
+machine involved: it resets the checkout to `origin/main`, builds, and
+launches, in one double-click. It needs a `build` to have run at least once
+first, since it launches `scripts/deck-play-main.sh` from the checkout. A
+`.desktop` file needs trusting once — right-click it and choose *Trust and
+Launch* the first time.
+
 ### Play-testing pull requests on the Deck
 
 The demo menu's **Pull requests** screen lists the open PRs from GitHub. Pick
