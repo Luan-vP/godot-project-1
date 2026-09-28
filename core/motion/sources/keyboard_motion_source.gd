@@ -1,6 +1,10 @@
 class_name KeyboardMotionSource
 extends MotionSource
-## Adapter: arrow keys and space, standing in for a device with no sensors.
+## Adapter: WASD and space, standing in for a device with no sensors.
+##
+## WASD rather than the arrows, which belong to the live tempo control in every
+## scene (see [code]TempoControl[/code]). Physical keys, so the four sit in the
+## same place on any layout.
 ##
 ## Not merely a convenience. It is what makes tilt runnable on a desktop, so
 ## the real pipeline — calibration, basis projection, filtering, jog detection —
@@ -17,12 +21,12 @@ const GRAVITY := 9.80665
 ## Acceleration a keyboard shake reports, comfortably over the jog threshold.
 const SHAKE_STRENGTH := 18.0
 
-## How far the arrow keys tilt the imaginary device.
+## How far WASD tilts the imaginary device.
 var span_degrees: float = 30.0
 
 
 func poll(_delta: float) -> MotionReading:
-	var wanted := Vector2(Input.get_axis("ui_left", "ui_right"), Input.get_axis("ui_up", "ui_down"))
+	var wanted := Vector2(_axis(KEY_A, KEY_D), _axis(KEY_W, KEY_S))
 	var span := deg_to_rad(span_degrees)
 	var about_x := span * wanted.x
 	var about_y := span * wanted.y
@@ -47,4 +51,13 @@ func is_available() -> bool:
 
 
 func describe() -> String:
-	return "keyboard (arrows tilt, space jogs)"
+	return "keyboard (WASD tilts, space jogs)"
+
+
+static func _axis(negative: Key, positive: Key) -> float:
+	var value := 0.0
+	if Input.is_physical_key_pressed(negative):
+		value -= 1.0
+	if Input.is_physical_key_pressed(positive):
+		value += 1.0
+	return value

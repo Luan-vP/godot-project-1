@@ -8,7 +8,7 @@ extends Node2D
 ## Drag to stir and paint. Arrows tilt, space jogs, C recalibrates, R empties
 ## the tank, B makes everyone blink.
 ##
-## On a phone the arrows and space are replaced by the real accelerometer,
+## On a phone WASD and space are replaced by the real accelerometer,
 ## with no change here — [MotionInput] picks the source.
 
 const EYE_COUNT := 7

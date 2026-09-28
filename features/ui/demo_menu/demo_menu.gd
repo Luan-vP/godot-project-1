@@ -34,13 +34,19 @@ const DEMOS: Array[Dictionary] = [
 	{
 		"name": "Eyes",
 		"path": "res://features/levels/secret_eyes/fluid_demo.tscn",
-		"blurb": "Secret level: the eye tank. Drag to stir and paint, arrows tilt, Space jogs.",
+		"blurb": "Secret level: the eye tank. Drag to stir and paint, WASD tilts, Space jogs.",
 	},
 	{
 		"name": "Eye band",
 		"path": "res://features/levels/secret_eyes/eye_band_demo.tscn",
 		"blurb":
 		"Each eye plays a part while it stays off the walls. Tilt or stir to thin the music.",
+	},
+	{
+		"name": "Birds",
+		"path": "res://features/levels/boids/boids_level.tscn",
+		"blurb":
+		"Flocks sing 3-against-4. Tap B as a snare to favour a rhythm and scatter the rest.",
 	},
 	{
 		"name": "Vitreous",

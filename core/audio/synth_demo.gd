@@ -99,6 +99,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 				if _last_voice != null and _last_voice.is_held():
 					var factor := 2.0 if key.keycode == KEY_UP else 0.5
 					_last_voice.set_frequency(_last_voice.target_frequency * factor)
+					# A glide, not a tempo nudge: keep it from TempoControl.
+					get_viewport().set_input_as_handled()
 			KEY_1, KEY_2, KEY_3:
 				_set_waveform(key.keycode - KEY_1)
 			KEY_R:

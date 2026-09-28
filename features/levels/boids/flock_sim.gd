@@ -1,0 +1,471 @@
+class_name FlockSim
+extends RefCounted
+## Birds with boids flocking, in explicit flocks that each play one rhythm.
+##
+## Pure: no nodes, no drawing, no sound. [method step] is handed the frame's
+## seconds and the music's beats, so a test can drive it deterministically. The
+## level reads [member birds] and [member flocks] to draw and to play.
+##
+## [b]Loners[/b] are silent. They wander, loosely flock with other loners, and
+## drift towards flocks the player's tapping currently favours.
+##
+## [b]Joining.[/b] A loner within [constant SNAP_RADIUS] of a flock's member
+## snaps into that flock, at a chance of [member snap_rate] a second, taking
+## its rhythm and keeping its own voice — unless the flock is out of favour
+## (weight below [constant SNAP_MIN_WEIGHT]) or full.
+##
+## [b]Leaving.[/b] A member that strays past [constant LEAVE_RADIUS] from its
+## flock's centre, scaled by the flock's weight, drops out and goes silent, and
+## now and then one just wanders off ([member restless_rate]), which keeps
+## the sky from settling. A flock down to one bird dissolves, and two flocks of
+## the same rhythm that meet merge.
+##
+## [b]Forming.[/b] Loners that stay clumped, at least [constant FORM_SIZE] of
+## them within [constant FORM_RADIUS], for [constant FORM_DWELL] seconds become
+## a new flock with a rhythm rolled from the [RhythmTable] (see
+## [method RhythmTable.roll] for how tapping biases the roll). At most
+## [constant MAX_FLOCKS] flocks fly at once.
+##
+## [b]Pulsing.[/b] A flock's cohesion and alignment surge on each of its pulses
+## (see [method surge]), so a 3-flock visibly draws together three times a bar
+## and a 4-flock four.
+##
+## [b]Weights[/b] ([member weights], pulses -> weight, 1 neutral) are how the
+## player's tapping steers the sky: above 1 a rhythm's flocks tighten, hold
+## their members further out and pull loners in; below 1 they loosen and shed.
+
+signal flock_formed(flock: Flock)
+signal flock_dissolved(flock: Flock)
+signal bird_joined(bird: Bird, flock: Flock)
+signal scattered(survivor: int, bird_count: int)
+
+const MAX_FLOCKS := 5
+const MAX_FLOCK_SIZE := 14
+
+const FORM_SIZE := 4
+const FORM_RADIUS := 60.0
+const FORM_DWELL := 1.5
+
+const SNAP_RADIUS := 26.0
+
+## Same-rhythm flocks whose centres come this close merge.
+const MERGE_RADIUS := 60.0
+
+## How long a bird that wandered off stays unable to rejoin.
+const RESTLESS_STUN_SECONDS := 1.0
+const SNAP_MIN_WEIGHT := 0.6
+const LEAVE_RADIUS := 140.0
+
+const NEIGHBOUR_RADIUS := 80.0
+const SEPARATION_RADIUS := 22.0
+
+const MIN_SPEED := 70.0
+const MAX_SPEED := 150.0
+
+## Speed a scatter throws birds clear at, and how long they stay thrown.
+const SCATTER_SPEED := 340.0
+const STUN_SECONDS := 2.0
+
+## Accelerations, in px/s^2 (or px/s^2 per px of offset for the _GAINs that
+## multiply a distance).
+const SEPARATION_ACCEL := 420.0
+const COHESION_GAIN := 1.1
+const ALIGNMENT_GAIN := 1.6
+const CENTROID_GAIN := 0.35
+const LONER_GAIN := 0.35
+const WANDER_ACCEL := 70.0
+const ATTRACT_ACCEL := 140.0
+const ATTRACT_RADIUS := 260.0
+const EDGE_MARGIN := 90.0
+const EDGE_ACCEL := 520.0
+
+## How sharply a pulse's surge dies away across the gap to the next pulse.
+const SURGE_DECAY := 5.0
+
+## D major pentatonic over two octaves: any handful of these sounds fine
+## together, so a flock of any size stays musical rather than a cluster.
+const VOICE_NOTES: Array[int] = [62, 64, 66, 69, 71, 74, 76, 78, 81, 83, 86]
+
+var bounds: Rect2
+var table: RhythmTable
+var rng: RandomNumberGenerator
+var birds: Array[Bird] = []
+var flocks: Array[Flock] = []
+
+## pulses -> attraction weight, 1 neutral. Set by whoever reads the taps.
+var weights: Dictionary = {}
+
+## pulses -> 0..1, how much a new flock's roll should favour each rhythm not
+## already on screen. See [method RhythmTable.roll].
+var spawn_bias: Dictionary = {}
+
+var beats_per_bar: int = 4
+
+## How much a pulse multiplies cohesion and alignment at its peak, over 1.
+var surge_gain: float = 1.6
+
+## Chance per second that a loner in reach of a flock joins it, at weight 1.
+var snap_rate: float = 1.2
+
+## Chance per second that a member wanders off, at weight 1; divided by the
+## square of the weight, so favoured flocks hold on and others fray.
+var restless_rate: float = 0.06
+
+var _next_id := 1
+
+
+func _init(p_table: RhythmTable, p_bounds: Rect2, p_rng: RandomNumberGenerator = null) -> void:
+	table = p_table
+	bounds = p_bounds
+	rng = p_rng
+	if rng == null:
+		rng = RandomNumberGenerator.new()
+		rng.randomize()
+
+
+## Scatter [param count] birds across the sky, then gather some of them into a
+## starting flock per entry of [param seed_pulses], so there is music from the
+## first bar.
+func populate(count: int, seed_pulses: Array[int] = []) -> void:
+	for i in count:
+		var position := Vector2(
+			rng.randf_range(bounds.position.x, bounds.end.x),
+			rng.randf_range(bounds.position.y, bounds.end.y)
+		)
+		add_bird(position, Vector2.from_angle(rng.randf() * TAU) * MIN_SPEED)
+	var per_flock := FORM_SIZE + 3
+	var index := 0
+	for pulses in seed_pulses:
+		if index + per_flock > birds.size() or flocks.size() >= MAX_FLOCKS:
+			break
+		var inner := bounds.grow(-EDGE_MARGIN * 1.5)
+		var centre := Vector2(
+			rng.randf_range(inner.position.x, inner.end.x),
+			rng.randf_range(inner.position.y, inner.end.y)
+		)
+		var heading := Vector2.from_angle(rng.randf() * TAU) * (MIN_SPEED + MAX_SPEED) * 0.5
+		var members: Array[Bird] = []
+		for j in per_flock:
+			var bird := birds[index]
+			index += 1
+			bird.position = centre + Vector2.from_angle(rng.randf() * TAU) * rng.randf() * 30.0
+			bird.velocity = heading
+			members.append(bird)
+		make_flock(members, pulses)
+
+
+## A new loner with a voice of its own.
+func add_bird(position: Vector2, velocity: Vector2) -> Bird:
+	var bird := Bird.new()
+	bird.position = position
+	bird.velocity = velocity
+	bird.note = VOICE_NOTES[rng.randi() % VOICE_NOTES.size()]
+	var roll := rng.randf()
+	if roll < 0.5:
+		bird.waveform = SynthWavetable.Waveform.SINE
+	elif roll < 0.8:
+		bird.waveform = SynthWavetable.Waveform.SQUARE
+	else:
+		bird.waveform = SynthWavetable.Waveform.SAW
+	birds.append(bird)
+	return bird
+
+
+## Gather [param members] into a new flock playing [param pulses]. Members
+## leave whatever flock they were in first.
+func make_flock(members: Array[Bird], pulses: int) -> Flock:
+	var flock := Flock.new()
+	flock.id = _next_id
+	_next_id += 1
+	flock.pulses = pulses
+	flocks.append(flock)
+	for bird in members:
+		join(bird, flock)
+	_refresh_centroid(flock)
+	flock_formed.emit(flock)
+	return flock
+
+
+## [param bird] joins [param flock] and plays its rhythm from now on. Its voice
+## is untouched.
+func join(bird: Bird, flock: Flock) -> void:
+	if bird.flock == flock:
+		return
+	if bird.flock != null:
+		leave(bird)
+	bird.flock = flock
+	bird.gather = 0.0
+	flock.members.append(bird)
+	bird_joined.emit(bird, flock)
+
+
+## [param bird] drops out of its flock and goes silent.
+func leave(bird: Bird) -> void:
+	if bird.flock == null:
+		return
+	bird.flock.members.erase(bird)
+	bird.flock = null
+	bird.gather = 0.0
+
+
+## Burst every flock not playing [param survivor] apart: members are thrown
+## clear of their flock's centre, go silent, and cannot join anything for
+## [constant STUN_SECONDS]. Returns how many birds were scattered.
+func scatter(survivor: int) -> int:
+	var count := 0
+	for flock: Flock in flocks.duplicate():
+		if flock.pulses == survivor:
+			continue
+		_refresh_centroid(flock)
+		for bird: Bird in flock.members.duplicate():
+			var away := bird.position - flock.centroid
+			if away.length_squared() < 0.01:
+				away = Vector2.from_angle(rng.randf() * TAU)
+			bird.velocity = away.normalized() * SCATTER_SPEED
+			bird.stunned = STUN_SECONDS
+			leave(bird)
+			count += 1
+		_remove_flock(flock)
+	scattered.emit(survivor, count)
+	return count
+
+
+## Rhythms with at least one flock, each listed once.
+func pulses_on_screen() -> Array[int]:
+	var on_screen: Array[int] = []
+	for flock in flocks:
+		if not flock.pulses in on_screen:
+			on_screen.append(flock.pulses)
+	return on_screen
+
+
+func weight_for(pulses: int) -> float:
+	return weights.get(pulses, 1.0)
+
+
+## How hard a [param pulses]-pulse rhythm is surging at [param beats]: 1 on
+## each pulse, dying away towards the next.
+static func surge(beats: float, pulses: int, p_beats_per_bar: int) -> float:
+	var phase := fposmod(beats * pulses / p_beats_per_bar, 1.0)
+	return exp(-phase * SURGE_DECAY)
+
+
+## Move every bird on by [param delta] seconds, with the music at [param beats],
+## then settle who belongs to which flock.
+func step(delta: float, beats: float) -> void:
+	for flock in flocks:
+		_refresh_centroid(flock)
+		flock.flash = maxf(flock.flash - delta * 3.0, 0.0)
+	var accelerations: Array[Vector2] = []
+	for bird in birds:
+		accelerations.append(_steer(bird, beats))
+	for i in birds.size():
+		_integrate(birds[i], accelerations[i], delta)
+	update_membership(delta)
+
+
+func _steer(bird: Bird, beats: float) -> Vector2:
+	var separation := Vector2.ZERO
+	var heading := Vector2.ZERO
+	var centre := Vector2.ZERO
+	var neighbours := 0
+	for other in birds:
+		if other == bird:
+			continue
+		var offset := other.position - bird.position
+		var distance := offset.length()
+		if distance < SEPARATION_RADIUS and distance > 0.001:
+			separation -= offset / distance * (1.0 - distance / SEPARATION_RADIUS)
+		if distance < NEIGHBOUR_RADIUS and other.flock == bird.flock:
+			heading += other.velocity
+			centre += other.position
+			neighbours += 1
+
+	var accel := separation * SEPARATION_ACCEL
+	var gain := LONER_GAIN
+	if bird.flock != null:
+		var weight := weight_for(bird.flock.pulses)
+		gain = weight * (1.0 + surge_gain * surge(beats, bird.flock.pulses, beats_per_bar))
+		accel += (bird.flock.centroid - bird.position) * CENTROID_GAIN * weight
+	else:
+		accel += Vector2.from_angle(rng.randf() * TAU) * WANDER_ACCEL
+		accel += _attraction(bird)
+	if neighbours > 0:
+		accel += (centre / neighbours - bird.position) * COHESION_GAIN * gain
+		accel += (heading / neighbours - bird.velocity) * ALIGNMENT_GAIN * gain
+	return accel + _edge_push(bird.position)
+
+
+## Pull on a loner towards the nearest flock, by how much that flock's rhythm
+## is in favour. At a neutral weight there is still a faint pull, so flocks
+## recruit slowly on their own.
+func _attraction(bird: Bird) -> Vector2:
+	if bird.stunned > 0.0:
+		return Vector2.ZERO
+	var nearest: Flock = null
+	var nearest_distance := ATTRACT_RADIUS
+	for flock in flocks:
+		var distance := bird.position.distance_to(flock.centroid)
+		if distance < nearest_distance:
+			nearest = flock
+			nearest_distance = distance
+	if nearest == null:
+		return Vector2.ZERO
+	var pull := maxf(weight_for(nearest.pulses) - 0.7, 0.0)
+	return (nearest.centroid - bird.position).normalized() * ATTRACT_ACCEL * pull
+
+
+func _edge_push(position: Vector2) -> Vector2:
+	var push := Vector2.ZERO
+	push.x += maxf(1.0 - (position.x - bounds.position.x) / EDGE_MARGIN, 0.0)
+	push.x -= maxf(1.0 - (bounds.end.x - position.x) / EDGE_MARGIN, 0.0)
+	push.y += maxf(1.0 - (position.y - bounds.position.y) / EDGE_MARGIN, 0.0)
+	push.y -= maxf(1.0 - (bounds.end.y - position.y) / EDGE_MARGIN, 0.0)
+	return push * EDGE_ACCEL
+
+
+func _integrate(bird: Bird, accel: Vector2, delta: float) -> void:
+	bird.velocity += accel * delta
+	var top := MAX_SPEED
+	if bird.stunned > 0.0:
+		top = lerpf(MAX_SPEED, SCATTER_SPEED, bird.stunned / STUN_SECONDS)
+	var speed := bird.velocity.length()
+	if speed > top:
+		bird.velocity *= top / speed
+	elif speed < MIN_SPEED:
+		bird.velocity = (
+			bird.velocity / speed * MIN_SPEED
+			if speed > 0.001
+			else Vector2.from_angle(rng.randf() * TAU) * MIN_SPEED
+		)
+	bird.position += bird.velocity * delta
+	bird.position = bird.position.clamp(bounds.position, bounds.end)
+
+
+## Settle who belongs where, without moving anyone: strays and restless birds
+## leave, flocks down to one bird dissolve, loners in reach join, and clumps
+## that have held long enough become flocks. [method step] calls this after
+## moving everyone; a test can call it alone.
+func update_membership(delta: float) -> void:
+	for bird in birds:
+		bird.stunned = maxf(bird.stunned - delta, 0.0)
+	for flock in flocks:
+		_refresh_centroid(flock)
+	_shed(delta)
+	for flock: Flock in flocks.duplicate():
+		if flock.size() < 2:
+			for bird: Bird in flock.members.duplicate():
+				leave(bird)
+			_remove_flock(flock)
+	_merge_flocks()
+	_snap_loners(delta)
+	_form_flocks(delta)
+
+
+## Members drop out when they stray too far from their flock's centre, and now
+## and then out of restlessness — more often from a flock out of favour.
+func _shed(delta: float) -> void:
+	for flock in flocks:
+		var weight := weight_for(flock.pulses)
+		var reach := LEAVE_RADIUS * clampf(weight, 0.5, 1.5)
+		var restless := restless_rate * delta / maxf(weight * weight, 0.1)
+		for bird: Bird in flock.members.duplicate():
+			if bird.position.distance_to(flock.centroid) > reach:
+				leave(bird)
+			elif rng.randf() < restless:
+				leave(bird)
+				bird.stunned = RESTLESS_STUN_SECONDS
+
+
+## Two flocks of the same rhythm that fly into each other become one, as long
+## as the result fits in [constant MAX_FLOCK_SIZE]; the smaller joins the
+## larger. Otherwise they would overlap and read as one flock anyway.
+func _merge_flocks() -> void:
+	for a: Flock in flocks.duplicate():
+		for b: Flock in flocks.duplicate():
+			if a == b or a.pulses != b.pulses or not a in flocks or not b in flocks:
+				continue
+			if a.size() < b.size() or a.size() + b.size() > MAX_FLOCK_SIZE:
+				continue
+			if a.centroid.distance_to(b.centroid) > MERGE_RADIUS:
+				continue
+			for bird: Bird in b.members.duplicate():
+				join(bird, a)
+			_remove_flock(b)
+			_refresh_centroid(a)
+
+
+## A loner within [constant SNAP_RADIUS] of a flock's member joins it with a
+## chance of [member snap_rate] a second, scaled by the flock's weight. Joins
+## are decided before any is applied, so a bird that joins this step cannot
+## drag its neighbours in after it in the same step.
+func _snap_loners(delta: float) -> void:
+	var joins := {}
+	for bird in birds:
+		if bird.flock != null or bird.stunned > 0.0:
+			continue
+		var target: Flock = null
+		var nearest := SNAP_RADIUS
+		for other in birds:
+			var flock := other.flock
+			if flock == null or flock.size() >= MAX_FLOCK_SIZE:
+				continue
+			if weight_for(flock.pulses) < SNAP_MIN_WEIGHT:
+				continue
+			var distance := bird.position.distance_to(other.position)
+			if distance < nearest:
+				nearest = distance
+				target = flock
+		if target != null and rng.randf() < snap_rate * weight_for(target.pulses) * delta:
+			joins[bird] = target
+	for bird: Bird in joins:
+		var flock: Flock = joins[bird]
+		if flock.size() < MAX_FLOCK_SIZE and flock in flocks:
+			join(bird, flock)
+
+
+## Loners that stay clumped long enough become a flock — one per step at most,
+## so two clumps never race for the last free flock slot.
+func _form_flocks(delta: float) -> void:
+	for bird in birds:
+		if bird.flock != null or bird.stunned > 0.0:
+			bird.gather = 0.0
+			continue
+		var clump := _loners_near(bird)
+		if clump.size() + 1 < FORM_SIZE:
+			bird.gather = 0.0
+			continue
+		bird.gather += delta
+		if bird.gather < FORM_DWELL or flocks.size() >= MAX_FLOCKS:
+			continue
+		var members: Array[Bird] = [bird]
+		for other in clump:
+			if members.size() >= MAX_FLOCK_SIZE:
+				break
+			members.append(other)
+		make_flock(members, table.roll(rng, pulses_on_screen(), spawn_bias))
+		return
+
+
+func _loners_near(bird: Bird) -> Array[Bird]:
+	var near: Array[Bird] = []
+	for other in birds:
+		if other == bird or other.flock != null or other.stunned > 0.0:
+			continue
+		if bird.position.distance_to(other.position) < FORM_RADIUS:
+			near.append(other)
+	return near
+
+
+func _refresh_centroid(flock: Flock) -> void:
+	if flock.members.is_empty():
+		return
+	var sum := Vector2.ZERO
+	for bird in flock.members:
+		sum += bird.position
+	flock.centroid = sum / flock.members.size()
+
+
+func _remove_flock(flock: Flock) -> void:
+	flocks.erase(flock)
+	flock_dissolved.emit(flock)
