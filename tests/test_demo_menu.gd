@@ -65,6 +65,17 @@ func test_backspace_and_select_go_back_but_other_input_does_not() -> void:
 	assert_true(DemoMenu._is_back(select), "Gamepad Select")
 
 
+func test_the_decks_view_button_in_desktop_mode_leaves_a_demo() -> void:
+	var tab := InputEventKey.new()
+	tab.physical_keycode = DeckDesktopLayout.VIEW
+	tab.pressed = true
+	assert_false(DemoMenu._is_back(tab), "Not back at the menu, where Tab moves focus")
+	assert_true(DemoMenu._is_deck_view(tab), "The Deck's View under the desktop layout")
+	_menu.open_demo(STAND_IN_PATH)
+	_menu._input(tab)
+	assert_false(_menu.is_demo_open(), "Left the demo")
+
+
 func test_opening_a_demo_hands_it_the_screen() -> void:
 	_menu.open_demo(STAND_IN_PATH)
 	assert_true(_menu.is_demo_open(), "A demo is running")

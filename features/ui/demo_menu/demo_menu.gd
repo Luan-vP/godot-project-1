@@ -169,12 +169,10 @@ func close_demo() -> void:
 ## [code]_input[/code], not unhandled: demos take keys in their own unhandled
 ## handlers, and nothing a demo does should be able to swallow the way out.
 func _input(event: InputEvent) -> void:
-	if not _is_back(event):
-		return
-	if is_demo_open():
+	if is_demo_open() and (_is_back(event) or _is_deck_view(event)):
 		get_viewport().set_input_as_handled()
 		close_demo()
-	elif _from_picker:
+	elif not is_demo_open() and _from_picker and _is_back(event):
 		get_viewport().set_input_as_handled()
 		get_tree().quit()
 
@@ -185,6 +183,20 @@ static func _is_back(event: InputEvent) -> bool:
 		return key.pressed and not key.echo and key.keycode == KEY_BACKSPACE
 	var button := event as InputEventJoypadButton
 	return button != null and button.pressed and button.button_index == JOY_BUTTON_BACK
+
+
+## The Deck's View (Select) button under Steam's Desktop Mode layout, where it
+## arrives as Tab rather than a gamepad button (see [DeckDesktopLayout]). It
+## only ever leaves a running demo: at the menu Tab moves focus, so it must not
+## also quit the game.
+static func _is_deck_view(event: InputEvent) -> bool:
+	var key := event as InputEventKey
+	return (
+		key != null
+		and key.pressed
+		and not key.echo
+		and key.physical_keycode == DeckDesktopLayout.VIEW
+	)
 
 
 func _build() -> void:
@@ -204,7 +216,7 @@ func _build() -> void:
 	margin.add_child(column)
 
 	column.add_child(_label("Demos", 40, TEXT))
-	var hint := "Pick one. Backspace or Select comes back here."
+	var hint := "Pick one. Backspace or Select (Tab from a Deck in Desktop Mode) comes back here."
 	if _from_picker:
 		hint += " Here, they go back to the pull requests."
 	column.add_child(_label(hint, 16, MUTED))

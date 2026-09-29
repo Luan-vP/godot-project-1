@@ -45,22 +45,27 @@ static func ensure(
 
 ## A short, readable name for an input the player just pressed — which key,
 ## which pad and button, which mouse button — or an empty string for anything
-## else (releases, motion). For showing what a device actually sends, e.g. the
-## Deck's buttons under a Steam Input desktop layout.
+## else (releases, motion). For showing what a device actually sends; a key or
+## click the Deck's desktop layout produces is named after the Deck control
+## that sends it (see [DeckDesktopLayout]).
 static func describe(event: InputEvent) -> String:
 	if not event.is_pressed() or event.is_echo():
 		return ""
+	var described := ""
 	var key := event as InputEventKey
+	var button := event as InputEventJoypadButton
+	var click := event as InputEventMouseButton
 	if key != null:
 		var code := key.physical_keycode if key.physical_keycode != KEY_NONE else key.keycode
-		return "key %s" % OS.get_keycode_string(code)
-	var button := event as InputEventJoypadButton
-	if button != null:
-		return "pad %d button %d" % [button.device, button.button_index]
-	var click := event as InputEventMouseButton
-	if click != null:
-		return "mouse button %d" % click.button_index
-	return ""
+		described = "key %s" % OS.get_keycode_string(code)
+	elif button != null:
+		described = "pad %d button %d" % [button.device, button.button_index]
+	elif click != null:
+		described = "mouse button %d" % click.button_index
+	var deck := DeckDesktopLayout.control_for(event)
+	if not deck.is_empty():
+		described += " (Deck %s in Desktop Mode)" % deck
+	return described
 
 
 static func _add(action: StringName, event: InputEvent) -> void:

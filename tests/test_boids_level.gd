@@ -57,13 +57,15 @@ func test_the_snare_hears_a_gamepad_on_any_device() -> void:
 		assert_true(button.is_action_pressed(BoidsLevel.SNARE), "Pad on device %d" % device)
 
 
-func test_the_snare_hears_b_space_and_a_click() -> void:
-	for keycode in [KEY_B, KEY_SPACE]:
+func test_the_snare_hears_the_deck_in_desktop_mode() -> void:
+	# Run outside Steam, the Deck's B, Y and triggers arrive as keys and clicks.
+	for keycode in [KEY_B, DeckDesktopLayout.B, DeckDesktopLayout.Y]:
 		var key := InputEventKey.new()
 		key.physical_keycode = keycode
 		key.pressed = true
 		assert_true(key.is_action_pressed(BoidsLevel.SNARE), OS.get_keycode_string(keycode))
-	var click := InputEventMouseButton.new()
-	click.button_index = MOUSE_BUTTON_LEFT
-	click.pressed = true
-	assert_true(click.is_action_pressed(BoidsLevel.SNARE), "Left click")
+	for button_index in [DeckDesktopLayout.R2, DeckDesktopLayout.L2]:
+		var click := InputEventMouseButton.new()
+		click.button_index = button_index
+		click.pressed = true
+		assert_true(click.is_action_pressed(BoidsLevel.SNARE), "Mouse button %d" % button_index)

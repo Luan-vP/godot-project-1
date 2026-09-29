@@ -5,11 +5,11 @@ extends Node2D
 ## polyrhythms against each other — each with a voice of its own. Loners are
 ## silent.
 ##
-## The player plays a snare (B, Space or a click; B on a gamepad). Every tap
-## is read against every rhythm (see [TapReader]): flocks whose rhythm fits
-## the last bar of taps tighten and pull loners in, and flocks that do not
-## loosen and shed birds. Hold one rhythm unambiguously for long enough and
-## every flock playing something else bursts apart (see [ScatterCharge]) —
+## The player plays a snare (B, Esc, Space or a click; B on a gamepad).
+## Every tap is read against every rhythm (see [TapReader]): flocks whose
+## rhythm fits the last bar of taps tighten and pull loners in, and flocks that
+## do not loosen and shed birds. Hold one rhythm unambiguously for long enough
+## and every flock playing something else bursts apart (see [ScatterCharge]) —
 ## rare on purpose.
 ##
 ## The snare sounds the instant it is hit, and a quieter ghost of it lands a
@@ -97,11 +97,13 @@ var _dial: Control
 
 
 func _ready() -> void:
+	# B on a keyboard or a gamepad, and whatever the Deck's B, Y and triggers
+	# send when Steam keeps it in its Desktop Mode layout.
 	InputActions.ensure(
 		SNARE,
-		[KEY_B, KEY_SPACE] as Array[Key],
+		[KEY_B, DeckDesktopLayout.B, DeckDesktopLayout.Y] as Array[Key],
 		[JOY_BUTTON_B] as Array[JoyButton],
-		[MOUSE_BUTTON_LEFT] as Array[MouseButton]
+		[DeckDesktopLayout.R2, DeckDesktopLayout.L2] as Array[MouseButton]
 	)
 	_rng.randomize()
 	table = RhythmTable.default_table()
@@ -429,7 +431,7 @@ func _update_hud() -> void:
 			% [roundi(AudioManager.get_tempo()), sim.flocks.size(), _singing(), _silent()]
 		)
 		+ "reads as %s · %s\n" % [read, state]
-		+ "B / Space / click snare · ↑↓ ±2 bpm · ←→ ±10 bpm · last input: %s" % _last_input
+		+ "B / Esc / Space / click snare · ↑↓ ±2 bpm · ←→ ±10 bpm · last input: %s" % _last_input
 	)
 
 
