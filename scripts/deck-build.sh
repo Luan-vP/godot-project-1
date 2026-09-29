@@ -107,11 +107,11 @@ LAUNCH
 chmod +x "$INSTALL_DIR/launch.sh"
 
 # The PR picker swaps the running build for another with tools/deck-demo.sh,
-# which builds with tools/deck-build.sh. They are copied from these scripts,
-# not from the project being built, so a PR older than the picker still builds
-# and swaps the same way.
+# which builds with tools/deck-build.sh, and merges one with tools/deck-merge.sh.
+# They are copied from these scripts, not from the project being built, so a
+# PR older than any of them still builds, swaps and merges the same way.
 mkdir -p "$INSTALL_DIR/tools"
-cp "$SCRIPTS/deck-demo.sh" "$SCRIPTS/deck-build.sh" "$INSTALL_DIR/tools/"
+cp "$SCRIPTS/deck-demo.sh" "$SCRIPTS/deck-build.sh" "$SCRIPTS/deck-merge.sh" "$INSTALL_DIR/tools/"
 chmod +x "$INSTALL_DIR/tools/"*.sh
 
 # PR builds are reached through the picker; a launcher entry each would pile up.

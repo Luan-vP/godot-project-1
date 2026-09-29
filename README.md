@@ -134,6 +134,12 @@ the PR). Without it, leave through Steam's *Exit game* and launch again.
 Picking only works in a build installed on the Deck; elsewhere,
 `scripts/run.sh prs` just shows the list.
 
+Holding `M` (or `X` on a pad) on a card for about a second and a half
+squash-merges that PR, with `gh` — needs `gh auth login` run once on the
+Deck itself (`repo` scope is enough). This is `scripts/deck-merge.sh`, copied
+into `tools/` the same way as the swap script, so it works from any build
+that has the picker regardless of whether the PR being merged does.
+
 ## Running the tests
 
 ```sh
