@@ -10,9 +10,15 @@ the demo menu. The design interview behind it is
 
 | Input | Does |
 | --- | --- |
-| `B` (keyboard or gamepad) | Snare |
+| `B` (keyboard or gamepad), `Space`, left click | Snare |
 | ↑ / ↓ (d-pad too) | Tempo ±2 bpm — in every scene, see `TempoControl` |
 | ← / → (d-pad too) | Tempo ±10 bpm |
+
+The HUD's *last input* shows what the game actually received for the last
+press. On the Deck in Desktop Mode, Steam Input's desktop layout turns the
+controller into a keyboard and mouse unless the game is launched through
+Steam, so the B button may arrive as a key rather than a gamepad button. Its
+R2 is a left click, which is why a click is also a snare.
 
 ## What happens
 

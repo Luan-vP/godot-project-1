@@ -50,3 +50,11 @@ func test_a_nudge_moves_the_music_tempo() -> void:
 	assert_eq(landed, 74.0, "Landed")
 	assert_eq(AudioManager.get_tempo(), 74.0, "AudioManager follows")
 	assert_eq(AudioManager.get_music_clock().beats_per_bar, 4, "Bar length untouched")
+
+
+func test_the_d_pad_works_on_any_gamepad() -> void:
+	var button := InputEventJoypadButton.new()
+	button.button_index = JOY_BUTTON_DPAD_UP
+	button.pressed = true
+	button.device = 2
+	assert_eq(TempoControlScript.step_for(button), 2.0, "D-pad up on the third pad")

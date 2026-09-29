@@ -45,3 +45,25 @@ func test_favoured_rhythms_weigh_more() -> void:
 func test_weight_from_fit() -> void:
 	assert_eq(BoidsLevel.weight_for_fit(1.0), BoidsLevel.WEIGHT_HIGH, "Perfect")
 	assert_eq(BoidsLevel.weight_for_fit(0.3), BoidsLevel.WEIGHT_LOW, "Below the floor")
+
+
+func test_the_snare_hears_a_gamepad_on_any_device() -> void:
+	# Steam's virtual gamepad is rarely device 0.
+	for device in [0, 1, 3]:
+		var button := InputEventJoypadButton.new()
+		button.button_index = JOY_BUTTON_B
+		button.pressed = true
+		button.device = device
+		assert_true(button.is_action_pressed(BoidsLevel.SNARE), "Pad on device %d" % device)
+
+
+func test_the_snare_hears_b_space_and_a_click() -> void:
+	for keycode in [KEY_B, KEY_SPACE]:
+		var key := InputEventKey.new()
+		key.physical_keycode = keycode
+		key.pressed = true
+		assert_true(key.is_action_pressed(BoidsLevel.SNARE), OS.get_keycode_string(keycode))
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = true
+	assert_true(click.is_action_pressed(BoidsLevel.SNARE), "Left click")

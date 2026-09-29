@@ -5,8 +5,8 @@ extends Node2D
 ## polyrhythms against each other — each with a voice of its own. Loners are
 ## silent.
 ##
-## The player plays a snare (B). Every tap is read against every rhythm (see
-## [TapReader]): flocks whose rhythm fits the last bar of taps tighten and pull
+## The player plays a snare (B, Space or a click; B on a gamepad). Every tap
+## is read against every rhythm (see [TapReader]): flocks whose rhythm fits the last bar of taps tighten and pull
 ## loners in, and flocks that do not loosen and shed birds. Hold one rhythm
 ## unambiguously for long enough and every flock playing something else
 ## bursts apart (see [ScatterCharge]) — rare on purpose.
@@ -80,6 +80,7 @@ var _ghosts: Array[float] = []
 ## pulses -> weight, eased; mirrored into [member FlockSim.weights].
 var _weights := {}
 var _scatter_flash := 0.0
+var _last_input := "nothing yet"
 var _started := false
 
 var _synths := {}
@@ -95,7 +96,12 @@ var _dial: Control
 
 
 func _ready() -> void:
-	InputActions.ensure(SNARE, [KEY_B] as Array[Key], [JOY_BUTTON_B] as Array[JoyButton])
+	InputActions.ensure(
+		SNARE,
+		[KEY_B, KEY_SPACE] as Array[Key],
+		[JOY_BUTTON_B] as Array[JoyButton],
+		[MOUSE_BUTTON_LEFT] as Array[MouseButton]
+	)
 	_rng.randomize()
 	table = RhythmTable.default_table()
 	_grid = table.grid_steps(BEATS_PER_BAR)
@@ -156,6 +162,15 @@ func _process(delta: float) -> void:
 	queue_redraw()
 	_dial.queue_redraw()
 	_update_hud()
+
+
+## Every press, before anything handles it, so the HUD can show what a device
+## really sends — the Deck under a Steam Input desktop layout turns its buttons
+## into keys and clicks.
+func _input(event: InputEvent) -> void:
+	var described := InputActions.describe(event)
+	if not described.is_empty():
+		_last_input = described
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -413,7 +428,7 @@ func _update_hud() -> void:
 			% [roundi(AudioManager.get_tempo()), sim.flocks.size(), _singing(), _silent()]
 		)
 		+ "reads as %s · %s\n" % [read, state]
-		+ "B snare · ↑↓ ±2 bpm · ←→ ±10 bpm"
+		+ "B / Space / click snare · ↑↓ ±2 bpm · ←→ ±10 bpm · last input: %s" % _last_input
 	)
 
 
