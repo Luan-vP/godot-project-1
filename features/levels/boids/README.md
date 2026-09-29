@@ -10,9 +10,17 @@ the demo menu. The design interview behind it is
 
 | Input | Does |
 | --- | --- |
-| `B` (keyboard or gamepad) | Snare |
+| `B` (keyboard or gamepad), `Esc`, `Space`, left or right click | Snare |
 | ↑ / ↓ (d-pad too) | Tempo ±2 bpm — in every scene, see `TempoControl` |
 | ← / → (d-pad too) | Tempo ±10 bpm |
+
+On the Deck in Desktop Mode, run outside Steam, Steam Input keeps the
+controller in its desktop layout and the game sees a keyboard and mouse. B
+sends Esc, Y sends Space, R2 and L2 are left and right click, so all four
+play the snare, and the d-pad sends the arrows, so tempo works as it is. See
+[docs/steam-deck-controls.md](../../../docs/steam-deck-controls.md). The HUD's
+*last input* shows what the game actually received for the last press, and
+names the Deck control that sent it.
 
 ## What happens
 

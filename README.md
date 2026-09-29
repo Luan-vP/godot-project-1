@@ -69,6 +69,11 @@ the compiled copies — Godot misses edits to the shared
 
 ## Building on the Steam Deck
 
+Run from Desktop Mode outside Steam, the Deck's controller reaches the game
+as a keyboard and mouse (B is Escape, the triggers are clicks), not a
+gamepad. [docs/steam-deck-controls.md](docs/steam-deck-controls.md) has the
+layout and what each control does in the game.
+
 The Deck builds its own export: the compute shaders compile against its own
 GPU, and the result is exactly what it will run. From your dev machine, over
 Tailscale:
