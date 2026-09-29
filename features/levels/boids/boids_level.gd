@@ -6,10 +6,11 @@ extends Node2D
 ## silent.
 ##
 ## The player plays a snare (B, Space or a click; B on a gamepad). Every tap
-## is read against every rhythm (see [TapReader]): flocks whose rhythm fits the last bar of taps tighten and pull
-## loners in, and flocks that do not loosen and shed birds. Hold one rhythm
-## unambiguously for long enough and every flock playing something else
-## bursts apart (see [ScatterCharge]) — rare on purpose.
+## is read against every rhythm (see [TapReader]): flocks whose rhythm fits
+## the last bar of taps tighten and pull loners in, and flocks that do not
+## loosen and shed birds. Hold one rhythm unambiguously for long enough and
+## every flock playing something else bursts apart (see [ScatterCharge]) —
+## rare on purpose.
 ##
 ## The snare sounds the instant it is hit, and a quieter ghost of it lands a
 ## bar later on the pulse it was read as, so the player hears how they were
