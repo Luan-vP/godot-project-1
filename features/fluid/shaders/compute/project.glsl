@@ -14,7 +14,7 @@ layout(set = 0, binding = 2) uniform sampler2D pressure_tex;
 layout(set = 0, binding = 3) uniform sampler2D obstacle_tex;
 
 float pressure_at(ivec2 coord) {
-	return texelFetch(pressure_tex, clamp(coord, ivec2(0), params.size - 1), 0).x;
+	return texelFetch(pressure_tex, neighbour(coord), 0).x;
 }
 
 void main() {

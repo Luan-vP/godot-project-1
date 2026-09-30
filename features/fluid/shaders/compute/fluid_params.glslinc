@@ -38,7 +38,8 @@ layout(push_constant, std430) uniform Params {
 	vec2 viscous_alpha;
 	// 0 lets fluid slide along walls in the viscosity pass; 1 is no-slip.
 	float wall_friction;
-	float pad_a;
+	// Non-zero when the tank has no walls and each edge joins the opposite one.
+	int wrap_edges;
 	vec2 pad_b;
 } params;
 
@@ -49,4 +50,33 @@ vec2 cell_uv(ivec2 coord) {
 
 bool out_of_bounds(ivec2 coord) {
 	return coord.x >= params.size.x || coord.y >= params.size.y;
+}
+
+// The cell a neighbour lookup lands in. At most one cell past the grid: a
+// wrapping tank reads round to the opposite edge, a walled one holds the edge.
+ivec2 neighbour(ivec2 coord) {
+	if (params.wrap_edges != 0) {
+		return (coord + params.size) % params.size;
+	}
+	return clamp(coord, ivec2(0), params.size - 1);
+}
+
+// Where an advection trace-back samples from. A walled tank keeps it off the
+// rim; a wrapping one lets it leave one edge and come in at the other.
+vec2 source_point(vec2 uv) {
+	if (params.wrap_edges != 0) {
+		return fract(uv);
+	}
+	vec2 half_texel = params.texel_size * 0.5;
+	return clamp(uv, half_texel, vec2(1.0) - half_texel);
+}
+
+// UV offset from a splat's centre, the short way round in a wrapping tank, so
+// a stir at one edge also reaches across to the other.
+vec2 splat_offset(vec2 uv, vec2 centre) {
+	vec2 offset = uv - centre;
+	if (params.wrap_edges != 0) {
+		offset -= round(offset);
+	}
+	return offset;
 }

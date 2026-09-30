@@ -59,6 +59,7 @@ scripts/run.sh eyes        # the secret eye tank
 scripts/run.sh band        # the eye tank as a band: eyes off the walls play parts
 scripts/run.sh birds       # flocks singing 3-against-4, played with a snare (B)
 scripts/run.sh panorama    # look-around camera (no panorama image yet)
+scripts/run.sh gaze        # look around to swish the floaters
 scripts/run.sh refraction  # the clear medium bending a checkerboard
 scripts/run.sh synth       # play the synth voices from the keyboard
 scripts/run.sh groove      # synthwave loop: drums on the step grid, bass and pads

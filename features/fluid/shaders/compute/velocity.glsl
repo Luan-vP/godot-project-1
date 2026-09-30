@@ -32,13 +32,10 @@ void main() {
 		return;
 	}
 	vec2 uv = cell_uv(coord);
-	vec2 half_texel = params.texel_size * 0.5;
 
 	// Semi-Lagrangian advection: look backwards along the flow and resample.
 	vec2 here = texture(velocity_tex, uv).xy;
-	vec2 source_uv = clamp(
-		uv - here * params.time_step * params.texel_size, half_texel, vec2(1.0) - half_texel
-	);
+	vec2 source_uv = source_point(uv - here * params.time_step * params.texel_size);
 	vec2 velocity = texture(velocity_tex, source_uv).xy * params.dissipation;
 
 	// Vorticity confinement. Numerical diffusion eats small vortices every
@@ -63,11 +60,12 @@ void main() {
 	velocity += (ambient * params.ambient_strength + params.ambient_drift) * params.time_step;
 
 	// A uniform field is already divergence free, so the projection step leaves
-	// it alone except at the walls -- which is where the sloshing comes from.
+	// it alone except at the walls -- which is where the sloshing comes from. A
+	// wrapping tank has no walls, so there it simply keeps flowing.
 	velocity += params.uniform_impulse;
 
 	for (int i = 0; i < params.splat_count; i++) {
-		vec2 offset = (uv - splat_buffer.splats[i].slot.xy) * params.splat_aspect;
+		vec2 offset = splat_offset(uv, splat_buffer.splats[i].slot.xy) * params.splat_aspect;
 		float radius = max(splat_buffer.splats[i].shape.x, 1e-4);
 		float falloff = exp(-dot(offset, offset) / (radius * radius));
 		velocity += splat_buffer.splats[i].slot.zw * falloff;

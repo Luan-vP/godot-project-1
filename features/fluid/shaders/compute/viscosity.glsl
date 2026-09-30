@@ -28,14 +28,14 @@ layout(set = 0, binding = 2) uniform sampler2D advected_tex;
 layout(set = 0, binding = 3) uniform sampler2D obstacle_tex;
 
 bool is_obstacle(ivec2 coord) {
-	return texelFetch(obstacle_tex, clamp(coord, ivec2(0), params.size - 1), 0).x > 0.5;
+	return texelFetch(obstacle_tex, neighbour(coord), 0).x > 0.5;
 }
 
 vec2 guess_at(ivec2 coord, vec2 centre) {
 	if (is_obstacle(coord)) {
 		return centre * (1.0 - params.wall_friction);
 	}
-	return texelFetch(guess_tex, clamp(coord, ivec2(0), params.size - 1), 0).xy;
+	return texelFetch(guess_tex, neighbour(coord), 0).xy;
 }
 
 void main() {
