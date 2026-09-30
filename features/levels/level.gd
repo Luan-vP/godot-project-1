@@ -93,6 +93,34 @@ static func dim_interior() -> Level:
 	return level
 
 
+## Level 1: pure exploration (issue #22). An overcast sky, brighter and flatter
+## than [method overcast_sky], because a first-time player has to read one
+## floater against it rather than take in a whole crowded field. No [member
+## edge_source] and nothing outside [Level] itself tracks score, time, or an
+## end condition — leaving is the only way this level ends.
+##
+## Fewer, larger floaters than [method overcast_sky] and a current between
+## its brisk drift and [method dim_interior]'s near-stillness: enough motion
+## to see, and enough settle time after a look that stopping still reads as
+## the medium going still, not as nothing having happened.
+static func pure_exploration() -> Level:
+	var level := Level.new()
+	level.panorama_texture = _gradient_panorama(
+		Color(0.94, 0.96, 0.99), Color(0.89, 0.92, 0.96), Color(0.83, 0.86, 0.91)
+	)
+	var fluid := FluidConfig.new()
+	fluid.viscosity = 260.0
+	fluid.vorticity = 6.0
+	fluid.ambient_current = 3.0
+	level.fluid_config = fluid
+	level.floater_count = 40
+	level.floater_radius_range = Vector2(4.0, 12.0)
+	level.floater_size_skew = 1.6
+	level.distortion_strength = 0.006
+	level.look_sensitivity = 1.0
+	return level
+
+
 ## A small vertical-gradient equirectangular sky: [param top] at the zenith
 ## fading through [param horizon] to [param bottom] at the nadir. Generated
 ## rather than shipped as an image, the same reason [code]refraction_demo.gd[/code]
