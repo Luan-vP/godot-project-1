@@ -15,15 +15,16 @@ extends EdgeSource
 ## own yaw/pitch, so a fixed change in yaw produces a proportionally shorter
 ## chord near a pole than at the equator automatically, the same as the real
 ## geometry. No separate correction step is needed here because none of this
-## data ever passes through a pixel grid. An [EdgeSource] built from an image
-## filter would not get this for free — it would have to map its pixel
-## coordinates to the same angles before calling [method _direction], at
-## which point the distortion is handled the same way.
+## data ever passes through a pixel grid. [CannyEdgeSource] does the
+## equivalent for real image pixels with [EquirectProjection] instead, since
+## that source's convention for "yaw zero" is Godot's own panorama-sky
+## sampling, not this class's hand-authoring one — see that class's docstring
+## for why the two do not (and do not need to) agree with each other.
 
 ## One polyline per edge. Each point is [code](yaw_degrees, pitch_degrees)[/code]
 ## — the same convention as [member PanoramaLookCamera.yaw]/[member
 ## PanoramaLookCamera.pitch], in degrees for easier hand authoring. An edge
-## with fewer than two points is legal (see [method _tangent_at]) but
+## with fewer than two points is legal (see [PanoramaEdgeTangent]) but
 ## degenerate; it exists so a fixture can isolate a single point without the
 ## list shrinking away.
 @export var edges_degrees: Array[PackedVector2Array] = []
@@ -46,7 +47,7 @@ func _build_edge(id: int, polyline_degrees: PackedVector2Array) -> PanoramaEdge:
 
 	var points: Array[PanoramaEdgePoint] = []
 	for i in directions.size():
-		points.append(PanoramaEdgePoint.new(directions[i], _tangent_at(directions, i)))
+		points.append(PanoramaEdgePoint.new(directions[i], PanoramaEdgeTangent.at(directions, i)))
 	return PanoramaEdge.new(id, points)
 
 
@@ -56,28 +57,3 @@ func _build_edge(id: int, polyline_degrees: PackedVector2Array) -> PanoramaEdge:
 ## straight at with that yaw and pitch.
 static func _direction(yaw: float, pitch: float) -> Vector3:
 	return Basis.from_euler(Vector3(pitch, yaw, 0.0)) * Vector3.FORWARD
-
-
-## Central difference along the polyline at [param index], projected onto the
-## tangent plane there so it stays perpendicular to that point's own
-## direction even though the chord between two sphere points is not — a
-## chord is a straight line through the sphere's interior, and the tangent
-## needs the part of it that actually points along the surface.
-static func _tangent_at(directions: Array[Vector3], index: int) -> Vector3:
-	var direction: Vector3 = directions[index]
-	var chord: Vector3
-	if directions.size() < 2:
-		# A single-point edge has no neighbour to take a chord from. Fall
-		# back to any vector perpendicular to the direction, so callers never
-		# have to special-case a zero tangent.
-		chord = direction.cross(Vector3.UP)
-		if chord.length_squared() < 0.0001:
-			chord = direction.cross(Vector3.RIGHT)
-	elif index == 0:
-		chord = directions[1] - direction
-	elif index == directions.size() - 1:
-		chord = direction - directions[index - 1]
-	else:
-		chord = directions[index + 1] - directions[index - 1]
-	var tangent := chord - direction * chord.dot(direction)
-	return tangent.normalized()
