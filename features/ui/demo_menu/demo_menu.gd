@@ -113,6 +113,11 @@ const DEMOS: Array[Dictionary] = [
 		"blurb": "Scoring drives the layer stack (#34). +/- floaters, C clustered/scattered.",
 	},
 	{
+		"name": "Contacts",
+		"path": "res://features/scoring_sound/contact_sound_demo.tscn",
+		"blurb": "Scoring contact sound. 1-6 hold a contact, Space fires a burst.",
+	},
+	{
 		"name": "Pull requests",
 		"path": PR_PICKER_PATH,
 		"blurb": "Open PRs on GitHub. On the Deck, pick one to build and play it in place of this.",
