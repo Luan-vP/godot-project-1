@@ -18,6 +18,8 @@ A 2D game about floaty eye thingies, in a painterly style. Godot 4.4.
 - `features/levels/panorama/` — the main level's core mechanic: a camera at
   the centre of a look-around panoramic background. See its
   [README](features/levels/panorama/README.md).
+- `features/levels/main/` — the level the game opens on: the panorama, the
+  clear medium, floaters, and the look swishing the medium.
 - `features/ui/level_select/` — the level select: discovers `Level`
   resources from `resources/levels/` and plays whichever one is picked.
 - `resources/levels/` — the `Level` resources the level select discovers.
@@ -37,12 +39,21 @@ A 2D game about floaty eye thingies, in a painterly style. Godot 4.4.
 - `addons/` — vendored third-party code; see [addons/README.md](addons/README.md).
 - `tests/` — GUT suite.
 
-Pressing play opens the level select: pick a level with a click, `Enter`, or
-a gamepad, and press `Backspace` (or `Select` on a gamepad) from inside one to
-come back. It lists whatever `Level` resources it finds under
-`resources/levels/` — see [its README](resources/levels/README.md) — plus a
-secret entry, reached by a gesture; see
+Pressing play opens the main level (`features/levels/main/`): a pale
+panorama with a clear medium over it and floaters drifting in it. Look around
+with the mouse or right stick and the medium swishes, so the floaters lag,
+sweep and settle. It is loaded from `resources/main_level.tres`, and it has no
+goal yet — no score, no timer, no end.
+
+To reach the secret level, press `Backspace` (or `Select` on a gamepad) to go
+to the level select, then press `Shift` (or `Y` on a gamepad) there: an "Eyes"
+card appears. See
 [the secret eye level's README](features/levels/secret_eyes/README.md).
+
+The level select lists whatever `Level` resources it finds under
+`resources/levels/` — see [its README](resources/levels/README.md): pick one
+with a click, `Enter`, or a gamepad, and press `Backspace` (or `Select`) from
+inside it to come back.
 
 `features/ui/demo_menu/` is a separate, development-only menu that lists
 every level and demo, including ones that are not `Level` resources yet — see
@@ -52,7 +63,8 @@ every level and demo, including ones that are not `Level` resources yet — see
 
 ```sh
 scripts/run.sh             # list the levels and demos, with their controls
-scripts/run.sh play        # the level select every player sees
+scripts/run.sh play        # the main level, what pressing play opens
+scripts/run.sh select      # the level select, and the way to the secret level
 scripts/run.sh menu        # the clickable demo menu
 scripts/run.sh vitreous    # floaters in the vitreous gel
 scripts/run.sh eyes        # the secret eye tank

@@ -23,10 +23,9 @@ extends Control
 ## README for why a level-select gesture replaced the Shift-at-startup flag
 ## that folder's README used to call for.
 ##
-## As [code]run/main_scene[/code], this is also what a Deck build launches
-## into — including the PR picker's swap script. See [method
-## _wants_demo_menu] for why that still reaches [code]DemoMenu[/code] rather
-## than showing this screen first.
+## [code]run/main_scene[/code] is [MainLevel] now; this screen is one
+## Backspace from it. [MainLevel] hands the PR picker's swap-script flags to
+## [code]DemoMenu[/code] itself, using [method _wants_demo_menu].
 
 ## Emitted after a card's scene has been instanced and made the current scene.
 signal level_opened(entry_name: String)
@@ -51,7 +50,7 @@ const SECRET_LEVEL_BLURB := (
 ## Where [code]--prs[/code]/[code]--from-picker[/code] hand off to — see
 ## [method _wants_demo_menu]. This screen is [code]run/main_scene[/code] now,
 ## so the PR picker's swap script, which starts a build with one of those
-## flags expecting the pull request picker, would otherwise land here
+## flags expecting the pull request picker, would otherwise land on a level
 ## instead and find no picker at all.
 const DEMO_MENU_SCENE := "res://features/ui/demo_menu/demo_menu.tscn"
 
@@ -205,7 +204,7 @@ func close_level() -> void:
 ## way out.
 func _input(event: InputEvent) -> void:
 	if is_level_open():
-		if _is_back(event):
+		if is_back(event):
 			get_viewport().set_input_as_handled()
 			close_level()
 		return
@@ -213,7 +212,7 @@ func _input(event: InputEvent) -> void:
 		_reveal_secret()
 
 
-static func _is_back(event: InputEvent) -> bool:
+static func is_back(event: InputEvent) -> bool:
 	var key := event as InputEventKey
 	if key != null:
 		return key.pressed and not key.echo and key.keycode == KEY_BACKSPACE

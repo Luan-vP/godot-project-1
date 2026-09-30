@@ -63,14 +63,14 @@ func test_there_is_a_card_per_discovered_level_and_no_secret_yet() -> void:
 
 
 func test_backspace_and_select_go_back_but_other_input_does_not() -> void:
-	assert_true(LevelSelect._is_back(_key(KEY_BACKSPACE, true, false)), "Backspace")
-	assert_false(LevelSelect._is_back(_key(KEY_BACKSPACE, true, true)), "Held-key repeat")
-	assert_false(LevelSelect._is_back(_key(KEY_BACKSPACE, false, false)), "Release")
-	assert_false(LevelSelect._is_back(_key(KEY_ESCAPE, true, false)), "Escape is not back")
+	assert_true(LevelSelect.is_back(_key(KEY_BACKSPACE, true, false)), "Backspace")
+	assert_false(LevelSelect.is_back(_key(KEY_BACKSPACE, true, true)), "Held-key repeat")
+	assert_false(LevelSelect.is_back(_key(KEY_BACKSPACE, false, false)), "Release")
+	assert_false(LevelSelect.is_back(_key(KEY_ESCAPE, true, false)), "Escape is not back")
 	var select := InputEventJoypadButton.new()
 	select.button_index = JOY_BUTTON_BACK
 	select.pressed = true
-	assert_true(LevelSelect._is_back(select), "Gamepad Select")
+	assert_true(LevelSelect.is_back(select), "Gamepad Select")
 
 
 func test_secret_gesture_is_shift_or_gamepad_y_only() -> void:
