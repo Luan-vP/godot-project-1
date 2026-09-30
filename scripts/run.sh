@@ -56,6 +56,9 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
   comfort    Comfort options (#17): distortion strength, look sensitivity,
              floater overshoot reduction. Open a panorama level afterwards to
              feel a change take effect.
+  arrangement Scoring drives the layer stack (#34): drums join in stages as a
+             soft pad bed. +/- simulated floaters, C toggles clustered vs
+             scattered scoring.
   prs        Open pull requests on GitHub. Picking one builds and swaps to it
              only on the Deck (scripts/deck-demo.sh); elsewhere it just lists.
 
@@ -85,6 +88,7 @@ scene_for() {
 		groove) echo "res://core/audio/groove_demo.tscn" ;;
 		audio) echo "res://core/audio/audio_demo.tscn" ;;
 		comfort) echo "res://features/ui/comfort_settings/comfort_settings_demo.tscn" ;;
+		arrangement) echo "res://core/audio/arrangement_demo.tscn" ;;
 		prs | pulls) echo "res://features/ui/pr_picker/pr_picker.tscn" ;;
 		*) return 1 ;;
 	esac
