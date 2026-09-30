@@ -83,7 +83,7 @@ func test_motion_defaults_match_a_bare_floater() -> void:
 	var field: FloaterField = autofree(FloaterField.new())
 	var floater: Floater = autofree(Floater.new())
 	assert_eq(field.drag, floater.drag, "Drag")
-	assert_eq(field.buoyancy, floater.buoyancy, "Buoyancy")
+	assert_eq(field.weight, floater.weight, "Weight")
 	assert_eq(field.max_speed, floater.max_speed, "Max speed")
 
 

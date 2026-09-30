@@ -42,7 +42,7 @@ func test_a_rect_with_a_non_zero_origin_wraps_relative_to_it() -> void:
 func test_a_floater_starts_non_neutrally_buoyant() -> void:
 	var floater := Floater.new()
 	autofree(floater)
-	assert_gt(floater.buoyancy, 0.0, "Sinks by default")
+	assert_gt(floater.weight, 0.0, "Sinks by default")
 
 
 func test_a_floater_does_not_stir_or_stain_by_default() -> void:
