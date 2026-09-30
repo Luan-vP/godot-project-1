@@ -148,3 +148,37 @@ test here", and [#25](https://github.com/Luan-vP/godot-project-1/issues/25)
 (comparing detectors) cannot happen without one: a unit test can check a
 tangent is perpendicular to its direction, but only a human looking at the
 overlay can judge whether the detector traced the picture's real edges.
+
+## Choosing a detector ([#25](https://github.com/Luan-vP/godot-project-1/issues/25))
+
+**Recommendation: [`LineFitEdgeSource`](line_fit_edge_source.gd) — Canny plus
+a line-fitting pass.** It is `CannyEdgeSource` with one override
+(`_refine_runs`), so it shares the whole pipeline and the debug overlay.
+
+Judged on the issue's criteria, not benchmark precision/recall. Compare them
+yourself with `scripts/run.sh compare` (Tab panorama, 1/2/3 detector, A saves
+all nine images to `user://`), which shows [`EdgeStats`](edge_stats.gd) beside
+the overlay: run count, median/p90 run length, share of points in long runs,
+and coverage of an 8x4 grid over the view (low coverage = crammed in a corner).
+
+> **Status of the evidence.** The detectors, the comparison scene and unit
+> tests were written in a CI sandbox with no Godot binary, so nothing here has
+> been run and no screenshots exist yet. The reasoning below follows from how
+> each algorithm works; the numbers and images must come from running
+> `scripts/run.sh compare`, and the verdict should be overturned if they
+> disagree. The three panoramas are synthetic (bricks, foliage and gravel
+> around a few real outlines) because the repo ships no photographs.
+
+| Approach | Verdict |
+| --- | --- |
+| **Canny + line fit** | **Chosen.** Keeps Canny's sensitivity to real outlines, then throws away short and bendy runs (texture) and straightens the rest. Thresholds are fractions of image width, so they do not depend on `working_width`. Tangents along a fitted line are steady instead of flickering between pixel-staircase angles. |
+| Canny alone | Baseline from #24. Correct but the wrong shape: every brick mortar line, leaf and gravel speck becomes a run. Many short fragments is the expected failure. Kept as the detector the fit is built on. |
+| Contour tracing on a segmented image ([`ContourEdgeSource`](contour_edge_source.gd)) | Implemented. Ignores texture inside a region by construction, which is what is wanted, but a single global Otsu split only sees boundaries between regions of different *brightness*: a bright roof against bright sky vanishes, and foliage against a dark wall gets one blobby outline. Needs per-image care the fit pass does not, so it fails the stability-across-panoramas criterion. Reasonable as a second source feeding the same line fit. |
+| Sobel/Scharr + aggressive hysteresis | Not separately implemented: Canny *is* Sobel plus non-maximum suppression plus hysteresis. Raising `high_threshold` is the crude version and only trades texture for lost faint real edges; it cannot tell a long weak edge from a short strong one, which length filtering can. Scharr would change gradient accuracy, not the problem. |
+| Learned detector (HED, structured forests) | Not implemented, on purpose. It would ship a model and likely need a bake step, and it largely buys "prefer object boundaries over texture", which the length/bend filter gets for free here. Revisit only if real photographs show the line fit dropping outlines that a human would want. |
+
+Known limits of the chosen approach, for whoever revisits it: a real outline
+Canny breaks into two runs with a gap (occlusion, low contrast) is judged as
+two short runs and can be dropped, where merging collinear runs would keep
+it; and the `max_vertices_per_100px` bend filter will also reject a tightly
+curved outline. Both are worth a look once real panoramas are available.
