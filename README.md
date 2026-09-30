@@ -64,6 +64,7 @@ scripts/run.sh synth       # play the synth voices from the keyboard
 scripts/run.sh groove      # synthwave loop: drums on the step grid, bass and pads
 scripts/run.sh audio       # buses, loop layers, the effect fader
 scripts/run.sh comfort     # distortion, look sensitivity, floater overshoot
+scripts/run.sh arrangement # scoring drives the layer stack (#34)
 ```
 
 In every scene, the arrow keys (or d-pad) move the music's tempo: up and down

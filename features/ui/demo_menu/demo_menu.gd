@@ -108,6 +108,11 @@ const DEMOS: Array[Dictionary] = [
 		"Distortion, look sensitivity, floater overshoot — adjust, then open a panorama level.",
 	},
 	{
+		"name": "Arrangement",
+		"path": "res://core/audio/arrangement_demo.tscn",
+		"blurb": "Scoring drives the layer stack (#34). +/- floaters, C clustered/scattered.",
+	},
+	{
 		"name": "Pull requests",
 		"path": PR_PICKER_PATH,
 		"blurb": "Open PRs on GitHub. On the Deck, pick one to build and play it in place of this.",
