@@ -23,6 +23,9 @@ usage() {
 	cat <<'USAGE'
 Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
 
+  play       The level select every player sees (run/main_scene): pick a
+             level, Backspace comes back. Press Shift to reveal the secret
+             eye tank.
   menu       Click into any of the demos below; Backspace comes back.
   level1     Level 1: pure exploration. No score, no timer, no way to fail —
              just look. Mouse or right stick to look, Esc frees the cursor.
@@ -64,6 +67,7 @@ USAGE
 # Keep in step with DemoMenu.DEMOS in features/ui/demo_menu/demo_menu.gd.
 scene_for() {
 	case "$1" in
+		play | select | levels) echo "res://features/ui/level_select/level_select.tscn" ;;
 		menu) echo "res://features/ui/demo_menu/demo_menu.tscn" ;;
 		level1 | level-one) echo "res://features/levels/panorama/level_one.tscn" ;;
 		eyes | secret-eyes | fluid) echo "res://features/levels/secret_eyes/fluid_demo.tscn" ;;
