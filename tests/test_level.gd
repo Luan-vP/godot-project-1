@@ -11,6 +11,8 @@ func test_defaults_are_usable() -> void:
 	assert_gt(level.floater_size_skew, 0.0, "Skew must stay positive")
 	assert_between(level.distortion_strength, 0.0, 0.1, "Within RefractionStyle's range")
 	assert_almost_eq(level.look_sensitivity, 1.0, 0.0001, "Neutral by default")
+	assert_eq(level.display_name, "", "Blank until a level select card names it")
+	assert_eq(level.blurb, "", "Blank until a level select card describes it")
 
 
 func test_fluid_config_is_a_reference_not_inlined_fields() -> void:

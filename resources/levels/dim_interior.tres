@@ -1,0 +1,34 @@
+[gd_resource type="Resource" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://features/levels/level.gd" id="1_level"]
+[ext_resource type="Script" path="res://features/fluid/fluid_config.gd" id="2_fluid_config"]
+
+[sub_resource type="Gradient" id="Gradient_1"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(0.11, 0.1, 0.11, 1, 0.07, 0.065, 0.075, 1, 0.03, 0.03, 0.035, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_1"]
+gradient = SubResource("Gradient_1")
+width = 4
+height = 256
+fill_from = Vector2(0.5, 0)
+fill_to = Vector2(0.5, 1)
+
+[sub_resource type="Resource" id="FluidConfig_1"]
+script = ExtResource("2_fluid_config")
+viscosity = 1200.0
+vorticity = 0.0
+velocity_dissipation = 0.98
+ambient_current = 1.0
+
+[resource]
+script = ExtResource("1_level")
+display_name = "Dim Interior"
+blurb = "Dim interior, floaters barely there. Same controls as Overcast Sky."
+panorama_texture = SubResource("GradientTexture2D_1")
+fluid_config = SubResource("FluidConfig_1")
+floater_count = 8
+floater_radius_range = Vector2(1, 3)
+floater_size_skew = 2.5
+distortion_strength = 0.002
+look_sensitivity = 0.6
