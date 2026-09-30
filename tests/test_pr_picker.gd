@@ -1,8 +1,9 @@
 extends GutTest
 ## Covers [PrPicker]'s pure parts: reading GitHub's pulls response, the line
-## under each title, and the command that hands over to the swap script. The
-## request and the swap itself need the network and a Deck install, so they
-## are left to playing it.
+## under each title, the commands that hand over to the swap and merge
+## scripts, and reading a card's own name back into a PR number. The
+## request, the swap and the merge itself need the network and a Deck
+## install, so they are left to playing it.
 
 const NOW := 1790000000
 
@@ -77,3 +78,26 @@ func test_the_demo_script_sits_in_tools_beside_the_executable() -> void:
 func test_the_demo_menu_lists_the_picker() -> void:
 	var paths := DemoMenu.DEMOS.map(func(demo: Dictionary) -> String: return demo["path"])
 	assert_has(paths, DemoMenu.PR_PICKER_PATH)
+
+
+func test_merge_args_run_the_script_with_the_pr_and_log() -> void:
+	var args := PrPicker.merge_args("/g/tools/deck-merge.sh", 94, "/u/pr_merge.log")
+	assert_eq(Array(args), ["/g/tools/deck-merge.sh", "94", "--log", "/u/pr_merge.log"])
+
+
+func test_the_merge_script_sits_in_tools_beside_the_executable() -> void:
+	var expected := OS.get_executable_path().get_base_dir().path_join("tools/deck-merge.sh")
+	assert_eq(PrPicker.merge_script_path(), expected)
+
+
+func test_merge_succeeded_reads_the_marker_deck_merge_writes() -> void:
+	assert_true(PrPicker.merge_succeeded("gh output...\nMERGED\n"))
+	assert_false(PrPicker.merge_succeeded("gh output...\nFAILED (exit 1)\n"))
+	assert_false(PrPicker.merge_succeeded(""))
+
+
+func test_pr_number_from_name_reads_a_cards_own_name() -> void:
+	assert_eq(PrPicker.pr_number_from_name("PR94"), 94)
+	assert_eq(PrPicker.pr_number_from_name(""), -1, "No focus")
+	assert_eq(PrPicker.pr_number_from_name("Refresh"), -1, "Not a card")
+	assert_eq(PrPicker.pr_number_from_name("PR"), -1, "No digits")
