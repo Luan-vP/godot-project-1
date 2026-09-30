@@ -40,8 +40,8 @@ func test_eyes_past_the_last_part_get_none() -> void:
 
 func test_every_part_is_played_by_some_eye_in_the_eye_tank() -> void:
 	assert_eq(EyeBand.PARTS.size(), 7, "One part per eye in the tank")
-	for part in EyeBand.LOOP_PARTS:
-		assert_has(EyeBand.PARTS, part, "Loop part %s is a part" % part)
+	for part in EyeBand.DRUM_PARTS:
+		assert_has(EyeBand.PARTS, part, "Drum part %s is a part" % part)
 
 
 func test_a_wall_silences_only_the_eye_touching_it() -> void:
