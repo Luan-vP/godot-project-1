@@ -83,6 +83,11 @@ const BOKEH_SHADER := preload("res://features/floaters/shaders/bokeh.gdshader")
 @export var defocus_enabled: bool = true:
 	set = set_defocus_enabled
 
+## Most a banded floater bends the background behind it, in screen pixels —
+## the faint lens that makes debris read as glass. Zero turns it off.
+@export_range(0.0, 8.0, 0.1) var refraction_px: float = 1.5:
+	set = set_refraction_px
+
 var _rng := RandomNumberGenerator.new()
 var _layers: Array[SubViewport] = []
 var _materials: Array[ShaderMaterial] = []
@@ -103,6 +108,11 @@ func _ready() -> void:
 
 func set_defocus_enabled(value: bool) -> void:
 	defocus_enabled = value
+	_apply_focus()
+
+
+func set_refraction_px(value: float) -> void:
+	refraction_px = value
 	_apply_focus()
 
 
@@ -138,6 +148,14 @@ func _build_layers() -> void:
 		material.shader = BOKEH_SHADER
 		_materials.append(material)
 
+		# Each composite reads the screen behind it, and the screen texture is
+		# otherwise copied once per frame — a nearer band would read a screen
+		# without the farther bands in it and paint over them. A fresh copy per
+		# band costs one full-screen blit each.
+		var copy := BackBufferCopy.new()
+		copy.copy_mode = BackBufferCopy.COPY_MODE_VIEWPORT
+		add_child(copy)
+
 		var composite := Sprite2D.new()
 		composite.centered = false
 		composite.texture = layer.get_texture()
@@ -164,6 +182,7 @@ func _apply_focus() -> void:
 		_materials[i].set_shader_parameter("tint", tint)
 		_materials[i].set_shader_parameter("radius_px", depth.blur_px if defocus_enabled else 0.0)
 		_materials[i].set_shader_parameter("gain", depth.gain if defocus_enabled else 1.0)
+		_materials[i].set_shader_parameter("refraction_px", refraction_px)
 
 
 func _make_floater(rect: Rect2, depth_index: int) -> Floater:
