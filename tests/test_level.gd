@@ -95,3 +95,21 @@ func test_pure_exploration_favors_legibility_over_overcast_skys_drama() -> void:
 		0.0,
 		"Floaters are large enough to track, not tiny specks"
 	)
+
+
+func test_feel_defaults_match_the_values_they_replaced() -> void:
+	# The feel knobs moved onto Level from constants on Floater and
+	# GazeFluidDriver; a fresh Level must start where those were, so existing
+	# levels do not change character just by gaining the fields.
+	var level := Level.new()
+	var floater := Floater.new()
+	var driver := GazeFluidDriver.new()
+	assert_eq(level.floater_drag, floater.drag, "Drag")
+	assert_eq(level.floater_settle, floater.buoyancy, "Sink rate")
+	assert_eq(level.floater_max_speed, floater.max_speed, "Speed cap")
+	assert_eq(level.gaze_hold_sensitivity, driver.hold_sensitivity, "Hold")
+	assert_eq(level.gaze_flick_sensitivity, driver.flick_sensitivity, "Flick")
+	assert_eq(level.gaze_settle_rate, driver.settle_rate, "Settle")
+	assert_eq(level.gaze_deadzone, driver.deadzone_rad_per_sec, "Deadzone")
+	floater.free()
+	driver.free()
