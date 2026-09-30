@@ -34,7 +34,7 @@ var scale: Array[int] = [0, 2, 3, 5, 7, 8, 10]
 var start_section: String = ""
 var sections: Dictionary = {}
 
-## Loop part name -> [StepPattern] text, as [method StepPattern.parse] takes.
+## Drum part name -> [StepPattern] text, as [method StepPattern.parse] takes.
 ## "fill" plays only in the last bar of a section, on top of the beat.
 var drums: Dictionary = {}
 
