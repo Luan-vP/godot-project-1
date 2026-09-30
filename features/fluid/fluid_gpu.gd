@@ -59,6 +59,7 @@ var _readback_size := Vector2i.ZERO
 var _pigment_enabled: bool = true
 var _iterations: int = MIN_PRESSURE_PASSES
 var _viscosity_iterations: int = 1
+var _wrap_edges: bool = false
 var _groups := Vector2i.ZERO
 var _readback_groups := Vector2i.ZERO
 
@@ -118,6 +119,7 @@ func build(config: FluidConfig) -> void:
 	_pigment_enabled = config.pigment_enabled
 	_iterations = maxi(config.pressure_iterations, MIN_PRESSURE_PASSES)
 	_viscosity_iterations = maxi(config.viscosity_iterations, 1)
+	_wrap_edges = config.wrap_edges
 	_groups = _group_count(_size)
 	_readback_groups = _group_count(_readback_size)
 	RenderingServer.call_on_render_thread(_build_resources)
@@ -165,9 +167,16 @@ func _build_resources() -> void:
 	var state := RDSamplerState.new()
 	state.mag_filter = RenderingDevice.SAMPLER_FILTER_LINEAR
 	state.min_filter = RenderingDevice.SAMPLER_FILTER_LINEAR
-	state.repeat_u = RenderingDevice.SAMPLER_REPEAT_MODE_CLAMP_TO_EDGE
-	state.repeat_v = RenderingDevice.SAMPLER_REPEAT_MODE_CLAMP_TO_EDGE
-	state.repeat_w = RenderingDevice.SAMPLER_REPEAT_MODE_CLAMP_TO_EDGE
+	# A wrapping tank's filtered reads have to blend across the seam too, or
+	# the curl and the readback would still see an edge the solve does not.
+	var repeat := (
+		RenderingDevice.SAMPLER_REPEAT_MODE_REPEAT
+		if _wrap_edges
+		else RenderingDevice.SAMPLER_REPEAT_MODE_CLAMP_TO_EDGE
+	)
+	state.repeat_u = repeat
+	state.repeat_v = repeat
+	state.repeat_w = repeat
 	_sampler = _rd.sampler_create(state)
 
 	var rgba := RenderingDevice.DATA_FORMAT_R16G16B16A16_SFLOAT
@@ -184,7 +193,7 @@ func _build_resources() -> void:
 	# The only obstacle today is the tank itself. Baked once and re-stamped
 	# after every clear, since nothing else writes into the mask yet -- a body
 	# stamping itself in is deliberate follow-up work.
-	_obstacle_walls = _make_wall_mask(_size)
+	_obstacle_walls = _make_wall_mask(_size, _wrap_edges)
 	_rd.texture_update(_obstacle, 0, _obstacle_walls)
 
 	_velocity_splat_buffer = _rd.storage_buffer_create(MAX_SPLATS * SPLAT_BYTES)
@@ -446,10 +455,14 @@ func _make_texture(size: Vector2i, format: int) -> RID:
 ## A single-channel R16F mask, 1.0 where a cell is solid and 0.0 where it is
 ## fluid. The tank walls are the outermost ring of cells -- one boundary
 ## concept for [code]divergence.glsl[/code] and [code]project.glsl[/code] to
-## read instead of each hardcoding "the edge of the texture".
-func _make_wall_mask(size: Vector2i) -> PackedByteArray:
+## read instead of each hardcoding "the edge of the texture". A wrapping tank
+## has no walls, so its mask is empty.
+static func _make_wall_mask(size: Vector2i, wrap_edges: bool) -> PackedByteArray:
 	var bytes := PackedByteArray()
 	bytes.resize(size.x * size.y * 2)
+	if wrap_edges:
+		# resize() leaves the bytes zeroed, and a zero half is 0.0: all fluid.
+		return bytes
 	for y in size.y:
 		for x in size.x:
 			var wall := x == 0 or y == 0 or x == size.x - 1 or y == size.y - 1
@@ -514,4 +527,5 @@ func _pack_params(
 	bytes.encode_float(72, viscous_alpha.x)
 	bytes.encode_float(76, viscous_alpha.y)
 	bytes.encode_float(80, frame["wall_friction"])
+	bytes.encode_s32(84, 1 if _wrap_edges else 0)
 	return bytes

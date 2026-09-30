@@ -15,11 +15,11 @@ layout(set = 0, binding = 1, r16f) uniform restrict writeonly image2D out_diverg
 layout(set = 0, binding = 2) uniform sampler2D obstacle_tex;
 
 vec2 velocity_at(ivec2 coord) {
-	return texelFetch(velocity_tex, clamp(coord, ivec2(0), params.size - 1), 0).xy;
+	return texelFetch(velocity_tex, neighbour(coord), 0).xy;
 }
 
 bool is_obstacle(ivec2 coord) {
-	return texelFetch(obstacle_tex, clamp(coord, ivec2(0), params.size - 1), 0).x > 0.5;
+	return texelFetch(obstacle_tex, neighbour(coord), 0).x > 0.5;
 }
 
 void main() {

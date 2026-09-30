@@ -42,6 +42,8 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
              or right stick to look, Esc frees the cursor, click to recapture.
   interior   Panorama level: dim interior, floaters barely there. Same
              controls as overcast.
+  gaze       Floaters swished by looking around. Mouse or right stick to look,
+             1/2 and 3/4 tune hold and flick sensitivity, R stills, F focus.
   refraction Clear medium over a checkerboard: only the bend shows. Drag to
              stir, +/- tune strength down to zero, R stills.
   canny      CannyEdgeSource's debug overlay: traced edges over a synthetic
@@ -82,6 +84,7 @@ scene_for() {
 		vitreous | floaters) echo "res://features/levels/vitreous/vitreous_tank.tscn" ;;
 		overcast | panorama) echo "res://features/levels/panorama/overcast_sky.tscn" ;;
 		interior) echo "res://features/levels/panorama/dim_interior.tscn" ;;
+		gaze) echo "res://features/levels/gaze/gaze_demo.tscn" ;;
 		refraction) echo "res://features/fluid/refraction_demo.tscn" ;;
 		canny | edges) echo "res://features/edges/canny_edge_debug.tscn" ;;
 		synth) echo "res://core/audio/synth_demo.tscn" ;;

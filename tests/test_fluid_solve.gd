@@ -39,6 +39,10 @@ const WALL_FLOW_RADIUS := 20.0
 const WALL_FLOW_FRAMES := 3
 const WALL_SLIP_RATIO := 1.5
 
+const WRAP_NUDGE := Vector2(62.5, 0.0)
+const WRAP_FRAMES := 30
+const WRAP_RETENTION_FLOOR := 0.9
+
 var _simulation: FluidSimulation
 var _dye_bytes := PackedByteArray()
 var _velocity_bytes: Array = []
@@ -264,6 +268,44 @@ func test_free_slip_walls_do_not_drag_a_viscous_flow() -> void:
 			"Fluid beside a free-slip wall should keep far more of its speed: %.1f vs no-slip %.1f"
 			% [slippery.y, sticky.y]
 		)
+	)
+
+
+## A push on the whole tank has nowhere to go in a walled tank, so pressure
+## cancels it; with the edges joined it is a uniform, divergence-free flow the
+## solve has no reason to touch. Walled and wrapping tanks nudged together.
+func test_a_wrapping_tank_keeps_a_whole_tank_nudge_moving() -> void:
+	if not FluidGPU.is_available():
+		pending("No rendering device available; the GPU solve cannot run headless here.")
+		return
+
+	var wrap_config: FluidConfig = _simulation.config.duplicate()
+	wrap_config.wrap_edges = true
+	var wrapping := FluidSimulation.new()
+	wrapping.config = wrap_config
+	add_child_autofree(wrapping)
+	var built: bool = await wait_until(
+		func(): return wrapping.get_velocity_texture() != null, FRAME_TIMEOUT
+	)
+	assert_true(built, "The wrapping tank should finish building")
+	await _step_frames(1)
+
+	for tank in [_simulation, wrapping]:
+		tank.nudge(WRAP_NUDGE)
+	await _step_frames(WRAP_FRAMES)
+
+	var pushed := _simulation.get_field().world_to_cell_velocity(WRAP_NUDGE)
+	var walled_drift := _simulation.get_field().mean_velocity()
+	var wrapped_drift := wrapping.get_field().mean_velocity()
+	assert_gt(
+		wrapped_drift.x,
+		pushed.x * WRAP_RETENTION_FLOOR,
+		"A wrapping tank should keep drifting: %s of a %s push" % [wrapped_drift, pushed]
+	)
+	assert_gt(
+		wrapped_drift.x,
+		walled_drift.x,
+		"The walled tank should hold on to less of it: %s vs %s" % [walled_drift, wrapped_drift]
 	)
 
 
