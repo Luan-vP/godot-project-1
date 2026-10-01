@@ -32,6 +32,12 @@ plus at least one of gamepad stick or touch drag; the gamepad covers that,
 and touch is a reasonable follow-up `LookSource` adapter whenever it's
 needed — the port does not change to add it.
 
+In the meantime a phone is not left without look: Godot's
+`emulate_mouse_from_touch` (on by default) turns a finger drag into
+`InputEventMouseMotion`, which `MouseLookSource` already reads. It turns at
+the mouse's sensitivity, which is a guess for a thumb, and cursor capture
+means nothing there.
+
 ## Using it
 
 [`PanoramaLookCamera`](../../features/player/panorama_look_camera.gd) owns a

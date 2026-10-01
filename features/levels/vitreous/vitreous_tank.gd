@@ -136,6 +136,10 @@ func _build_hint() -> void:
 		"drag push · WASD tilt · space jog · C calibrate · R still · +/- count"
 		+ " · F focus · B dark"
 	)
+	# One line on a desktop; a phone in portrait is too narrow for it.
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.size = Vector2(SafeArea.line_width(get_viewport(), hint.position.x), 0.0)
+	SafeArea.offset_layer(layer, get_viewport())
 	layer.add_child(hint)
 	add_child(layer)
 

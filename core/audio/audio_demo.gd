@@ -39,6 +39,8 @@ var _sfx_loop_player: AudioStreamPlayer
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# Clear of the Dynamic Island and home indicator on a phone.
+	SafeArea.fit_control(self)
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -244,6 +246,8 @@ func _build_fader_demo_row() -> VBoxContainer:
 		"ParameterFader demo: filter cutoff (SFX) + reverb wet (Music), swept every %.0fs"
 		% _SWEEP_PERIOD
 	)
+	# Wider than a phone held upright.
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	section.add_child(label)
 
 	_smooth_check = CheckBox.new()
