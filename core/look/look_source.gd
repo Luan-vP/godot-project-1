@@ -14,6 +14,21 @@ func poll(_delta: float) -> Vector2:
 	return Vector2.ZERO
 
 
+## Open whatever the source reads from. [LookInput] calls this when the
+## source joins a mix that is in the tree. Most sources read [Input], which is
+## always open; one backed by a camera must not hold it open while nothing is
+## looking, so the lifecycle is part of the port rather than a side effect of
+## the first poll.
+func start() -> void:
+	pass
+
+
+## Release whatever [method start] opened. Called when the source leaves the
+## mix or its [LookInput] leaves the tree.
+func stop() -> void:
+	pass
+
+
 ## Whether this source is actually producing input. Adapters should answer
 ## from something observed where they can, not from a platform name.
 func is_available() -> bool:
