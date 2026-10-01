@@ -10,6 +10,8 @@
 #                             (--as NAME installs it to ~/Games/NAME, so
 #                             builds can sit side by side to compare)
 #   scripts/deck.sh run       launch the installed build on the Deck's screen
+#                             (anything after NAME goes to the game after
+#                             `--`, e.g. `run pr-105 --prs` opens the PR picker)
 #   scripts/deck.sh stop      quit it
 #   scripts/deck.sh logs      show its recent output
 #                             (run/stop/logs take a NAME from build --as)
@@ -104,6 +106,12 @@ build() {
 
 run() {
 	local build="${1:-$NAME}"
+	shift || true
+	# Game args, shell-quoted for the remote side, after the engine's `--`.
+	local game_args=""
+	if [ $# -gt 0 ]; then
+		game_args=" -- $(printf '%q ' "$@")"
+	fi
 	# gamescope (Game Mode) and Plasma (Desktop Mode) both serve :0, sometimes
 	# with the cookie in a randomly named xauth_* file and sometimes with none.
 	# A transient user unit outlives the ssh session, which would otherwise
@@ -115,7 +123,7 @@ run() {
 		systemd-run --user --quiet --unit=$build --working-directory=\$HOME/Games/$build \
 			--property=ExitType=cgroup \
 			--setenv=DISPLAY=:0 \${auth:+--setenv=XAUTHORITY=\$auth} \
-			\$HOME/Games/$build/$NAME.x86_64"
+			\$HOME/Games/$build/$NAME.x86_64$game_args"
 	echo "Launched $build on the Deck. Logs: scripts/deck.sh logs $build"
 }
 
@@ -132,7 +140,7 @@ logs() {
 case "${1:-}" in
 	setup) setup ;;
 	build) shift; build "$@" ;;
-	run) run "${2:-}" ;;
+	run) run "${@:2}" ;;
 	stop) stop "${2:-}" ;;
 	logs) logs "${2:-}" ;;
 	ssh) "${SSH[@]}" "$HOST" ;;
