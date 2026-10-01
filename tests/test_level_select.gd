@@ -29,6 +29,7 @@ func before_each() -> void:
 	# A stand-in scene path, the same reason test_demo_menu.gd uses one: so no
 	# real level (or GPU tank) has to start for tests that don't need it.
 	_menu.secret_scene_path = SECRET_STAND_IN_PATH
+	_menu.quits_tree = false
 	# Scenes the menu opens sit beside it under the root, and the tree only
 	# accepts a direct child of the root as the current scene.
 	get_tree().root.add_child(_menu)
@@ -58,8 +59,31 @@ func test_discovered_level_names_are_unique() -> void:
 
 
 func test_there_is_a_card_per_discovered_level_and_no_secret_yet() -> void:
-	var buttons := _menu.find_children("*", "Button", true, false)
+	var buttons := _menu.find_children("*", "Button", true, false).filter(
+		func(b: Node) -> bool: return b.name != LevelSelect.QUIT_BUTTON_NAME
+	)
 	assert_eq(buttons.size(), LevelSelect.discover_levels().size(), "One card per discovered level")
+
+
+func test_the_quit_button_asks_to_quit() -> void:
+	watch_signals(_menu)
+	var quit := _menu.find_child(LevelSelect.QUIT_BUTTON_NAME, true, false) as Button
+	assert_not_null(quit, "There is a Quit button")
+	quit.pressed.emit()
+	assert_signal_emitted(_menu, "quit_requested")
+
+
+func test_back_at_the_menu_quits_but_back_in_a_level_does_not() -> void:
+	watch_signals(_menu)
+	_menu._input(_key(KEY_BACKSPACE, true, false))
+	assert_signal_emit_count(_menu, "quit_requested", 1, "Backspace at the menu quits")
+	_menu._input(_key(KEY_ESCAPE, true, false))
+	assert_signal_emit_count(_menu, "quit_requested", 1, "Other keys do not")
+	var entry := {"name": "Eyes", "level": null, "scene_path": SECRET_STAND_IN_PATH, "blurb": ""}
+	_menu.open_entry(entry)
+	_menu._input(_key(KEY_BACKSPACE, true, false))
+	assert_signal_emit_count(_menu, "quit_requested", 1, "Backspace in a level only goes back")
+	assert_false(_menu.is_level_open(), "and it did go back")
 
 
 func test_backspace_and_select_go_back_but_other_input_does_not() -> void:

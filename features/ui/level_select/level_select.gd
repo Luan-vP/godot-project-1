@@ -34,6 +34,10 @@ signal level_opened(entry_name: String)
 ## Emitted after the running level has been freed and the menu is showing.
 signal level_closed
 
+## Emitted when the player asks to leave the game from the menu, by the Quit
+## button or the back key. See [method request_quit].
+signal quit_requested
+
 ## Folder [method discover_levels] scans for [Level] resources. Keep in step
 ## with [code]resources/levels/README.md[/code].
 const LEVELS_DIR := "res://resources/levels/"
@@ -55,6 +59,9 @@ const SECRET_LEVEL_BLURB := (
 ## instead and find no picker at all.
 const DEMO_MENU_SCENE := "res://features/ui/demo_menu/demo_menu.tscn"
 
+## Named so tests (and anything else counting cards) can tell it from a level.
+const QUIT_BUTTON_NAME := "Quit"
+
 const BACKGROUND := Color(0.08, 0.085, 0.1)
 const TEXT := Color(0.86, 0.87, 0.9)
 const MUTED := Color(0.56, 0.58, 0.63)
@@ -63,6 +70,10 @@ const MUTED := Color(0.56, 0.58, 0.63)
 ## GPU-backed scenes.
 var level_scene_path: String = PANORAMA_LEVEL_SCENE
 var secret_scene_path: String = SECRET_LEVEL_SCENE
+
+## Whether [method request_quit] actually ends the game. Tests turn this off
+## so the runner they live in survives.
+var quits_tree: bool = true
 
 var _level: Node
 var _overlay: CanvasLayer
@@ -203,14 +214,26 @@ func close_level() -> void:
 	level_closed.emit()
 
 
+## Leave the game. This menu is the front door, so on a Deck — no keyboard,
+## no window to close in Game Mode — it is also the only way out.
+func request_quit() -> void:
+	quit_requested.emit()
+	if quits_tree:
+		get_tree().quit()
+
+
 ## [code]_input[/code], not unhandled: levels take keys in their own
 ## unhandled handlers, and nothing a level does should be able to swallow the
-## way out.
+## way out. Back closes a running level; at the menu itself it quits.
 func _input(event: InputEvent) -> void:
 	if is_level_open():
 		if _is_back(event):
 			get_viewport().set_input_as_handled()
 			close_level()
+		return
+	if _is_back(event):
+		get_viewport().set_input_as_handled()
+		request_quit()
 		return
 	if not _secret_revealed and _is_secret_gesture(event):
 		_reveal_secret()
@@ -273,7 +296,9 @@ func _build() -> void:
 	margin.add_child(column)
 
 	column.add_child(_label("Levels", 40, TEXT))
-	column.add_child(_label("Pick one. Backspace or Select comes back here.", 16, MUTED))
+	column.add_child(
+		_label("Pick one. Backspace or Select comes back here, and quits from here.", 16, MUTED)
+	)
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -286,6 +311,13 @@ func _build() -> void:
 	_grid.add_theme_constant_override("h_separation", 16)
 	_grid.add_theme_constant_override("v_separation", 16)
 	scroll.add_child(_grid)
+
+	var quit := Button.new()
+	quit.name = QUIT_BUTTON_NAME
+	quit.text = "Quit"
+	quit.custom_minimum_size = Vector2(0.0, 56.0)
+	quit.pressed.connect(request_quit)
+	column.add_child(quit)
 
 
 func _card(entry: Dictionary) -> Button:
