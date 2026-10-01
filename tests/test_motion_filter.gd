@@ -66,3 +66,21 @@ func test_the_deadzone_preserves_direction() -> void:
 	assert_almost_eq(
 		result.normalized().dot(value.normalized()), 1.0, EPSILON, "Direction unchanged"
 	)
+
+
+func test_smooth3_is_frame_rate_independent() -> void:
+	# The same trap as the two-dimensional smoothing, in the code that
+	# estimates gravity for a device that reports none: a per-frame factor
+	# would settle at a different rate on a 30 Hz and a 144 Hz display.
+	var target := Vector3(0.0, -9.8, 0.0)
+	var slow := MotionFilter.smooth3(Vector3.ZERO, target, 0.5, 1.0 / 30.0)
+	var fast := Vector3.ZERO
+	for _i in 4:
+		fast = MotionFilter.smooth3(fast, target, 0.5, 1.0 / 120.0)
+	assert_almost_eq(fast.y, slow.y, 0.0001, "One thirtieth of a second, either way")
+
+
+func test_smooth3_arrives_when_there_is_nothing_to_smooth() -> void:
+	var target := Vector3(1.0, 2.0, 3.0)
+	assert_eq(MotionFilter.smooth3(Vector3.ZERO, target, 0.0, 0.016), target, "No time constant")
+	assert_eq(MotionFilter.smooth3(Vector3.ZERO, target, 0.5, 0.0), target, "No step")
