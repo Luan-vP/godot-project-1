@@ -102,6 +102,9 @@ static func discover_levels() -> Array[Level]:
 	dir.list_dir_begin()
 	var file_name := dir.get_next()
 	while file_name != "":
+		# An exported build lists a converted resource as "x.tres.remap", not
+		# "x.tres"; load() takes the original name either way.
+		file_name = file_name.trim_suffix(".remap")
 		if not dir.current_is_dir() and file_name.get_extension() == "tres":
 			var resource := load(LEVELS_DIR + file_name)
 			if resource is Level:
