@@ -2,7 +2,7 @@ extends Control
 ## Manual proof that [ComfortSettings] works and is reachable in-game: a
 ## slider per comfort option, bound straight to its setter the same way
 ## `audio_demo.gd`'s bus sliders are bound to [AudioManager]. Open a panorama
-## level afterwards (Backspace, then Overcast Sky or Dim Interior) to feel a
+## level afterwards (Backspace, then Level 1) to feel a
 ## change take effect — comfort settings are read when a level builds its
 ## medium, not live while one is already running.
 

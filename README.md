@@ -18,10 +18,6 @@ A 2D game about floaty eye thingies, in a painterly style. Godot 4.4.
 - `features/levels/panorama/` — the main level's core mechanic: a camera at
   the centre of a look-around panoramic background. See its
   [README](features/levels/panorama/README.md).
-- `features/ui/level_select/` — the level select: discovers `Level`
-  resources from `resources/levels/` and plays whichever one is picked.
-- `resources/levels/` — the `Level` resources the level select discovers.
-  See its [README](resources/levels/README.md).
 - `features/player/` — `PanoramaLookCamera`, the camera the panorama level
   looks around with.
 - `core/motion/` — device tilt and jog behind a port, so the controls can be
@@ -37,17 +33,12 @@ A 2D game about floaty eye thingies, in a painterly style. Godot 4.4.
 - `addons/` — vendored third-party code; see [addons/README.md](addons/README.md).
 - `tests/` — GUT suite.
 
-Pressing play opens the level select: pick a level with a click, `Enter`, or
-a gamepad, and press `Backspace` (or `Select` on a gamepad) from inside one to
-come back. It lists whatever `Level` resources it finds under
-`resources/levels/` — see [its README](resources/levels/README.md) — plus a
-secret entry, reached by a gesture; see
-[the secret eye level's README](features/levels/secret_eyes/README.md).
-
-`features/ui/demo_menu/` is a separate, development-only menu that lists
-every level and demo, including ones that are not `Level` resources yet — see
-`scripts/run.sh menu`. On a touch screen with no `Backspace`, both menus show
-a tappable `⌫ menu` button in the corner instead.
+Pressing play opens `features/ui/demo_menu/`, the list of every level and
+demo (also `scripts/run.sh menu`): pick one with a click, `Enter`, or a
+gamepad, and press `Backspace` (or `Select` on a gamepad) from inside one to
+come back. `Backspace` or `Select` at the list itself quits, as does its Quit
+button. On a touch screen with no `Backspace`, a tappable `⌫ menu` button in
+the corner takes its place.
 
 ## Running a level
 

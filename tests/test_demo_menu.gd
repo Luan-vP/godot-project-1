@@ -25,6 +25,7 @@ func after_all() -> void:
 func before_each() -> void:
 	_previous_scene = get_tree().current_scene
 	_menu = DemoMenu.new()
+	_menu.quits_tree = false
 	# Scenes the menu opens sit beside it under the root, and the tree only
 	# accepts a direct child of the root as the current scene.
 	get_tree().root.add_child(_menu)
@@ -54,6 +55,27 @@ func test_there_is_a_button_per_demo() -> void:
 	assert_not_null(cards, "The card grid exists")
 	var buttons := cards.find_children("*", "Button", false, false)
 	assert_eq(buttons.size(), DemoMenu.DEMOS.size(), "One card per demo")
+
+
+func test_there_is_a_quit_button_outside_the_cards() -> void:
+	var quit := _menu.find_child(DemoMenu.QUIT_BUTTON_NAME, true, false) as Button
+	assert_not_null(quit, "There is a Quit button")
+	assert_false(_menu.find_child("Cards", true, false).is_ancestor_of(quit), "It is not a card")
+	watch_signals(_menu)
+	quit.pressed.emit()
+	assert_signal_emitted(_menu, "quit_requested", "Pressing it quits")
+
+
+func test_back_at_the_menu_quits_but_back_in_a_demo_does_not() -> void:
+	watch_signals(_menu)
+	_menu._input(_key(KEY_BACKSPACE, true, false))
+	assert_signal_emit_count(_menu, "quit_requested", 1, "Backspace at the menu quits")
+	_menu._input(_key(KEY_ESCAPE, true, false))
+	assert_signal_emit_count(_menu, "quit_requested", 1, "Other keys do not")
+	_menu.open_demo(STAND_IN_PATH)
+	_menu._input(_key(KEY_BACKSPACE, true, false))
+	assert_signal_emit_count(_menu, "quit_requested", 1, "Backspace in a demo only goes back")
+	assert_false(_menu.is_demo_open(), "and it did go back")
 
 
 func test_cards_stack_in_one_column_when_the_screen_is_narrow() -> void:
@@ -127,9 +149,9 @@ func test_launch_options_pick_demos_by_loose_name() -> void:
 	var vitreous: Dictionary = DemoMenu.DEMOS.filter(func(d): return d["name"] == "Vitreous")[0]
 	assert_eq(options.get("open"), vitreous["path"], "Case does not matter")
 	assert_false(options.has("probe"), "Not probing")
-	var probe := DemoMenu.launch_options(PackedStringArray(["--probe=eyes,overcast_sky"]))
+	var probe := DemoMenu.launch_options(PackedStringArray(["--probe=eyes,vitreous"]))
 	var names: Array = probe["probe"].map(func(demo): return demo["name"])
-	assert_eq(names, ["Eyes", "Overcast Sky"], "Menu order, spaces as underscores")
+	assert_eq(names, ["Eyes", "Vitreous"], "Menu order, spaces as underscores")
 	assert_eq(
 		DemoMenu.launch_options(PackedStringArray(["--probe"]))["probe"].size(),
 		DemoMenu.DEMOS.size(),

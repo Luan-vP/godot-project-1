@@ -22,25 +22,12 @@ circle of fifths, so every part stays in its register: two fourths up lands a
 whole tone *below* where you started, not an octave and a third above. The
 readout shows where the key sits relative to the song, -5 to +6.
 
-## Secret access
+## Access
 
-Reached from [`LevelSelect`](../../ui/level_select/level_select.gd), the
-level select every player actually sees (`run/main_scene`): press `Shift` on
-a keyboard, or the gamepad's `Y` button, while the level select is showing.
-An "Eyes" card appears in the list alongside the discovered levels, picked
-the same way as any other.
-
-This replaces an earlier decision to gate the tank behind holding `Shift`
-while starting the game — written before a menu existed for a gesture to
-live on. A level-select gesture reads better once there is a screen to hide
-it on, and needs no command-line flag or start-of-process check. The tank
-itself is unaffected: it is still not a [`Level`](../../level.gd) resource,
-so the level select's directory scan never surfaces it on its own — see
-`resources/levels/README.md`.
-
-`features/ui/demo_menu/` (`run/main_scene` before the level select existed)
-still lists this level openly alongside the rest, since it exists to make
-every demo and level reachable for development regardless of any secret.
+Listed openly as "Eyes" in `features/ui/demo_menu/`, the game's front door
+(`run/main_scene`). It was briefly a secret entry on a level-select screen,
+revealed by `Shift` or the gamepad's `Y`; that screen is gone, and with it
+the gesture. The tank is not a [`Level`](../../level.gd) resource.
 
 ## Eye band
 
