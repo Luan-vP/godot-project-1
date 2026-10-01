@@ -87,3 +87,15 @@ func test_zero_delta_time_is_ignored() -> void:
 	_step(Vector2(0.2, 0.2), 0.0)
 	assert_eq(_camera.yaw, 0.0, "Should not divide by a zero delta")
 	assert_eq(_camera.angular_velocity, Vector2.ZERO, "Should leave the last velocity alone")
+
+
+func test_c_and_a_double_tap_recentre_but_a_single_tap_does_not() -> void:
+	var key := InputEventKey.new()
+	key.keycode = KEY_C
+	key.pressed = true
+	assert_true(PanoramaLookCamera._is_recentre(key), "C")
+	var tap := InputEventScreenTouch.new()
+	tap.pressed = true
+	assert_false(PanoramaLookCamera._is_recentre(tap), "Single tap")
+	tap.double_tap = true
+	assert_true(PanoramaLookCamera._is_recentre(tap), "Double tap")

@@ -49,6 +49,10 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
   canny      CannyEdgeSource's debug overlay: traced edges over a synthetic
              panorama. Up/Down tunes blur, [/] and +/- tune thresholds,
              Left/Right tunes minimum run length.
+  eye-gaze   Eye tracking debug: tracking state, raw gaze, the gaze point and
+             the turn it makes. Calibrate, then look. Without the device
+             plugin the pointer stands in: C calibrates, Space blinks, F hides
+             the face, M switches backend.
   synth      Synth voices. A-K hold notes, Up/Down glide, 1/2/3 waveform,
              R plays a phrase, Space holds a high note.
   groove     Floaty synthwave loop at 70 bpm: rendered drums plus live bass and
@@ -89,6 +93,7 @@ scene_for() {
 		gaze) echo "res://features/levels/gaze/gaze_demo.tscn" ;;
 		refraction) echo "res://features/fluid/refraction_demo.tscn" ;;
 		canny | edges) echo "res://features/edges/canny_edge_debug.tscn" ;;
+		eye-gaze | eye-tracking) echo "res://core/look/gaze/gaze_debug_demo.tscn" ;;
 		synth) echo "res://core/audio/synth_demo.tscn" ;;
 		groove) echo "res://core/audio/groove_demo.tscn" ;;
 		audio) echo "res://core/audio/audio_demo.tscn" ;;

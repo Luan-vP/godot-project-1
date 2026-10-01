@@ -119,6 +119,10 @@ if [ "$compiled" -lt "$expected" ]; then
 	fi
 fi
 
+# Native plugins are static libraries the export links in; build them first
+# (a no-op when up to date). See native/ios/eye_gaze/build.sh.
+"$ROOT/native/ios/eye_gaze/build.sh"
+
 echo "Exporting the Xcode project to $EXPORT_DIR"
 mkdir -p "$EXPORT_DIR"
 "$GODOT_BIN" --headless --path "$ROOT" --export-debug "$PRESET" "$EXPORT_DIR/$PROJECT_NAME.ipa" \
