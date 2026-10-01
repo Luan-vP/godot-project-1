@@ -1,7 +1,7 @@
 # Birds: flocks as polyrhythms
 
 An alternative to the eye band (#90): instead of eyes that each play a part,
-a dusk sky of birds that flock, where every flock sings one polyrhythm and
+a sky of birds that flock over the eye tank's fluid, where every flock sings one polyrhythm and
 the player plays a snare against them. `scripts/run.sh birds`, or *Birds* in
 the demo menu. The design interview behind it is
 [docs/boids-rhythm-scope.md](../../../docs/boids-rhythm-scope.md).
@@ -53,6 +53,14 @@ names the Deck control that sent it.
   nothing can charge for eight bars.
 - **The snare shows how it was heard.** It sounds the instant it is hit, and
   a quiet ghost of it lands a bar later on the pulse it was read as.
+- **Birds stir the fluid; the fluid leaves birds alone.** The sky is the eye
+  tank's painterly fluid (`features/fluid/`). Every bird pushes the water
+  along its heading, so flocks drag wakes through the wash, and flocked birds
+  stain it faintly in their rhythm's colour. Nothing flows back: `FlockSim`
+  never samples the current, so the flocking is exactly what it was on a
+  plain sky. The tank takes only 16 stirrers a frame, so birds are binned on
+  a coarse grid and each cell pushes once with its birds' summed momentum
+  (`BirdWakes`) — a flock reads as one broad wake.
 
 ## Reading the screen
 
@@ -68,7 +76,8 @@ in the other corner spells out the tempo, the reading and the charge.
 
 | File | What it is |
 | --- | --- |
-| `boids_level.gd` / `.tscn` | The scene: sky, birds, voices, snare, dial. |
+| `boids_level.gd` / `.tscn` | The scene: fluid sky, birds, voices, snare, dial. |
+| `bird_wakes.gd` | `BirdWakes` — bins birds into the wakes that stir the fluid. |
 | `flock_sim.gd` | `FlockSim` — boids plus flock membership, pure and testable. |
 | `bird.gd`, `flock.gd` | The sim's data. |
 | `scatter_charge.gd` | `ScatterCharge` — when the rare full scatter fires. |
