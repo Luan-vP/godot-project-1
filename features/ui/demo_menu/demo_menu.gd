@@ -12,11 +12,10 @@ extends Control
 ## things that outlive them: a captured mouse, and music loops still playing on
 ## [code]AudioManager[/code].
 ##
-## A development tool only — [code]run/main_scene[/code] is
-## [code]LevelSelect[/code] now (see [code]features/ui/level_select/[/code]),
-## which is how a player reaches the game, including its secret eye level.
-## This menu keeps listing that level too, openly, since it exists to make
-## every demo and level reachable for development regardless of any secret.
+## This is [code]run/main_scene[/code]: the game opens on this list. At the
+## menu itself Backspace or Select, or the Quit button, leaves the game — on a
+## Deck there is no keyboard and no window to close, so this is the only way
+## out. (The Quit button is hidden on iOS, where an app does not quit itself.)
 ##
 ## Two command-line flags (after [code]--[/code]) serve the pull request picker
 ## on the Deck: [code]--prs[/code] opens the picker straight away, and
@@ -33,6 +32,9 @@ extends Control
 ## [code]--open=eyes[/code] goes straight into a demo, and
 ## [code]--probe[/code] or [code]--probe=eyes,vitreous[/code] hands the menu to
 ## a [FrameProbe], which quits the app when it is done.
+
+## Emitted when the player asks to leave the game from the menu.
+signal quit_requested
 
 ## Emitted after a demo has been instanced and made the current scene.
 signal demo_opened(path: String)
@@ -74,18 +76,6 @@ const DEMOS: Array[Dictionary] = [
 		"name": "Vitreous",
 		"path": "res://features/levels/vitreous/vitreous_tank.tscn",
 		"blurb": "Out-of-focus floaters in a coasting gel. Drag to push, +/- floaters.",
-	},
-	{
-		"name": "Overcast Sky",
-		"path": "res://features/levels/panorama/overcast_sky.tscn",
-		"blurb":
-		"Bright panorama level, floaters unmissable. Mouse/stick to look, Esc frees cursor.",
-	},
-	{
-		"name": "Dim Interior",
-		"path": "res://features/levels/panorama/dim_interior.tscn",
-		"blurb":
-		"Dim panorama level, floaters barely there. Mouse/stick to look, Esc frees cursor.",
 	},
 	{
 		"name": "Gaze",
@@ -157,9 +147,16 @@ const NARROW_MARGIN := 24.0
 ## the phone's canvas scale.
 const BACK_BUTTON_SIZE := Vector2(112.0, 56.0)
 
+## Named so tests can tell it from the cards.
+const QUIT_BUTTON_NAME := "Quit"
+
 const BACKGROUND := Color(0.08, 0.085, 0.1)
 const TEXT := Color(0.86, 0.87, 0.9)
 const MUTED := Color(0.56, 0.58, 0.63)
+
+## Whether [method request_quit] actually ends the game. Tests turn this off
+## so the runner they live in survives.
+var quits_tree := true
 
 var _demo: Node
 var _overlay: CanvasLayer
@@ -231,19 +228,26 @@ func close_demo() -> void:
 	demo_closed.emit()
 
 
+## Leave the game from the menu: the Quit button, or back at the menu itself.
+func request_quit() -> void:
+	quit_requested.emit()
+	if quits_tree:
+		get_tree().quit()
+
+
 ## [code]_input[/code], not unhandled: demos take keys in their own unhandled
 ## handlers, and nothing a demo does should be able to swallow the way out.
 func _input(event: InputEvent) -> void:
 	if is_demo_open() and (_is_back(event) or _is_deck_view(event)):
 		get_viewport().set_input_as_handled()
 		close_demo()
-	elif not is_demo_open() and _from_picker and _is_back(event):
+	elif not is_demo_open() and _is_back(event):
 		get_viewport().set_input_as_handled()
-		get_tree().quit()
+		request_quit()
 
 
 ## The demos a comma-separated [param names] list picks, matched loosely:
-## "eyes", "Overcast Sky" and "overcast_sky" all work. Empty picks them all.
+## "eyes", "Eye band" and "eye_band" all work. Empty picks them all.
 static func demos_named(names: String) -> Array[Dictionary]:
 	var picked: Array[Dictionary] = []
 	var wanted := PackedStringArray()
@@ -359,7 +363,7 @@ func _build() -> void:
 	column.add_child(_label("Demos", 40, TEXT))
 	var hint_text := (
 		"Pick one. Backspace, Select (Tab from a Deck in Desktop Mode) or the "
-		+ "menu button comes back here."
+		+ "menu button comes back here, and Backspace or Select quits from here."
 	)
 	if _from_picker:
 		hint_text += " Here, they go back to the pull requests."
@@ -379,6 +383,14 @@ func _build() -> void:
 	_grid.add_theme_constant_override("h_separation", 16)
 	_grid.add_theme_constant_override("v_separation", 16)
 	scroll.add_child(_grid)
+
+	if not OS.has_feature("ios"):
+		var quit := Button.new()
+		quit.name = QUIT_BUTTON_NAME
+		quit.text = "Quit"
+		quit.custom_minimum_size = Vector2(0.0, 56.0)
+		quit.pressed.connect(request_quit)
+		column.add_child(quit)
 
 	for demo in DEMOS:
 		var button := _card(demo)

@@ -81,15 +81,12 @@ USAGE
 # Keep in step with DemoMenu.DEMOS in features/ui/demo_menu/demo_menu.gd.
 scene_for() {
 	case "$1" in
-		play | select | levels) echo "res://features/ui/level_select/level_select.tscn" ;;
-		menu) echo "res://features/ui/demo_menu/demo_menu.tscn" ;;
+		play | menu | levels) echo "res://features/ui/demo_menu/demo_menu.tscn" ;;
 		level1 | level-one) echo "res://features/levels/panorama/level_one.tscn" ;;
 		eyes | secret-eyes | fluid) echo "res://features/levels/secret_eyes/fluid_demo.tscn" ;;
 		band | eye-band) echo "res://features/levels/secret_eyes/eye_band_demo.tscn" ;;
 		birds | boids) echo "res://features/levels/boids/boids_level.tscn" ;;
 		vitreous | floaters) echo "res://features/levels/vitreous/vitreous_tank.tscn" ;;
-		overcast | panorama) echo "res://features/levels/panorama/overcast_sky.tscn" ;;
-		interior) echo "res://features/levels/panorama/dim_interior.tscn" ;;
 		gaze) echo "res://features/levels/gaze/gaze_demo.tscn" ;;
 		refraction) echo "res://features/fluid/refraction_demo.tscn" ;;
 		canny | edges) echo "res://features/edges/canny_edge_debug.tscn" ;;

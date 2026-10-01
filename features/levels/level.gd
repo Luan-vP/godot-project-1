@@ -13,12 +13,11 @@ extends Resource
 ## Assigning [member PanoramaLevel.level] is the whole job of loading a level:
 ## no scene to edit, no script to touch.
 ##
-## Saved as a [code].tres[/code] under [code]resources/levels/[/code], a
-## [Level] is also what the level select ([code]#21[/code]) discovers to
-## build its list — see [member display_name] and [member blurb], the two
-## fields that exist only for that screen.
+## Can be saved as a [code].tres[/code]. [member display_name] and
+## [member blurb] were written for a level-select screen that no longer
+## exists; nothing reads them now.
 
-## Shown on the level select's card for this level. Falls back to the
+## Formerly shown on the level select's card for this level. Falls back to the
 ## resource's file name when left blank.
 @export var display_name: String = ""
 
