@@ -149,3 +149,58 @@ func test_tilt_converges_fully_and_returns_to_rest() -> void:
 	assert_almost_eq(_motion.tilt.x, 1.0, 0.001, "Should reach full tilt, not stall near it")
 	_step(UPRIGHT, Vector3.ZERO, 120)
 	assert_almost_eq(_motion.tilt.length(), 0.0, 0.001, "Should settle all the way back to rest")
+
+
+func test_the_recentre_action_is_in_the_input_map() -> void:
+	# The constant is a promise to project.godot. A screen offering a recentre
+	# button asks the input map about this name, and a name that is not there
+	# is a button that quietly never fires.
+	assert_true(InputMap.has_action(MotionInput.RECENTRE_ACTION), "recentre_tilt should be bound")
+
+
+func test_the_probe_lands_on_a_source_that_actually_reports() -> void:
+	# The startup probe walks the real sources in turn — Steam Input where
+	# Steam is running, then a phone's sensors — and falls back to the keyboard once
+	# they are exhausted. Whatever it lands on, it must be something that
+	# reports: a probe that settles on a silent source is a dead control.
+	var motion := MotionInput.new()
+	add_child_autofree(motion)
+	motion.set_process(false)
+	for _i in 4:
+		motion._process(MotionInput.PROBE_SECONDS + 0.01)
+	assert_not_null(motion.get_source(), "There should always be a source")
+	assert_true(motion.get_source().is_available(), "And it should be one that reports")
+
+
+func test_a_machine_with_no_sensors_ends_up_on_the_keyboard() -> void:
+	if SteamInputMotionSource.is_steam_available():
+		pass_test("Running on a device with sensors; the fallback is not the case here.")
+		return
+	var motion := MotionInput.new()
+	add_child_autofree(motion)
+	motion.set_process(false)
+	for _i in 4:
+		motion._process(MotionInput.PROBE_SECONDS + 0.01)
+	assert_true(motion.get_source() is KeyboardMotionSource, "Desktop play needs the keyboard")
+
+
+func test_swapping_the_source_lets_go_of_the_old_one() -> void:
+	# A source can hold a device or a session open — SteamInputMotionSource
+	# runs a reader alongside the game — and nothing but this knows to shut it
+	# down when it is replaced.
+	var first := ScriptedMotionSource.new()
+	_motion.set_source(first)
+	var stopped := StoppableMotionSource.new()
+	_motion.set_source(stopped)
+	assert_eq(stopped.stops, 0, "The new source should not be stopped")
+	_motion.set_source(ScriptedMotionSource.new())
+	assert_eq(stopped.stops, 1, "The one it replaced should be")
+
+
+class StoppableMotionSource:
+	extends ScriptedMotionSource
+
+	var stops: int = 0
+
+	func stop() -> void:
+		stops += 1

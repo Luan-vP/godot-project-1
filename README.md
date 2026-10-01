@@ -25,7 +25,8 @@ A 2D game about floaty eye thingies, in a painterly style. Godot 4.4.
 - `features/player/` — `PanoramaLookCamera`, the camera the panorama level
   looks around with.
 - `core/motion/` — device tilt and jog behind a port, so the controls can be
-  developed on a desktop and tested in CI. See its
+  developed on a desktop and tested in CI. Reads the Steam Deck's IMU, and a
+  phone's sensors, and falls back to the arrow keys. See its
   [README](core/motion/README.md).
 - `core/look/` — camera look input (mouse, gamepad) behind a port, the same
   shape as `core/motion`, including eye tracking on devices with the gaze
@@ -68,6 +69,7 @@ scripts/run.sh eye-gaze    # eye tracking readout (the pointer stands in on desk
 scripts/run.sh synth       # play the synth voices from the keyboard
 scripts/run.sh groove      # synthwave loop: drums on the step grid, bass and pads
 scripts/run.sh audio       # buses, loop layers, the effect fader
+scripts/run.sh motion      # tilt readout: the live source, its axes, the lean
 scripts/run.sh comfort     # distortion, look sensitivity, floater overshoot
 scripts/run.sh arrangement # scoring drives the layer stack (#34)
 ```
@@ -99,6 +101,15 @@ scripts/deck.sh setup   # once: Godot + templates in ~/.local, a checkout, a `de
 scripts/deck.sh build   # push HEAD to the Deck, import, export to ~/Games/godot-project-1
 scripts/deck.sh run     # launch it on the Deck's screen (stop / logs / ssh too)
 ```
+
+Tilting the Deck tilts a panorama level: motion is read through Steam Input,
+sensor-fused and in known units for every controller Steam supports, and the
+right stick click recentres whatever pose you are holding. That needs the
+Steam client running and the game launched *from* Steam — a build started
+over `ssh` initialises Steam but Steam attributes no controllers to it, so
+launch it as a non-Steam shortcut instead. `scripts/run.sh motion` shows what
+the sensors are reporting — the first thing to look at on hardware. See
+[`core/motion`](core/motion/README.md).
 
 `build` sends committed work only. On the Deck itself, the build runs from
 `~/dev/godot-project-1/scripts/deck-build.sh`. To play from Game Mode, add

@@ -24,3 +24,7 @@ gut_results.xml
 
 # Native plugin build products (rebuilt by native/*/build.sh)
 ios/plugins/*/*.a
+
+# Steam Input reaches a running client through this; it is per-machine dev
+# state, and Valve advise against shipping it.
+steam_appid.txt
