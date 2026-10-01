@@ -42,6 +42,8 @@ var _status: Label
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# Clear of the Dynamic Island and home indicator on a phone.
+	SafeArea.fit_control(self)
 	_build_labels()
 	_build_instruments()
 	_add_space()

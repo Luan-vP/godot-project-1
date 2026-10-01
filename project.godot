@@ -28,6 +28,20 @@ TempoControl="*res://autoload/TempoControl.gd"
 SaveManager="*res://autoload/SaveManager.gd"
 ComfortSettings="*res://autoload/ComfortSettings.gd"
 
+[display]
+
+window/size/viewport_width.mobile=540
+window/size/viewport_height.mobile=960
+window/stretch/mode.mobile="canvas_items"
+window/stretch/aspect.mobile="expand"
+window/handheld/orientation=1
+
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/gut/plugin.cfg")
+
+[rendering]
+
+renderer/rendering_method="forward_plus"
+renderer/rendering_method.mobile="mobile"
+textures/vram_compression/import_etc2_astc=true
