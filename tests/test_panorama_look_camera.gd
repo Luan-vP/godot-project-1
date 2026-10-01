@@ -99,3 +99,28 @@ func test_c_and_a_double_tap_recentre_but_a_single_tap_does_not() -> void:
 	assert_false(PanoramaLookCamera._is_recentre(tap), "Single tap")
 	tap.double_tap = true
 	assert_true(PanoramaLookCamera._is_recentre(tap), "Double tap")
+
+
+func test_a_tilt_offset_leans_the_camera_without_moving_the_heading() -> void:
+	# Device tilt lands on the camera as an offset. It has to show up in the
+	# rotation and stay out of the heading, which is where looking around
+	# accumulates and a lean must not.
+	_step(Vector2(0.3, 0.1))
+	var heading := Vector2(_camera.yaw, _camera.pitch)
+	_camera.tilt_offset = Vector2(0.2, -0.05)
+	_step(Vector2.ZERO)
+	assert_almost_eq(_camera.rotation.z, 0.2, 0.0001, "Roll should reach the rotation")
+	assert_almost_eq(_camera.rotation.x, heading.y - 0.05, 0.0001, "And so should the pitch lean")
+	assert_almost_eq(_camera.yaw, heading.x, 0.0001, "The heading should be untouched")
+	assert_almost_eq(_camera.pitch, heading.y, 0.0001, "In both axes")
+
+
+func test_a_tilt_offset_is_not_looking_around() -> void:
+	# angular_velocity is how fast the player is looking around, and the
+	# floaters mechanic hangs off it. A device held at a lean is not a gaze
+	# sweeping across the view: feeding it in would swish the medium for as
+	# long as the lean was held.
+	_step(Vector2.ZERO)
+	_camera.tilt_offset = Vector2(0.3, 0.3)
+	_step(Vector2.ZERO)
+	assert_almost_eq(_camera.angular_velocity.length(), 0.0, 0.0001, "A lean is not a turn")
