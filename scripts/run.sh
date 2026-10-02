@@ -35,14 +35,17 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
              while it floats clear of the walls. WASD tilts, drag stirs.
   spout-a    Level 3, version A: the spout pours the eye tank's fluid over
              the pins; droplets riding it play the notes they strike. Stick
-             or A/D aims, Q/E and Z/X move the key, Tab swaps scale.
+             or A/D aims, Q/E and Z/X move the key, Enter or Y swaps scale;
+             touch aims, top-right buttons move key/scale.
   spout-b    Level 3, version B: RT fires billiard-like balls at the pins,
              faster the harder it is pressed, with a haptic tick per ball.
              Space or a click fires at full rate, 1-5 at fixed depths. Stick
-             or A/D aims, Q/E move the key, Tab swaps scale.
+             or A/D aims, Q/E move the key, Enter or Y swaps scale;
+             touch aims, top-right buttons move key/scale.
   spout      Level 3's common shell: a spout over a field of pins, the eye
              band playing behind. Stick or A/D aims, Space plucks the pin
-             aimed at, Q/E and Z/X move the key, Tab swaps scale.
+             aimed at, Q/E and Z/X move the key, Enter or Y swaps scale;
+             touch aims, top-right buttons move key/scale.
   birds      Flocks of birds singing 3-against-4. B is a snare: tap a rhythm
              to favour its flocks; hold it and the others scatter.
   vitreous   Out-of-focus floaters drifting in a coasting gel. Drag to push,

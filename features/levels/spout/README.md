@@ -18,18 +18,32 @@ of either: Space plucks the pin you are aiming at.
 
 ## Controls
 
-| | Pad | Keyboard |
-| --- | --- | --- |
-| Aim | Left stick | A / D |
-| Key down / up a fourth | L1 / R1 | Q / E |
-| Key down / up a fifth | L2 / R2 (not in B) | Z / X |
-| Next scale (temporary) | — | Tab |
-| Tempo | D-pad | Arrows |
-| Back to the menu | Select | Backspace |
+| | Pad (through Steam) | Deck outside Steam | Keyboard / mouse |
+| --- | --- | --- | --- |
+| Aim | Either stick | Touch the screen where you want it to point | A / D, or hold the mouse button |
+| Key down / up a fourth | L1 / R1 | `key −4th` / `key +4th` buttons, top right | Q / E |
+| Key down / up a fifth | L2 / R2 (not in B) | — | Z / X |
+| Next scale (temporary) | Y | A (sends Enter), or the `scale ▸` button | Enter |
+| B: fire | RT, depth = rate | Touch (further from the spout = faster), Y (sends Space) = full | Space = full, 1–5 = depths, or hold the mouse button |
+| Tempo | D-pad | D-pad (sends arrows) | Arrows |
+| Back to the menu | View | View (sends Tab), or the `⌫ menu` button | Backspace |
 
-The stick is a rate control — push it and the nozzle keeps swinging until you
-let go — eased so the nozzle has a little weight. The arrows are not used for
-aiming because they move the tempo in every scene.
+Either stick aims, whichever is pushed further, so the Deck can be held either
+way round. A stick is a rate control — push it and the nozzle keeps swinging
+until you let go — eased so the nozzle has a little weight. The arrows are not
+used for aiming because they move the tempo in every scene.
+
+**The Deck's sticks only reach the game as a gamepad when it is launched
+through Steam** (Game Mode, or the non-Steam shortcut — see the root README).
+Run outside Steam, Steam keeps the controller in its desktop layout and the
+game sees a keyboard and mouse ([docs/steam-deck-controls.md](../../../docs/steam-deck-controls.md)).
+So the whole level is also playable by touch: touch where the spout should
+point and it swings there for as long as you hold; the buttons in the top
+right move the key and the scale. The right trackpad and R2 (which move the
+pointer and click it, outside Steam) aim the same way.
+
+Scale is not on Tab: outside Steam the Deck's View button sends Tab, and that
+already means "back to the menu".
 
 ## How it fits together
 
@@ -37,7 +51,8 @@ aiming because they move the tempo in every scene.
 | --- | --- |
 | `spout_level.gd` | `SpoutLevel` — builds everything, wires the band to the scale, the HUD. |
 | `spout.gd` | `Spout` — the nozzle: `aim`, `direction()`, `muzzle_position()`. |
-| `spout_aim_input.gd` | `SpoutAimInput` — pure: stick and keys to a turn rate. |
+| `spout_aim_input.gd` | `SpoutAimInput` — pure: sticks and keys to a turn rate, a pointer to an aim. |
+| `spout_pointer.gd` | `SpoutPointer` — a touch or held click, aiming the spout while it is down. |
 | `pin_field.gd` | `PinField` — staggered pins with bodies; `hit(pin, strength)` plucks. |
 | `peg_scale.gd` | `PegScale` — pure: which note each column plays, and the scroll. |
 | `spout_emitter.gd` | `SpoutEmitter` — the slot an emitter fills. |
@@ -64,8 +79,8 @@ second change mid-scroll restarts the sweep from the left.
 *Night Pool*, minor for the rest — and follow a mode change if the key moves.
 `SpoutLevel.set_pin_scale(intervals)` or `cycle_scale()` swap it for anything
 else; `PegScale.SCALES` has major and minor pentatonic, major, natural minor,
-dorian and blues. Which input should do that is still open (#117); `Tab` is a
-stand-in.
+dorian and blues. Which input should do that is still open (#117); Y, Enter
+and the `scale ▸` button are stand-ins.
 
 **Pins.** Each is a `StaticBody2D` on physics layer 3 with some bounce, so
 balls clack off it; anything that is not a physics body looks pins up with
@@ -112,10 +127,14 @@ other, and leave through the open floor.
 right trigger's depth to balls per second, in proportion: nothing inside a
 small deadzone, 1/s just past it, 12/s fully pressed. An accumulator carries
 the fraction of a ball owed between frames, so easing the trigger eases the
-rate; the first ball of each press fires at once. Without a pad: Space or a
-held left click is fully pressed (the Deck's R2 arrives as a left click in
-Desktop Mode, so the Deck outside Steam gets on/off rather than depth), and
-1–5 hold fifths of the way.
+rate; the first ball of each press fires at once. Without a pad: Space is
+fully pressed and 1–5 hold fifths of the way.
+
+**Touch fires too.** Touching aims the spout at the finger and fires at once,
+faster the further the finger is from the spout — like drawing a slingshot —
+from a dribble right by the nozzle to the full 12/s down at the pins. A held
+click (the Deck's R2 outside Steam, with the right trackpad as the pointer)
+does the same.
 
 **A tick per ball.** Every ball fired asks the level's
 [`Haptics`](../../../core/haptics/README.md) for a 25 ms pulse, a little

@@ -2,7 +2,8 @@ class_name SpoutLevel
 extends Node2D
 ## Level 3: a spout at the top, pins at the bottom, a band behind it all.
 ##
-## Swing the [Spout] with the left stick or A/D; whatever comes out of it —
+## Swing the [Spout] with either stick or A/D, or touch the screen (or hold
+## the mouse button) where you want it to point; whatever comes out of it —
 ## the [SpoutEmitter] in [member emitter_script] — falls through the
 ## [PinField], and every pin it hits plays its note. The pins carry a scale
 ## laid out low to high, left to right ([PegScale]), starting on the
@@ -13,7 +14,12 @@ extends Node2D
 ## wants the triggers, as version B does. A key move scrolls the pins over to
 ## the new key, one column per step of the music, left to right. So does a
 ## change of scale: [method set_pin_scale] / [method cycle_scale], for now on
-## [kbd]Tab[/kbd] as a stand-in until the real input is decided (#117).
+## the pad's Y, [kbd]Enter[/kbd] (the Deck's A outside Steam) or the touch
+## button, as stand-ins until the real input is decided (#117). Not Tab: on a
+## Deck outside Steam, View sends Tab, and that leaves the level.
+##
+## Buttons in the top-right corner move the key and the scale by touch, for a
+## Deck run outside Steam, where the shoulder buttons do not reach the game.
 ##
 ## Built in code, like the eye tank: the scene file is a single node, and the
 ## two versions are scenes of this script with a different
@@ -25,6 +31,8 @@ const INK := Color(0.2, 0.17, 0.16, 0.8)
 const FAINT := Color(0.2, 0.17, 0.16, 0.45)
 const INK_ON_DARK := Color(0.95, 0.92, 0.86, 0.85)
 const FAINT_ON_DARK := Color(0.95, 0.92, 0.86, 0.5)
+## Big enough for a thumb on the Deck's screen.
+const TOUCH_BUTTON_SIZE := Vector2(116, 52)
 
 ## The [SpoutEmitter] script to put in the slot. Left empty, the level uses
 ## [DebugSpoutEmitter].
@@ -42,6 +50,7 @@ var spout: Spout
 var pins: PinField
 var emitter: SpoutEmitter
 var haptics: Haptics
+var pointer: SpoutPointer
 
 var _key_shift := KeyShiftInput.new()
 var _hud: Label
@@ -70,10 +79,15 @@ func _ready() -> void:
 	peg_scale = PegScale.new()
 	pins.bind_scale(peg_scale)
 
+	pointer = SpoutPointer.new()
+	pointer.name = "Pointer"
+	add_child(pointer)
+
 	spout = Spout.new()
 	spout.name = "Spout"
 	spout.position = Vector2(extent.x * 0.5, extent.y * spout_height)
 	spout.z_index = 20
+	spout.pointer = pointer
 	add_child(spout)
 
 	var script: Script = emitter_script if emitter_script != null else DebugSpoutEmitter
@@ -99,18 +113,33 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	var step := _key_shift.step_for(event)
 	if step != 0:
-		band.set_key_offset(band.get_key_offset() + step)
+		shift_key(step)
 		get_viewport().set_input_as_handled()
 		return
-	var key := event as InputEventKey
-	# Temporary: the scale-swap input is still to be decided (#117).
-	if key != null and key.pressed and not key.echo and key.physical_keycode == KEY_TAB:
+	if is_scale_press(event):
 		cycle_scale()
 		get_viewport().set_input_as_handled()
 
 
 func _process(_delta: float) -> void:
 	_update_hud()
+
+
+## Whether [param event] asks for the next scale: the pad's Y, or
+## [kbd]Enter[/kbd] — the Deck's A under Steam's desktop layout. Temporary,
+## until #117 settles the real input.
+static func is_scale_press(event: InputEvent) -> bool:
+	var key := event as InputEventKey
+	if key != null:
+		var code := key.physical_keycode if key.physical_keycode != KEY_NONE else key.keycode
+		return key.pressed and not key.echo and (code == KEY_ENTER or code == KEY_KP_ENTER)
+	var button := event as InputEventJoypadButton
+	return button != null and button.pressed and button.button_index == JOY_BUTTON_Y
+
+
+## Move the band's key by [param semitones], as a shoulder press would.
+func shift_key(semitones: int) -> void:
+	band.set_key_offset(band.get_key_offset() + semitones)
 
 
 ## Swap the pins to [param intervals]; it scrolls in from the left.
@@ -148,7 +177,35 @@ func _build_hud() -> void:
 	_status.offset_left = 16.0
 	_status.offset_top = 12.0
 	layer.add_child(_status)
+	layer.add_child(_build_touch_buttons())
 	add_child(layer)
+
+
+## Key and scale on the screen, top right, big enough for a thumb. They never
+## take focus, so Enter and the pad stay with the level.
+func _build_touch_buttons() -> Control:
+	var row := HBoxContainer.new()
+	row.name = "TouchButtons"
+	row.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	row.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	row.offset_right = -16.0
+	row.offset_top = 12.0
+	row.add_theme_constant_override("separation", 10)
+	var buttons := [
+		["KeyDown", "key −4th", func(): shift_key(-KeyShiftInput.FOURTH)],
+		["KeyUp", "key +4th", func(): shift_key(KeyShiftInput.FOURTH)],
+		["NextScale", "scale ▸", cycle_scale],
+	]
+	for spec in buttons:
+		var button := Button.new()
+		button.name = spec[0]
+		button.text = spec[1]
+		button.focus_mode = Control.FOCUS_NONE
+		button.custom_minimum_size = TOUCH_BUTTON_SIZE
+		button.add_theme_font_size_override("font_size", 18)
+		button.pressed.connect(spec[2])
+		row.add_child(button)
+	return row
 
 
 func _update_hud() -> void:
@@ -160,7 +217,7 @@ func _update_hud() -> void:
 	var keys := "L1/R1 (Q/E) key ±4th"
 	if _key_shift.use_triggers:
 		keys += " · L2/R2 (Z/X) ±5th"
-	var hint := PackedStringArray(["stick or A/D aims", keys, "Tab scale (temporary)"])
+	var hint := PackedStringArray(["stick, A/D or touch aims", keys, "Y / Enter scale (temporary)"])
 	if not emitter.controls_hint().is_empty():
 		hint.append(emitter.controls_hint())
 	_hud.text = (

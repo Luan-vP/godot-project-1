@@ -116,3 +116,23 @@ func test_the_pool_is_capped() -> void:
 	for i in BallEmitter.MAX_BALLS + 5:
 		emitter.fire()
 	assert_eq(emitter.in_play(), BallEmitter.MAX_BALLS)
+
+
+func test_pointer_depth_grows_with_distance_and_always_fires() -> void:
+	var pivot := Vector2(500, 50)
+	var near := SpoutFireRate.pointer_depth(pivot, Vector2(500, 60), 400.0)
+	var far := SpoutFireRate.pointer_depth(pivot, Vector2(500, 450), 400.0)
+	assert_eq(near, 0.2, "A touch by the spout still dribbles")
+	assert_eq(far, 1.0, "Down at the pins: full rate")
+	var mid := SpoutFireRate.pointer_depth(pivot, Vector2(500, 290), 400.0)
+	assert_almost_eq(mid, 0.6, 0.0001)
+
+
+func test_a_touch_fires_in_version_b() -> void:
+	var level: SpoutLevel = LEVEL_B.instantiate()
+	add_child_autofree(level)
+	var emitter: BallEmitter = level.emitter
+	assert_eq(emitter.pointer_depth(), 0.0, "Nothing touching")
+	level.pointer.press(level.spout.global_position + Vector2(0, 300))
+	assert_gt(emitter.pointer_depth(), 0.0, "A touch fires")
+	level.pointer.release()

@@ -11,6 +11,11 @@ extends SpoutEmitter
 ##
 ## RT is the fire trigger here, so this emitter keeps L2/R2 out of key moves
 ## ([method leaves_triggers_free]); L1/R1 still walk all twelve keys.
+##
+## On a touchscreen, touching aims and fires at once: the spout points at the
+## finger, and the further the finger is from the spout the faster it fires.
+## The Deck's right trackpad and R2 (pointer and left click outside Steam) do
+## the same.
 
 const MUZZLE_SPEED := 520.0
 ## Scatter either side of the aim, so a stream of balls fans a little.
@@ -63,10 +68,20 @@ func _physics_process(delta: float) -> void:
 	if spout == null:
 		return
 	if reads_input:
-		_depth = SpoutFireRate.read_depth()
+		_depth = maxf(SpoutFireRate.read_depth(), pointer_depth())
 	for i in _rate.step(_depth, delta):
 		fire()
 	_retire_spent()
+
+
+## How hard a touch or held click is firing: 0 with none, else further from
+## the spout fires faster (see [method SpoutFireRate.pointer_depth]).
+func pointer_depth() -> float:
+	var pointer: SpoutPointer = level.get("pointer") if level != null else null
+	if pointer == null or not pointer.is_active():
+		return 0.0
+	var reach := pins.to_global(pins.area.position).y - spout.global_position.y
+	return SpoutFireRate.pointer_depth(spout.global_position, pointer.point(), reach)
 
 
 ## Set the trigger depth by hand, for tests or another input.
@@ -170,4 +185,4 @@ func describe() -> String:
 
 
 func controls_hint() -> String:
-	return "RT fires, harder = faster (Space or click: full, 1–5: depths)"
+	return "RT or touch fires, harder / further = faster (Space: full, 1–5: depths)"

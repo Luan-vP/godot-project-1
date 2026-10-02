@@ -1,14 +1,18 @@
 class_name SpoutAimInput
 extends RefCounted
-## Turns the left stick and the A/D keys into how fast the spout turns. Pure,
-## so the feel can be tested without a pad: [method target_rate] maps raw
-## input to a turn rate, and [method step] eases towards it and moves the aim.
+## Turns the sticks and the A/D keys into how fast the spout turns, and a
+## pointer into where it should point. Pure, so the feel can be tested without
+## a pad: [method target_rate] maps raw input to a turn rate, [method step]
+## eases towards it and moves the aim, and [method aim_toward] gives the aim
+## that points at a spot on screen.
 ##
-## The stick is a rate control, not a position: push it and the nozzle keeps
-## swinging until you let go, like turning a valve. A small deadzone keeps a
-## resting stick still, and the response is squared past it, so small
-## deflections give fine control and a full push swings fast. A/D turn at a
-## fixed, moderate rate. Not the arrows: they move the tempo in every scene.
+## Either stick works — whichever is pushed further — so the Deck can be held
+## either way round. A stick is a rate control, not a position: push it and
+## the nozzle keeps swinging until you let go, like turning a valve. A small
+## deadzone keeps a resting stick still, and the response is squared past it,
+## so small deflections give fine control and a full push swings fast. A/D
+## turn at a fixed, moderate rate. Not the arrows: they move the tempo in
+## every scene.
 
 ## Radians either side of straight down the nozzle can reach.
 const MAX_AIM := deg_to_rad(60.0)
@@ -21,6 +25,8 @@ const DEADZONE := 0.15
 ## How quickly the turn rate catches up with the input, per second. High
 ## enough to feel direct, low enough that the nozzle has a little weight.
 const EASE := 12.0
+## How quickly the nozzle swings onto a pointer, per second.
+const POINT_EASE := 14.0
 
 const LEFT_KEYS: Array[Key] = [KEY_A]
 const RIGHT_KEYS: Array[Key] = [KEY_D]
@@ -58,6 +64,30 @@ static func step(aim: float, rate: float, delta: float, max_aim: float = MAX_AIM
 	return clampf(aim + rate * delta, -max_aim, max_aim)
 
 
+## The aim, from straight down, that points a nozzle pivoting at [param pivot]
+## at [param target], held within [param max_aim]. A target level with or
+## above the pivot swings the nozzle as far as it goes towards that side.
+static func aim_toward(pivot: Vector2, target: Vector2, max_aim: float = MAX_AIM) -> float:
+	var offset := target - pivot
+	if offset.length_squared() < 1.0:
+		return 0.0
+	return clampf(atan2(offset.x, maxf(offset.y, 0.0)), -max_aim, max_aim)
+
+
+## [param aim] eased towards [param target] over [param delta] seconds.
+static func eased_aim(aim: float, target: float, delta: float) -> float:
+	return lerpf(aim, target, 1.0 - exp(-POINT_EASE * delta))
+
+
+## Of several stick readings, the one pushed furthest from centre.
+static func furthest(values: Array[float]) -> float:
+	var best := 0.0
+	for value in values:
+		if absf(value) > absf(best):
+			best = value
+	return best
+
+
 ## The keyboard's turn axis right now: -1 for A, 1 for D, 0 for neither or
 ## both.
 static func read_key_axis() -> float:
@@ -73,12 +103,12 @@ static func read_key_axis() -> float:
 	return axis
 
 
-## The left stick's x on whichever connected pad is pushed furthest, so the
-## Deck's pad works whatever device number Steam gives it.
+## Either stick's x, on whichever connected pad, pushed furthest — so the
+## Deck's pad works whatever device number Steam gives it, and with either
+## thumb.
 static func read_stick_x() -> float:
-	var furthest := 0.0
+	var readings: Array[float] = []
 	for device in Input.get_connected_joypads():
-		var x := Input.get_joy_axis(device, JOY_AXIS_LEFT_X)
-		if absf(x) > absf(furthest):
-			furthest = x
-	return furthest
+		readings.append(Input.get_joy_axis(device, JOY_AXIS_LEFT_X))
+		readings.append(Input.get_joy_axis(device, JOY_AXIS_RIGHT_X))
+	return furthest(readings)

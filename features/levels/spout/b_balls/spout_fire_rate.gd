@@ -40,15 +40,27 @@ func step(depth: float, delta: float) -> int:
 	return due
 
 
+## Trigger depth for a touch (or held click) at [param point], aiming a spout
+## pivoting at [param pivot]: further away fires faster, like drawing a
+## slingshot. [param reach] is the distance that counts as fully pressed —
+## the level uses the drop from the spout to the pins. Never below a gentle
+## dribble, so any touch fires.
+static func pointer_depth(pivot: Vector2, point: Vector2, reach: float) -> float:
+	if reach <= 0.0:
+		return 1.0
+	return clampf(pivot.distance_to(point) / reach, 0.2, 1.0)
+
+
 ## The trigger depth to read this frame: the right trigger on whichever pad is
-## pressed furthest, or a keyboard or mouse stand-in — [kbd]Space[/kbd] or a
-## held left click (the Deck's R2 in Desktop Mode) for fully pressed, and
-## [kbd]1[/kbd]–[kbd]5[/kbd] for fifths of the way.
+## pressed furthest, or a keyboard stand-in — [kbd]Space[/kbd] (the Deck's Y
+## outside Steam) for fully pressed, and [kbd]1[/kbd]–[kbd]5[/kbd] for fifths
+## of the way. A touch or held click fires too, through [SpoutPointer]; see
+## [method pointer_depth].
 static func read_depth() -> float:
 	var depth := 0.0
 	for device in Input.get_connected_joypads():
 		depth = maxf(depth, Input.get_joy_axis(device, JOY_AXIS_TRIGGER_RIGHT))
-	if Input.is_physical_key_pressed(KEY_SPACE) or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+	if Input.is_physical_key_pressed(KEY_SPACE):
 		depth = 1.0
 	var steps: Array[Key] = [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5]
 	for i in steps.size():

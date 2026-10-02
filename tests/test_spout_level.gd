@@ -58,3 +58,38 @@ func test_a_custom_emitter_goes_in_the_slot() -> void:
 	level.emitter_script = DebugSpoutEmitter
 	add_child_autofree(level)
 	assert_true(level.emitter is DebugSpoutEmitter)
+
+
+func test_scale_is_on_y_and_enter_not_tab() -> void:
+	var y := InputEventJoypadButton.new()
+	y.button_index = JOY_BUTTON_Y
+	y.pressed = true
+	assert_true(SpoutLevel.is_scale_press(y), "Pad Y")
+	var enter := InputEventKey.new()
+	enter.physical_keycode = KEY_ENTER
+	enter.pressed = true
+	assert_true(SpoutLevel.is_scale_press(enter), "Enter: the Deck's A outside Steam")
+	var tab := InputEventKey.new()
+	tab.physical_keycode = KEY_TAB
+	tab.pressed = true
+	assert_false(SpoutLevel.is_scale_press(tab), "Tab is the Deck's View: it leaves the level")
+
+
+func test_touch_buttons_move_the_key_and_the_scale() -> void:
+	var up: Button = _level.find_child("KeyUp", true, false)
+	var down: Button = _level.find_child("KeyDown", true, false)
+	var next: Button = _level.find_child("NextScale", true, false)
+	assert_not_null(up, "Key up button")
+	assert_eq(up.focus_mode, Control.FOCUS_NONE, "Never steals the pad's focus")
+	up.pressed.emit()
+	assert_eq(_level.band.get_key_offset(), 5)
+	down.pressed.emit()
+	down.pressed.emit()
+	assert_eq(_level.band.get_key_offset(), -5)
+	var before := _level.peg_scale.scale_name()
+	next.pressed.emit()
+	assert_ne(_level.peg_scale.scale_name(), before)
+
+
+func test_the_spout_follows_the_levels_pointer() -> void:
+	assert_eq(_level.spout.pointer, _level.pointer)

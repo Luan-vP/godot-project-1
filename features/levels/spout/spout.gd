@@ -1,8 +1,9 @@
 class_name Spout
 extends Node2D
 ## The spout level's main input: a nozzle hanging at the top of the screen,
-## pointing straight down, that the player swings left and right with the
-## left stick or A/D (see [SpoutAimInput]).
+## pointing straight down, that the player swings left and right with either
+## stick or A/D (see [SpoutAimInput]), or points by touching the screen or
+## holding the mouse button (see [SpoutPointer]).
 ##
 ## The spout only aims. What comes out of it is up to a [SpoutEmitter], which
 ## reads [method muzzle_position] and [method direction] each frame — fluid in
@@ -30,12 +31,27 @@ signal aim_changed(aim: float)
 ## 0 is straight down; positive swings the tip to the right.
 var aim: float = 0.0:
 	set = set_aim
+## While this is pressed, the nozzle points at it instead of reading the
+## sticks and keys.
+var pointer: SpoutPointer
 var _rate := 0.0
 
 
 func _process(delta: float) -> void:
-	if reads_input:
+	if not reads_input:
+		return
+	if pointer != null and pointer.is_active():
+		point_toward(pointer.point(), delta)
+	else:
 		steer(SpoutAimInput.read_stick_x(), SpoutAimInput.read_key_axis(), delta)
+
+
+## Swing for [param delta] seconds towards pointing at [param target], in
+## world space.
+func point_toward(target: Vector2, delta: float) -> void:
+	_rate = 0.0
+	var wanted := SpoutAimInput.aim_toward(global_position, target, max_aim)
+	set_aim(SpoutAimInput.eased_aim(aim, wanted, delta))
 
 
 ## Turn for [param delta] seconds with the stick at [param stick_x] and the

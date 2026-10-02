@@ -68,3 +68,56 @@ func test_aim_changed_fires_on_movement() -> void:
 	_spout.aim = 0.3
 	_spout.aim = 0.3
 	assert_signal_emit_count(_spout, "aim_changed", 1)
+
+
+func test_aim_toward_points_at_a_spot_below() -> void:
+	var pivot := Vector2(500, 50)
+	assert_almost_eq(SpoutAimInput.aim_toward(pivot, Vector2(500, 400)), 0.0, 0.0001, "Below")
+	var right := SpoutAimInput.aim_toward(pivot, Vector2(600, 150))
+	assert_almost_eq(right, PI / 4.0, 0.0001, "Down and right, 45°")
+	assert_lt(SpoutAimInput.aim_toward(pivot, Vector2(450, 100)), 0.0, "Left is negative")
+
+
+func test_aim_toward_a_spot_above_swings_fully_to_that_side() -> void:
+	var pivot := Vector2(500, 50)
+	var aim := SpoutAimInput.aim_toward(pivot, Vector2(900, 10))
+	assert_almost_eq(aim, SpoutAimInput.MAX_AIM, 0.0001)
+
+
+func test_either_stick_counts_whichever_is_further() -> void:
+	assert_eq(SpoutAimInput.furthest([0.1, -0.7, 0.3] as Array[float]), -0.7)
+	assert_eq(SpoutAimInput.furthest([] as Array[float]), 0.0)
+
+
+func test_a_pointer_swings_the_spout_onto_it() -> void:
+	var pointer := SpoutPointer.new()
+	add_child_autofree(pointer)
+	_spout.pointer = pointer
+	_spout.reads_input = true
+	_spout.position = Vector2(500, 50)
+	pointer.press(Vector2(700, 250))
+	for i in 120:
+		_spout._process(1.0 / 60.0)
+	assert_almost_eq(_spout.aim, PI / 4.0, 0.01, "Pointing at the touch")
+	pointer.release()
+	assert_false(pointer.is_active())
+
+
+func test_a_click_or_touch_presses_the_pointer_and_dragging_moves_it() -> void:
+	var pointer := SpoutPointer.new()
+	add_child_autofree(pointer)
+	var down := InputEventMouseButton.new()
+	down.button_index = MOUSE_BUTTON_LEFT
+	down.pressed = true
+	down.position = Vector2(100, 200)
+	pointer._unhandled_input(down)
+	assert_true(pointer.is_active())
+	var drag := InputEventMouseMotion.new()
+	drag.position = Vector2(140, 260)
+	pointer._unhandled_input(drag)
+	assert_eq(pointer.point(), Vector2(140, 260))
+	var up := InputEventMouseButton.new()
+	up.button_index = MOUSE_BUTTON_LEFT
+	up.pressed = false
+	pointer._unhandled_input(up)
+	assert_false(pointer.is_active())
