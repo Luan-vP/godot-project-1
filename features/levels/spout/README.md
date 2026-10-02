@@ -73,9 +73,42 @@ balls clack off it; anything that is not a physics body looks pins up with
 top, immediately, not quantised to the grid, and a pin hit again within 60 ms
 stays quiet.
 
+## Version A: fluid
+
+`a_fluid/level_three_a.tscn` (`scripts/run.sh spout-a`). The spout pours the
+eye tank's own fluid — a `FluidSimulation` with a default `FluidConfig` the
+size of the screen, painted by a `FluidRenderer` — so it is the same water
+the eyes float in, on the same dark painterly ground.
+
+The solve has no particles and no solid obstacles, so "a fluid element hits a
+pin" needed an answer. [`FluidEmitter`](a_fluid/fluid_emitter.gd) gives it in
+three parts:
+
+1. **The stream.** Each physics frame the nozzle pushes the fluid along its
+   aim and paints into it, so a painted jet swings with the spout. The tank
+   leans gently downwards to keep it falling.
+2. **Droplets.** Sixteen a second leave the nozzle as small
+   [`SpoutDroplet`](a_fluid/droplet.gd)s — `FluidBody`s that sink, are
+   dragged by the real current, and stain the water. They are the fluid
+   elements: a droplet striking a pin plays it at a strength set by how fast
+   it was closing, and bounces off at half speed. Pooled, at most 96.
+3. **Pins part the water.** Each pin pushes back on whatever current runs
+   through it, and a struck pin splashes outward, so the painted stream
+   divides around the pins rather than through them.
+
+Not tried yet: the droplet-free alternative, where each pin samples the
+current and fires on a rising edge of local speed. Droplets came first
+because they give a crisp, countable rhythm; the comparison is still worth
+making by ear.
+
 ## Tuning so far
 
 All first guesses, waiting on a play on real hardware: 6 rows of 7/6 pins over
 the middle 80% of the screen width, 50-80% of its height; the spout hung at 7%
 of the height; ±60° of aim; 1.6 rad/s at full stick, 0.9 on the keys; pluck
 level 0.11, release 0.9 s.
+
+Version A: jet 2600 px/s², 34 px wide; droplets 16/s at 340 px/s, ±7°,
+sinking at 240 px/s², drag 2.2; restitution 0.5; full strength at 420 px/s
+closing speed; pin resistance 5/s. Aimed straight down it plays about thirty
+hits a second, which the 60 ms per-pin cooldown thins out.

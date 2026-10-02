@@ -33,6 +33,9 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
              Space jogs, B blinks, R empties the tank, C recalibrates.
   band       The eye tank as a band: each eye plays one part of a 70 bpm loop
              while it floats clear of the walls. WASD tilts, drag stirs.
+  spout-a    Level 3, version A: the spout pours the eye tank's fluid over
+             the pins; droplets riding it play the notes they strike. Stick
+             or A/D aims, Q/E and Z/X move the key, Tab swaps scale.
   spout      Level 3's common shell: a spout over a field of pins, the eye
              band playing behind. Stick or A/D aims, Space plucks the pin
              aimed at, Q/E and Z/X move the key, Tab swaps scale.
@@ -91,6 +94,7 @@ scene_for() {
 		level1 | level-one) echo "res://features/levels/panorama/level_one.tscn" ;;
 		eyes | secret-eyes | fluid) echo "res://features/levels/secret_eyes/fluid_demo.tscn" ;;
 		band | eye-band) echo "res://features/levels/secret_eyes/eye_band_demo.tscn" ;;
+		spout-a | level3a) echo "res://features/levels/spout/a_fluid/level_three_a.tscn" ;;
 		spout | level3) echo "res://features/levels/spout/spout_level.tscn" ;;
 		birds | boids) echo "res://features/levels/boids/boids_level.tscn" ;;
 		vitreous | floaters) echo "res://features/levels/vitreous/vitreous_tank.tscn" ;;

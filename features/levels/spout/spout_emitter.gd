@@ -28,6 +28,12 @@ func leaves_triggers_free() -> bool:
 	return true
 
 
+## Whether this emitter paints a dark backdrop over the paper, so the HUD and
+## the pins' labels should be light.
+func dark_backdrop() -> bool:
+	return false
+
+
 ## One line for the HUD: what this emitter is doing right now.
 func describe() -> String:
 	return ""

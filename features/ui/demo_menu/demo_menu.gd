@@ -67,6 +67,11 @@ const DEMOS: Array[Dictionary] = [
 		"Each eye plays a part while it stays off the walls. Tilt or stir to thin the music.",
 	},
 	{
+		"name": "Spout A: fluid",
+		"path": "res://features/levels/spout/a_fluid/level_three_a.tscn",
+		"blurb": "Level 3, A: pour the eye tank's fluid over singing pins. Stick or A/D aims.",
+	},
+	{
 		"name": "Spout (shell)",
 		"path": "res://features/levels/spout/spout_level.tscn",
 		"blurb":

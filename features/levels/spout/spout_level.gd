@@ -23,6 +23,8 @@ extends Node2D
 const PAPER := Color(0.94, 0.91, 0.85)
 const INK := Color(0.2, 0.17, 0.16, 0.8)
 const FAINT := Color(0.2, 0.17, 0.16, 0.45)
+const INK_ON_DARK := Color(0.95, 0.92, 0.86, 0.85)
+const FAINT_ON_DARK := Color(0.95, 0.92, 0.86, 0.5)
 
 ## The [SpoutEmitter] script to put in the slot. Left empty, the level uses
 ## [DebugSpoutEmitter].
@@ -80,6 +82,7 @@ func _ready() -> void:
 	add_child(emitter)
 	emitter.bind(self, spout, pins)
 	_key_shift.use_triggers = emitter.leaves_triggers_free()
+	pins.on_dark = emitter.dark_backdrop()
 
 	band = Band.new()
 	band.name = "Band"
@@ -132,14 +135,15 @@ func _build_hud() -> void:
 	var layer := CanvasLayer.new()
 	layer.name = "Hud"
 	_hud = Label.new()
-	_hud.add_theme_color_override("font_color", INK)
+	var dark := emitter.dark_backdrop()
+	_hud.add_theme_color_override("font_color", INK_ON_DARK if dark else INK)
 	_hud.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	_hud.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_hud.offset_left = 16.0
 	_hud.offset_bottom = -12.0
 	layer.add_child(_hud)
 	_status = Label.new()
-	_status.add_theme_color_override("font_color", FAINT)
+	_status.add_theme_color_override("font_color", FAINT_ON_DARK if dark else FAINT)
 	_status.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_status.offset_left = 16.0
 	_status.offset_top = 12.0
