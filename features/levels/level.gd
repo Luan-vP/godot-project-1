@@ -52,6 +52,41 @@ extends Resource
 ## FloaterField.size_skew].
 @export_range(0.1, 4.0) var floater_size_skew: float = 1.8
 
+@export_group("Floater feel")
+## How tightly a floater follows the medium, per second; see [member
+## FluidBody.drag]. Low lags further behind a turning eye and sails further
+## past where it stopped; high rides the current rigidly. Still passes through
+## [ComfortSettings]' overshoot reduction.
+@export_range(0.1, 10.0, 0.05) var floater_drag: float = 2.2
+
+## How fast a floater sinks through still medium, in pixels/second^2; see
+## [member FluidBody.buoyancy]. This is what clears the view when the player
+## holds a steady gaze: floaters sink out of the bottom of the view instead of
+## hanging there. Zero and they never settle.
+@export_range(0.0, 60.0, 0.5) var floater_settle: float = 12.0
+
+## Speed cap for a floater, in pixels/second; see [member FluidBody.max_speed].
+@export_range(10.0, 600.0, 5.0) var floater_max_speed: float = 140.0
+
+@export_group("Gaze coupling")
+## How hard a held turn leans the medium; see [member
+## GazeFluidDriver.hold_sensitivity]. Together with [member
+## gaze_settle_rate] this sets how far the debris trails behind a turn, and
+## so how much it evades a player trying to centre it.
+@export_range(0.0, 4000.0, 10.0) var gaze_hold_sensitivity: float = 300.0
+
+## How hard starting or stopping a turn shoves the medium; see [member
+## GazeFluidDriver.flick_sensitivity]. This is the overshoot.
+@export_range(0.0, 20000.0, 50.0) var gaze_flick_sensitivity: float = 250.0
+
+## How quickly the medium's overall drift is dragged back to rest; see [member
+## GazeFluidDriver.settle_rate]. Higher shortens the overshoot's settle-back.
+@export_range(0.0, 20.0, 0.1) var gaze_settle_rate: float = 2.0
+
+## Turn rate below which the eye counts as holding still; see [member
+## GazeFluidDriver.deadzone_rad_per_sec].
+@export_range(0.0, 0.99, 0.01) var gaze_deadzone: float = 0.05
+
 @export_group("Look")
 ## How strongly the medium bends the background behind it; see [member
 ## RefractionStyle.strength]. Zero turns the bend off entirely.
