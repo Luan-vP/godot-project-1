@@ -67,6 +67,12 @@ const DEMOS: Array[Dictionary] = [
 		"Each eye plays a part while it stays off the walls. Tilt or stir to thin the music.",
 	},
 	{
+		"name": "Spout (shell)",
+		"path": "res://features/levels/spout/spout_level.tscn",
+		"blurb":
+		"Level 3's shell: aim the spout, Space plucks the pin you aim at. Tab swaps scale.",
+	},
+	{
 		"name": "Birds",
 		"path": "res://features/levels/boids/boids_level.tscn",
 		"blurb":

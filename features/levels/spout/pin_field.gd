@@ -126,12 +126,12 @@ func build() -> void:
 	queue_redraw()
 
 
-## Follow [param scale] for every pin's note, configuring it for this field's
+## Follow [param peg_scale] for every pin's note, configuring it for this field's
 ## columns.
-func bind_scale(scale: PegScale) -> void:
+func bind_scale(peg_scale: PegScale) -> void:
 	if _scale != null and _scale.pin_changed.is_connected(_on_pin_changed):
 		_scale.pin_changed.disconnect(_on_pin_changed)
-	_scale = scale
+	_scale = peg_scale
 	_scale.configure(_column_count, low_note)
 	_scale.pin_changed.connect(_on_pin_changed)
 	queue_redraw()
@@ -233,8 +233,8 @@ static func note_name(note: int) -> String:
 ## A pin's hue by pitch class, so the same note reads the same anywhere on the
 ## field and a new scale visibly changes the colours as it scrolls in.
 static func note_color(note: int, brightness: float = 1.0) -> Color:
-	var hue := fposmod(posmod(note, 12) * 7.0 / 12.0, 1.0)
-	return Color.from_hsv(hue, 0.42, clampf(0.55 + 0.4 * brightness, 0.0, 1.0))
+	var hue := fposmod(posmod(note, 12) / 12.0 + 0.02, 1.0)
+	return Color.from_hsv(hue, 0.55, clampf(0.45 + 0.4 * brightness, 0.0, 1.0))
 
 
 func _play(note: int, velocity: float) -> void:
@@ -310,5 +310,5 @@ func _draw() -> void:
 				HORIZONTAL_ALIGNMENT_CENTER,
 				40.0,
 				12,
-				Color(note_color(note), 0.8)
+				note_color(note, 0.0).darkened(0.25)
 			)

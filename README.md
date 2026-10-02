@@ -13,6 +13,9 @@ A 2D game about floaty eye thingies, in a painterly style. Godot 4.4.
   full of floaty eyes. See its [README](features/levels/secret_eyes/README.md).
 - `features/levels/vitreous/` — out-of-focus eye floaters drifting in a pale,
   gel-like vitreous. See its [README](features/levels/vitreous/README.md).
+- `features/levels/spout/` — level 3: aim a spout over a field of pins that
+  play a scale, the eye band behind it. Two versions: A pours the eye tank's
+  fluid, B fires balls. See its [README](features/levels/spout/README.md).
 - `features/levels/boids/` — flocks of birds that sing polyrhythms, played
   with a snare. See its [README](features/levels/boids/README.md).
 - `features/levels/panorama/` — the main level's core mechanic: a camera at
@@ -55,6 +58,7 @@ scripts/run.sh menu        # the clickable demo menu
 scripts/run.sh vitreous    # floaters in the vitreous gel
 scripts/run.sh eyes        # the secret eye tank
 scripts/run.sh band        # the eye tank as a band: eyes off the walls play parts
+scripts/run.sh spout       # level 3's shell: spout, pins, band (Space plucks)
 scripts/run.sh birds       # flocks singing 3-against-4, played with a snare (B)
 scripts/run.sh panorama    # look-around camera (no panorama image yet)
 scripts/run.sh gaze        # look around to swish the floaters
