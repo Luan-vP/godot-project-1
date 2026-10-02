@@ -28,6 +28,9 @@ A 2D game about floaty eye thingies, in a painterly style. Godot 4.4.
   shape as `core/motion`, including eye tracking on devices with the gaze
   plugin. See its [README](core/look/README.md) and
   [gaze README](core/look/gaze/README.md).
+- `core/haptics/` — short controller pulses behind a port: Steam Input on the
+  Deck, plain gamepad rumble elsewhere, rate-limited. See its
+  [README](core/haptics/README.md).
 - `core/audio/` — the audio foundation: bus layout, `AudioManager`, and a
   manual demo scene to prove it makes a sound. See its
   [README](core/audio/README.md).

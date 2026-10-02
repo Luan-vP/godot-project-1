@@ -25,10 +25,14 @@ signal look_sensitivity_multiplier_changed(value: float)
 ## Emitted whenever [member overshoot_reduction] changes, including on load.
 signal overshoot_reduction_changed(value: float)
 
+## Emitted whenever [member haptics_strength] changes, including on load.
+signal haptics_strength_changed(value: float)
+
 const _SETTINGS_SECTION := "comfort"
 const _DISTORTION_KEY := "distortion_multiplier"
 const _SENSITIVITY_KEY := "look_sensitivity_multiplier"
 const _OVERSHOOT_KEY := "overshoot_reduction"
+const _HAPTICS_KEY := "haptics_strength"
 
 ## Drag rate ([member FluidBody.drag]) a floater is given at full [member
 ## overshoot_reduction]. High enough that [method FluidBody.drift]'s
@@ -50,6 +54,9 @@ var look_sensitivity_multiplier: float = 1.0
 ## [constant _OVERSHOOT_REMOVED_DRAG]: 0 leaves the tuned lag and overshoot
 ## alone (the default), 1 removes it entirely.
 var overshoot_reduction: float = 0.0
+
+## Scales every controller pulse [Haptics] plays: 1 as tuned, 0 off.
+var haptics_strength: float = 1.0
 
 
 func _ready() -> void:
@@ -83,6 +90,19 @@ func set_overshoot_reduction(value: float) -> void:
 	overshoot_reduction_changed.emit(overshoot_reduction)
 
 
+## Sets and persists how strong controller pulses are, from 0 (off) to 1 (as
+## tuned).
+func set_haptics_strength(value: float) -> void:
+	haptics_strength = clampf(value, 0.0, 1.0)
+	SaveManager.set_value(_SETTINGS_SECTION, _HAPTICS_KEY, haptics_strength)
+	haptics_strength_changed.emit(haptics_strength)
+
+
+## Scales a pulse's [param strength] by [member haptics_strength].
+func apply_to_haptics(strength: float) -> float:
+	return clampf(strength, 0.0, 1.0) * haptics_strength
+
+
 ## Scales [param base_strength] (a level's tuned [member
 ## Level.distortion_strength]) by [member distortion_multiplier].
 func apply_to_distortion(base_strength: float) -> float:
@@ -111,3 +131,4 @@ func _load_settings() -> void:
 	overshoot_reduction = clampf(
 		SaveManager.get_value(_SETTINGS_SECTION, _OVERSHOOT_KEY, 0.0), 0.0, 1.0
 	)
+	haptics_strength = clampf(SaveManager.get_value(_SETTINGS_SECTION, _HAPTICS_KEY, 1.0), 0.0, 1.0)

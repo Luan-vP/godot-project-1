@@ -8,7 +8,8 @@ extends Control
 ## rolls left" is a claim about real hardware, and this is where it is checked
 ## in the ten seconds it deserves rather than by reading a driver.
 ##
-## C, or the recentre button, takes the pose being held as level.
+## C, or the recentre button, takes the pose being held as level. H, or the
+## pad's A, plays one [Haptics] pulse, to feel what the hardware renders.
 
 ## Radius of the tilt dial, in pixels.
 const DIAL_RADIUS := 90.0
@@ -21,6 +22,8 @@ const FAINT := Color(0.20, 0.22, 0.26, 0.30)
 const LIVE := Color(0.35, 0.55, 0.85, 0.95)
 
 var _motion: MotionInput
+var _haptics: Haptics
+var _pulses: int = 0
 var _readout: Label
 var _jogs: int = 0
 
@@ -31,6 +34,9 @@ func _ready() -> void:
 	_motion.name = "MotionInput"
 	add_child(_motion)
 	_motion.jogged.connect(func(_direction: Vector2) -> void: _jogs += 1)
+	_haptics = Haptics.new()
+	_haptics.name = "Haptics"
+	add_child(_haptics)
 
 	_readout = Label.new()
 	_readout.name = "Readout"
@@ -44,7 +50,7 @@ func _ready() -> void:
 	hint.offset_left = 16.0
 	hint.offset_top = -34.0
 	hint.add_theme_color_override("font_color", FAINT)
-	hint.text = "tilt the device · arrows tilt on a desktop · space jogs · C recentres"
+	hint.text = "tilt the device · arrows tilt on a desktop · space jogs · C recentres · H / A pulses"
 	add_child(hint)
 
 
@@ -58,6 +64,7 @@ func _process(_delta: float) -> void:
 	lines.append("tilt: %+.2f %+.2f" % [_motion.tilt.x, _motion.tilt.y])
 	lines.append("scene: roll %+.1f°  pitch %+.1f°" % [rad_to_deg(offset.x), rad_to_deg(offset.y)])
 	lines.append("jogs: %d" % _jogs)
+	lines.append("haptics: %s · pulses %d" % [_haptics.describe(), _pulses])
 	_readout.text = "\n".join(lines)
 	queue_redraw()
 
@@ -95,3 +102,10 @@ func _draw() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(MotionInput.RECENTRE_ACTION):
 		_motion.calibrate()
+	var key := event as InputEventKey
+	var button := event as InputEventJoypadButton
+	var pulse_key := key != null and key.pressed and not key.echo and key.physical_keycode == KEY_H
+	var pulse_button := button != null and button.pressed and button.button_index == JOY_BUTTON_A
+	if pulse_key or pulse_button:
+		_haptics.pulse(1.0, 0.08)
+		_pulses += 1
