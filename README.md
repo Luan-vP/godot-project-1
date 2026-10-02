@@ -59,6 +59,7 @@ scripts/run.sh vitreous    # floaters in the vitreous gel
 scripts/run.sh eyes        # the secret eye tank
 scripts/run.sh band        # the eye tank as a band: eyes off the walls play parts
 scripts/run.sh spout-a     # level 3, A: pour the eye tank's fluid over the pins
+scripts/run.sh spout-b     # level 3, B: RT fires billiard balls at the pins
 scripts/run.sh spout       # level 3's shell: spout, pins, band (Space plucks)
 scripts/run.sh birds       # flocks singing 3-against-4, played with a snare (B)
 scripts/run.sh panorama    # look-around camera (no panorama image yet)

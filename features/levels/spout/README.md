@@ -101,6 +101,36 @@ current and fires on a rising edge of local speed. Droplets came first
 because they give a crisp, countable rhythm; the comparison is still worth
 making by ear.
 
+## Version B: balls
+
+`b_balls/level_three_b.tscn` (`scripts/run.sh spout-b`). The spout fires
+[`SpoutBall`](b_balls/spout_ball.gd)s — rigid bodies, 8 px, hard and a
+little bouncy — that clack off the pins, off the side cushions and off each
+other, and leave through the open floor.
+
+**RT sets the rate.** [`SpoutFireRate`](b_balls/spout_fire_rate.gd) maps the
+right trigger's depth to balls per second, in proportion: nothing inside a
+small deadzone, 1/s just past it, 12/s fully pressed. An accumulator carries
+the fraction of a ball owed between frames, so easing the trigger eases the
+rate; the first ball of each press fires at once. Without a pad: Space or a
+held left click is fully pressed (the Deck's R2 arrives as a left click in
+Desktop Mode, so the Deck outside Steam gets on/off rather than depth), and
+1–5 hold fifths of the way.
+
+**A tick per ball.** Every ball fired asks the level's
+[`Haptics`](../../../core/haptics/README.md) for a 25 ms pulse, a little
+stronger the deeper the trigger. At 12 balls a second the port's rate limit
+decides what is felt.
+
+**Hits.** A ball reports each pin it strikes with how fast it was closing on
+it — the part of its speed along the line to the pin, taken from the step
+before the bounce — so a straight drop plays loud and a glancing roll plays
+soft or not at all (under 45 px/s stays quiet).
+
+**RT is not a key move here.** In the eye band L2/R2 move the key by a fifth;
+here RT fires, so both triggers are left out of key moves and L1/R1 (fourths)
+do the job alone — repeated fourths still reach all twelve keys.
+
 ## Tuning so far
 
 All first guesses, waiting on a play on real hardware: 6 rows of 7/6 pins over
@@ -112,3 +142,8 @@ Version A: jet 2600 px/s², 34 px wide; droplets 16/s at 340 px/s, ±7°,
 sinking at 240 px/s², drag 2.2; restitution 0.5; full strength at 420 px/s
 closing speed; pin resistance 5/s. Aimed straight down it plays about thirty
 hits a second, which the 60 ms per-pin cooldown thins out.
+
+Version B: muzzle speed 520 px/s, ±2.5° scatter; ball bounce 0.3 over the
+pins' 0.6 and the cushions' 0.45 (Godot adds them, capped at 1); linear damp
+0.08; full strength at 650 px/s closing; at most 60 balls, 14 s each; haptic
+pulse 0.35-0.8 strength, 25 ms.

@@ -72,6 +72,11 @@ const DEMOS: Array[Dictionary] = [
 		"blurb": "Level 3, A: pour the eye tank's fluid over singing pins. Stick or A/D aims.",
 	},
 	{
+		"name": "Spout B: balls",
+		"path": "res://features/levels/spout/b_balls/level_three_b.tscn",
+		"blurb": "Level 3, B: RT fires billiard balls at the pins, harder = faster. Stick aims.",
+	},
+	{
 		"name": "Spout (shell)",
 		"path": "res://features/levels/spout/spout_level.tscn",
 		"blurb":
