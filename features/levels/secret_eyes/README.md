@@ -71,7 +71,7 @@ Kept together because they only make sense as a set:
 | File | What it is |
 | --- | --- |
 | `fluid_demo.gd` | Builds the tank, drops the eyes in, wires up input. |
-| `eye_band.gd` | `EyeBand` — one part of the music per eye, heard while it is clear of the walls. |
+| `eye_band.gd` | `EyeBand` — one part of the music per eye, heard while it is clear of the walls. The music itself is [`Band`](../../../core/audio/band.gd)'s; this only decides which parts are wanted. |
 | `eye_band_songs.gd` | `EyeBandSongs` — the four songs the band picks from. |
 | `eye_band_demo.gd` | The tank plus an `EyeBand`, rings round the eyes and a parts readout. |
 | `floaty_eye.gd` | `FloatyEye` — a [`FluidBody`](../../fluid/fluid_body.gd) with a face. |

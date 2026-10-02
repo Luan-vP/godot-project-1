@@ -33,6 +33,11 @@ const KEY_STEPS := {
 	KEY_X: FIFTH,
 }
 
+## Whether L2/R2 move the key at all. A level that wants the triggers for
+## something else — the spout level's version B fires on RT — turns this off
+## and keeps key moves on L1/R1, whose fourths still walk all twelve keys.
+var use_triggers := true
+
 ## Axis -> whether that trigger is currently past [constant TRIGGER_PRESS].
 var _trigger_down := {}
 
@@ -45,7 +50,7 @@ func step_for(event: InputEvent) -> int:
 		return BUTTON_STEPS.get(button.button_index, 0) if button.pressed else 0
 	var motion := event as InputEventJoypadMotion
 	if motion != null:
-		return _trigger_step(motion)
+		return _trigger_step(motion) if use_triggers else 0
 	var key := event as InputEventKey
 	if key != null and key.pressed and not key.echo:
 		return KEY_STEPS.get(key.keycode, 0)

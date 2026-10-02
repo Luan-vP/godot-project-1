@@ -468,6 +468,19 @@ while the order of sections varies.
 parse, a section leading nowhere, a pattern of the wrong length); the eye
 band's songs are checked with it in `tests/test_eye_band_songs.gd`.
 
+### `Band`: a song, played
+
+[`Band`](band.gd) plays one of the eye band's songs live: seven parts (beat,
+bass, pads, melody, arp, ghost, shimmer) off one `StepClock`, with the key
+moved round the circle of fifths by `set_key_offset`. Which parts sound is
+latched once per bar from `wants_part(part)`, which says yes to every part
+unless `set_part_wanted(part, false)` says otherwise — so a bare `Band` is a
+full background band. `EyeBand` extends it to give each part to an eye.
+
+Things that follow the music connect to `key_changed(offset)` (read the new
+key with `key_root()` and `is_minor()`) and `stepped(bar, step_in_bar)`, which
+fires after every step the band plays.
+
 ## Live tempo
 
 The [`TempoControl`](../../autoload/TempoControl.gd) autoload gives every scene
