@@ -6,4 +6,4 @@
 [node name="LevelThreeA" type="Node2D"]
 script = ExtResource("1_level")
 emitter_script = ExtResource("2_emitter")
-title = "Level 3 — A: fluid"
+title = "Level 3"

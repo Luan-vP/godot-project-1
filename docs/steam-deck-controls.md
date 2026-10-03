@@ -68,7 +68,7 @@ is the quickest way to check a row on real hardware.
 | Aim the spout (level 3) | Either stick | Touchscreen; right trackpad + R2 (pointer + click) | ✅ Touch works both ways |
 | Key ±4th (level 3) | L1/R1 | On-screen buttons, top right | ✅ By touch |
 | Next scale (level 3, temporary) | Y | A → Return; on-screen button | ✅ |
-| Fire (level 3, B) | RT, depth = rate | Touch (distance = rate); Y → Space (full) | ✅ |
+| Pour (level 3) | RT, depth = droplets a bar | Touch (distance = droplets a bar, rings show it); Y → Space (full) | ✅ |
 
 The ⚠️ and ❌ rows need an answer on a Deck before they are bound; binding
 a guess could leave a control that does something else.

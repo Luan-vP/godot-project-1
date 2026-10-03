@@ -85,7 +85,7 @@ func test_stream_colour_drifts_through_the_palette() -> void:
 	assert_ne(halfway, FluidEmitter.PALETTE[1], "Not there yet")
 
 
-func test_version_a_scene_loads() -> void:
+func test_the_fluid_scene_loads() -> void:
 	var level: SpoutLevel = (
 		load("res://features/levels/spout/a_fluid/level_three_a.tscn").instantiate()
 	)
