@@ -6,6 +6,16 @@ extends GutTest
 const LEVEL := preload("res://features/levels/spout/a_fluid/level_three_a.tscn")
 
 
+## An overlay that counts how often it is drawn.
+class DrawCountingOverlay:
+	extends SpoutFlowOverlay
+	var draws := 0
+
+	func _draw() -> void:
+		draws += 1
+		super._draw()
+
+
 func after_each() -> void:
 	AudioManager.set_tempo(120.0, 4)
 
@@ -105,6 +115,22 @@ func test_overlay_shows_while_touching_and_fades_after() -> void:
 	assert_gt(overlay.visibility(), 0.0, "Fading, not gone at once")
 	overlay._process(1.0)
 	assert_eq(overlay.visibility(), 0.0, "Gone")
+
+
+func test_overlay_redraws_on_the_frame_it_reaches_zero() -> void:
+	var overlay := DrawCountingOverlay.new()
+	add_child_autofree(overlay)
+	overlay.set_process(false)
+	overlay.show_flow(4, true, Vector2(100, 300))
+	overlay._process(1.0)
+	overlay.show_flow(-1, false)
+	overlay._process(0.1)
+	await get_tree().process_frame
+	var before := overlay.draws
+	overlay._process(1.0)
+	assert_eq(overlay.visibility(), 0.0)
+	await get_tree().process_frame
+	assert_gt(overlay.draws, before, "The final frame is redrawn, so no faint ghost stays")
 
 
 func test_overlay_is_faint_for_a_trigger() -> void:

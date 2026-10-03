@@ -55,9 +55,11 @@ func _process(delta: float) -> void:
 	if _step >= 0:
 		target = 1.0 if _touching else 0.35
 	var rate := 1.0 / (FADE_IN if target > _alpha else FADE_OUT)
+	var was_visible := _alpha > 0.0
 	_alpha = move_toward(_alpha, target, rate * delta)
 	_pulse = maxf(0.0, _pulse - delta * 4.0)
-	if _alpha > 0.0:
+	# The frame that reaches zero redraws too, or the last faint frame stays.
+	if was_visible or _alpha > 0.0:
 		queue_redraw()
 
 
