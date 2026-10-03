@@ -1,6 +1,6 @@
 class_name FluidEmitter
 extends SpoutEmitter
-## Version A: the spout pours the eye tank's fluid.
+## The spout pours the eye tank's fluid.
 ##
 ## The tank is the eye band's own — a [FluidSimulation] with a default
 ## [FluidConfig] the size of the screen and a [FluidRenderer] painting it —
@@ -20,9 +20,19 @@ extends SpoutEmitter
 ##    each pin pushes back against whatever current runs through it, and a
 ##    droplet striking one splashes outwards. The painted stream visibly
 ##    divides around the pins instead of flowing through them.
+##
+## [b]How hard it pours[/b] is up to the player, in steps of the bar
+## ([SpoutFlow]): 2 droplets a bar at the gentlest, up to 16. RT sets the step
+## by depth; a touch (or held click) by how far from the spout it is, with
+## [SpoutFlowOverlay] drawing the steps as rings round the nozzle. Droplets
+## leave on the bar's grid, so the stream plays in time with the band, and the
+## jet's push and paint grow with the step. With neither held the spout is
+## closed.
 
-## Acceleration the jet gives the fluid at the nozzle, pixels/second^2.
-const JET_ACCELERATION := 2600.0
+## Acceleration the jet gives the fluid at the nozzle, pixels/second^2, at
+## the gentlest and fullest steps.
+const JET_ACCELERATION_MIN := 1400.0
+const JET_ACCELERATION_MAX := 3200.0
 const JET_RADIUS := 34.0
 ## Pigment laid at the nozzle, density/second.
 const JET_PAINT := 2.4
@@ -30,10 +40,10 @@ const JET_PAINT_RADIUS := 26.0
 ## The tank's standing lean, so the stream carries on downward.
 const DOWNWARD_LEAN := Vector2(0.0, 45.0)
 
-## Droplets leaving the nozzle per second, their speed, and how far their
-## direction is scattered either side of the aim.
-const DROPLET_RATE := 16.0
-const DROPLET_SPEED := 340.0
+## Droplets' speed leaving the nozzle at the gentlest and fullest steps, and
+## how far their direction is scattered either side of the aim.
+const DROPLET_SPEED_MIN := 280.0
+const DROPLET_SPEED_MAX := 420.0
 const DROPLET_SPREAD := deg_to_rad(7.0)
 const MAX_DROPLETS := 96
 
@@ -58,8 +68,15 @@ const PALETTE: Array[Color] = [
 const PALETTE_SECONDS := 9.0
 
 var simulation: FluidSimulation
+var overlay: SpoutFlowOverlay
+## Whether to read the pad and keyboard; off for tests, which set the depth.
+var reads_input := true
 var _droplets: Array[SpoutDroplet] = []
-var _spawn_debt := 0.0
+var _fired := 0
+var _depth := 0.0
+var _step := -1
+## Where the music was last frame, in bars; NAN while closed.
+var _last_bars := NAN
 var _elapsed := 0.0
 var _hits := 0
 var _rng := RandomNumberGenerator.new()
@@ -84,6 +101,15 @@ func bind(level_node: Node, the_spout: Spout, the_pins: PinField) -> void:
 	make_pool(MAX_DROPLETS)
 	_rng.randomize()
 
+	overlay = SpoutFlowOverlay.new()
+	overlay.name = "FlowOverlay"
+	overlay.z_index = 30
+	overlay.pivot = spout.global_position
+	overlay.max_aim = spout.max_aim
+	overlay.inner = flow_inner()
+	overlay.reach = flow_reach()
+	add_child(overlay)
+
 
 ## Fill the droplet pool. Done by [method bind]; separate so tests can have a
 ## pool without a tank.
@@ -101,20 +127,99 @@ func _physics_process(delta: float) -> void:
 	if spout == null:
 		return
 	_elapsed += delta
+	if reads_input:
+		_depth = SpoutFlow.read_depth()
+	var touching := _pointer_active()
+	set_step(current_step())
+	overlay.show_flow(_step, touching, _pointer().point() if touching else Vector2.ZERO)
+	if _step >= 0:
+		var now := SpoutFlow.music_bars()
+		var due := 0 if is_nan(_last_bars) else SpoutFlow.due(_last_bars, now, flow_per_bar())
+		_last_bars = now
+		_pour(delta, due)
+	_resist_at_pins(delta)
+	collide_droplets()
+
+
+## The step to pour at now: the higher of the trigger's and a touch's, or -1
+## when neither is held.
+func current_step() -> int:
+	var step := SpoutFlow.step_for_depth(_depth)
+	if _pointer_active():
+		var distance := spout.global_position.distance_to(_pointer().point())
+		step = maxi(step, SpoutFlow.step_for_distance(distance, flow_inner(), flow_reach()))
+	return step
+
+
+## Pour at [param step] from now on (-1 closes the spout). Opening, or moving
+## to a new step, starts counting the grid from this moment, so the change
+## never releases a burst.
+func set_step(step: int) -> void:
+	if step == _step:
+		return
+	_step = step
+	_last_bars = NAN
+
+
+func flow_step() -> int:
+	return _step
+
+
+func flow_per_bar() -> int:
+	return SpoutFlow.per_bar(_step)
+
+
+## Set the trigger depth by hand, for tests or another input.
+func set_depth(depth: float) -> void:
+	_depth = clampf(depth, 0.0, 1.0)
+
+
+## Radius round the spout inside which a touch pours at the gentlest step:
+## just past the nozzle's tip.
+func flow_inner() -> float:
+	return spout.barrel_length + 30.0
+
+
+## Radius at which a touch pours at the fullest step: down at the bottom of
+## the pins, so the whole drop from the spout is the dial.
+func flow_reach() -> float:
+	var bottom := pins.to_global(pins.area.end).y
+	return maxf(bottom - spout.global_position.y, flow_inner() + 1.0)
+
+
+## How far up the steps the spout is, 0 at the gentlest, 1 at the fullest.
+func flow_fraction() -> float:
+	return float(maxi(_step, 0)) / (SpoutFlow.STEPS.size() - 1)
+
+
+## One frame of pouring: the jet's push and paint, scaled to the step, and
+## [param due] droplets launched on the grid.
+func _pour(delta: float, due: int) -> void:
+	var strength := flow_fraction()
 	var tint := stream_color(_elapsed)
 	var muzzle := spout.muzzle_position()
 	var dir := spout.direction()
-	simulation.add_velocity_impulse(muzzle, dir * JET_ACCELERATION, JET_RADIUS, delta)
-	simulation.add_paint(muzzle, tint, JET_PAINT, JET_PAINT_RADIUS, delta)
-
-	_spawn_debt += DROPLET_RATE * delta
-	while _spawn_debt >= 1.0:
-		_spawn_debt -= 1.0
+	var push := lerpf(JET_ACCELERATION_MIN, JET_ACCELERATION_MAX, strength)
+	if simulation != null:
+		simulation.add_velocity_impulse(muzzle, dir * push, JET_RADIUS, delta)
+		simulation.add_paint(muzzle, tint, JET_PAINT * (0.5 + strength), JET_PAINT_RADIUS, delta)
+	var speed := lerpf(DROPLET_SPEED_MIN, DROPLET_SPEED_MAX, strength)
+	for i in due:
 		var angle := _rng.randf_range(-DROPLET_SPREAD, DROPLET_SPREAD)
-		spawn_droplet(muzzle, dir.rotated(angle) * DROPLET_SPEED, tint)
+		spawn_droplet(muzzle, dir.rotated(angle) * speed, tint)
+		overlay.pulse()
+		var haptics: Haptics = level.get("haptics") if level != null else null
+		if haptics != null:
+			haptics.pulse(0.25 + 0.35 * strength, 0.02)
 
-	_resist_at_pins(delta)
-	collide_droplets()
+
+func _pointer() -> SpoutPointer:
+	return level.get("pointer") if level != null else null
+
+
+func _pointer_active() -> bool:
+	var pointer := _pointer()
+	return pointer != null and pointer.is_active()
 
 
 ## A droplet from the pool, launched; the oldest in play is recycled when
@@ -128,7 +233,13 @@ func spawn_droplet(at: Vector2, initial: Vector2, tint: Color) -> SpoutDroplet:
 		if chosen == null or droplet.age > chosen.age:
 			chosen = droplet
 	chosen.launch(at, initial, tint)
+	_fired += 1
 	return chosen
+
+
+## Droplets launched since the level began.
+func fired_count() -> int:
+	return _fired
 
 
 func active_count() -> int:
@@ -218,9 +329,20 @@ func dark_backdrop() -> bool:
 	return true
 
 
+## RT pours here, so L2/R2 stay out of key moves; L1/R1 still walk all twelve
+## keys.
+func leaves_triggers_free() -> bool:
+	return false
+
+
 func hit_count() -> int:
 	return _hits
 
 
 func describe() -> String:
-	return "A: fluid · %d droplets · %d pin hits" % [active_count(), _hits]
+	var flow := "closed" if _step < 0 else "%d / bar" % flow_per_bar()
+	return "pouring %s · %d droplets · %d pin hits" % [flow, active_count(), _hits]
+
+
+func controls_hint() -> String:
+	return "RT or touch pours, 2–16 a bar (touch further away = more; Space full, 1–5)"

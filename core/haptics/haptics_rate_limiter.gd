@@ -6,7 +6,7 @@ extends RefCounted
 ## A request is played at once if the last pulse was at least
 ## [member min_interval] ago. Otherwise it is held, and any further requests
 ## before the interval is up merge into it — the strongest wins — so a
-## volley of twelve balls a second is felt as a steady, slightly coarser tick
+## volley of twelve pulses a second is felt as a steady, slightly coarser tick
 ## rather than a backlog that keeps buzzing after the trigger is let go. A held
 ## pulse plays from [method flush] once the interval is up.
 

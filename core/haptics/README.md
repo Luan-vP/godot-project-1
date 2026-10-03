@@ -25,8 +25,7 @@ silently dropped.
 
 **Rate limiting.** Pulses closer together than about 45 ms merge: the first
 plays at once, anything else inside the interval is held, the strongest held
-request wins, and it plays once the interval is up. Twelve balls a second (the
-spout level's version B at full trigger) is felt as a steady tick rather than
+request wins, and it plays once the interval is up. Twelve pulses a second is felt as a steady tick rather than
 a backlog that keeps buzzing after the trigger is released.
 
 **Comfort.** `ComfortSettings.haptics_strength` scales every pulse, 1 as

@@ -1,6 +1,6 @@
 class_name SpoutDroplet
 extends FluidBody
-## One element of version A's stream: a small, heavy bead of pigment that
+## One element of the spout's stream: a small, heavy bead of pigment that
 ## rides the eye tank's fluid. It sinks, is dragged by the current, leaves a
 ## faint wake and a stain, and is what actually strikes the pins — the solve
 ## itself has no particles and no solid pins, so the droplets are how the

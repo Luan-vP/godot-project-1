@@ -11,7 +11,7 @@ extends Node2D
 ##
 ## Behind it the eye band's songs play in full ([Band]), with the eye band's
 ## key moves: L1/R1 (Q/E) a fourth, L2/R2 (Z/X) a fifth — unless the emitter
-## wants the triggers, as version B does. A key move scrolls the pins over to
+## wants the triggers, as the fluid does. A key move scrolls the pins over to
 ## the new key, one column per step of the music, left to right. So does a
 ## change of scale: [method set_pin_scale] / [method cycle_scale], for now on
 ## the pad's Y, [kbd]Enter[/kbd] (the Deck's A outside Steam) or the touch
@@ -22,8 +22,8 @@ extends Node2D
 ## Deck run outside Steam, where the shoulder buttons do not reach the game.
 ##
 ## Built in code, like the eye tank: the scene file is a single node, and the
-## two versions are scenes of this script with a different
-## [member emitter_script].
+## level proper ([code]a_fluid/level_three_a.tscn[/code]) is a scene of this
+## script with [FluidEmitter] as its [member emitter_script].
 
 ## Paper the level is painted on.
 const PAPER := Color(0.94, 0.91, 0.85)

@@ -9,8 +9,8 @@ extends Node2D
 ## Pins in the same column share it. Pins are indexed left to right by x,
 ## ties broken top to bottom, so pin 0 is the leftmost.
 ##
-## What hits a pin is not this field's business. Version B's balls bounce off
-## the [StaticBody2D] every pin carries; version A's droplets look pins up with
+## What hits a pin is not this field's business. Physics bodies bounce off
+## the [StaticBody2D] every pin carries; the fluid's droplets look pins up with
 ## [method pin_at]. Both report a hit through [method hit], which plays the
 ## note, flashes the pin and emits [signal pin_hit].
 

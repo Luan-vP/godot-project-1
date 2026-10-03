@@ -7,7 +7,7 @@ extends Node2D
 ##
 ## The spout only aims. What comes out of it is up to a [SpoutEmitter], which
 ## reads [method muzzle_position] and [method direction] each frame — fluid in
-## version A, balls in version B.
+## the fluid, in [FluidEmitter].
 ##
 ## The pivot is this node's position, at the top; the nozzle swings from
 ## there, so the tip moves furthest.

@@ -2,8 +2,8 @@ class_name SpoutEmitter
 extends Node2D
 ## What comes out of the [Spout]. The level shell ([SpoutLevel]) has one slot
 ## for an emitter and hands it the spout and the pins in [method bind]; each
-## version of the level brings its own — fluid for A, balls for B — so the two
-## never edit the same file.
+## version of the level brings its own — the fluid ([FluidEmitter]), for now —
+## in its own folder.
 ##
 ## An emitter reads [method Spout.muzzle_position] and [method Spout.direction]
 ## each frame, and reports pins it hits with [method PinField.hit].
@@ -22,7 +22,7 @@ func bind(level_node: Node, the_spout: Spout, the_pins: PinField) -> void:
 	pins = the_pins
 
 
-## Whether this emitter leaves L2/R2 free for key moves. Version B fires on
+## Whether this emitter leaves L2/R2 free for key moves. The fluid pours on
 ## RT, so it says no and the level keeps key moves on L1/R1.
 func leaves_triggers_free() -> bool:
 	return true

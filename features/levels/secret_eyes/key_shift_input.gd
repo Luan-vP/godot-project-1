@@ -34,7 +34,7 @@ const KEY_STEPS := {
 }
 
 ## Whether L2/R2 move the key at all. A level that wants the triggers for
-## something else — the spout level's version B fires on RT — turns this off
+## something else — the spout level pours on RT — turns this off
 ## and keeps key moves on L1/R1, whose fourths still walk all twelve keys.
 var use_triggers := true
 
