@@ -70,3 +70,11 @@ func test_display_offset_is_the_smallest_signed_move() -> void:
 	assert_eq(KeyShiftInput.display_offset(10), -2, "Two fourths up is a tone down")
 	assert_eq(KeyShiftInput.display_offset(-5), -5)
 	assert_eq(KeyShiftInput.display_offset(6), 6)
+
+
+func test_triggers_can_be_handed_to_something_else() -> void:
+	_input.use_triggers = false
+	assert_eq(
+		_input.step_for(_trigger(JOY_AXIS_TRIGGER_RIGHT, 1.0)), 0, "R2 no longer moves the key"
+	)
+	assert_eq(_input.step_for(_button(JOY_BUTTON_RIGHT_SHOULDER)), 5, "R1 still does")

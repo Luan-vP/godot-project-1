@@ -67,6 +67,22 @@ const DEMOS: Array[Dictionary] = [
 		"Each eye plays a part while it stays off the walls. Tilt or stir to thin the music.",
 	},
 	{
+		"name": "Spout A: fluid",
+		"path": "res://features/levels/spout/a_fluid/level_three_a.tscn",
+		"blurb": "Level 3, A: pour the eye tank's fluid over singing pins. Stick or touch aims.",
+	},
+	{
+		"name": "Spout B: balls",
+		"path": "res://features/levels/spout/b_balls/level_three_b.tscn",
+		"blurb": "Level 3, B: RT or a touch fires billiard balls at the pins. Stick or touch aims.",
+	},
+	{
+		"name": "Spout (shell)",
+		"path": "res://features/levels/spout/spout_level.tscn",
+		"blurb":
+		"Level 3's shell: aim the spout (stick or touch), Space plucks the pin you aim at.",
+	},
+	{
 		"name": "Birds",
 		"path": "res://features/levels/boids/boids_level.tscn",
 		"blurb":

@@ -65,6 +65,10 @@ is the quickest way to check a row on real hardware.
 | Look (panorama) | Right stick | Right trackpad → mouse | ✅ |
 | Key shift (eye band) | L1/R1, L2/R2 | L2/R2 → clicks; L1/R1 unconfirmed | ❌ Not reachable; R2's click stirs |
 | Refresh (PR picker) | Y | Y → Space | ⚠️ Space also presses the focused PR's button |
+| Aim the spout (level 3) | Either stick | Touchscreen; right trackpad + R2 (pointer + click) | ✅ Touch works both ways |
+| Key ±4th (level 3) | L1/R1 | On-screen buttons, top right | ✅ By touch |
+| Next scale (level 3, temporary) | Y | A → Return; on-screen button | ✅ |
+| Fire (level 3, B) | RT, depth = rate | Touch (distance = rate); Y → Space (full) | ✅ |
 
 The ⚠️ and ❌ rows need an answer on a Deck before they are bound; binding
 a guess could leave a control that does something else.
