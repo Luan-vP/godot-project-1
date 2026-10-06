@@ -86,7 +86,10 @@ const DEMOS: Array[Dictionary] = [
 		"name": "Waterboatmen",
 		"path": "res://features/levels/boids/boids_level.tscn",
 		"blurb":
-		"Boatmen row in strokes and sing 3-against-4. Tap B as a snare to favour a rhythm and scatter the rest.",
+		(
+			"Boatmen row in strokes and sing 3-against-4. "
+			+ "Tap B as a snare to favour a rhythm and scatter the rest."
+		),
 	},
 	{
 		"name": "Fluid carousel",
