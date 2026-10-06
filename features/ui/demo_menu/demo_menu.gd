@@ -89,6 +89,12 @@ const DEMOS: Array[Dictionary] = [
 		"Boatmen row in strokes and sing 3-against-4. Tap B as a snare to favour a rhythm and scatter the rest.",
 	},
 	{
+		"name": "Fluid carousel",
+		"path": "res://features/levels/carousel/fluid_carousel.tscn",
+		"blurb":
+		"Eye band, Spout A and Waterboatmen in turn over one tank and one band. Cycles on its own.",
+	},
+	{
 		"name": "Vitreous",
 		"path": "res://features/levels/vitreous/vitreous_tank.tscn",
 		"blurb": "Out-of-focus floaters in a coasting gel. Drag to push, +/- floaters.",

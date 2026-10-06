@@ -25,6 +25,9 @@ const PAINT_RATE := 3.2
 const SEED_DENSITY := 1.6
 
 var _simulation: FluidSimulation
+## The carousel's persistent layers when this tank is a foreground layer in
+## one, else null. See [SharedLayers].
+var _shared: SharedLayers
 var _motion: MotionInput
 var _readout: Label
 var _last_mouse: Vector2 = Vector2.ZERO
@@ -40,18 +43,25 @@ var _palette: Array[Color] = [
 func _ready() -> void:
 	var extent := get_viewport_rect().size
 
-	var config := FluidConfig.new()
-	config.world_size = extent
+	# Hosted by the carousel, the water is the carousel's: it was painted and
+	# is rendered once, for every level, so this one neither builds a tank nor
+	# seeds it.
+	_shared = SharedLayers.find(self)
+	if _shared != null:
+		_simulation = _shared.fluid
+	else:
+		var config := FluidConfig.new()
+		config.world_size = extent
 
-	_simulation = FluidSimulation.new()
-	_simulation.name = "Fluid"
-	_simulation.config = config
-	add_child(_simulation)
+		_simulation = FluidSimulation.new()
+		_simulation.name = "Fluid"
+		_simulation.config = config
+		add_child(_simulation)
 
-	var renderer := FluidRenderer.new()
-	renderer.name = "FluidRenderer"
-	renderer.z_index = -100
-	add_child(renderer)
+		var renderer := FluidRenderer.new()
+		renderer.name = "FluidRenderer"
+		renderer.z_index = -100
+		add_child(renderer)
 
 	_motion = MotionInput.new()
 	_motion.name = "MotionInput"
@@ -78,9 +88,10 @@ func _ready() -> void:
 	add_child(floaters)
 
 	# A tank that starts as flat colour looks like a bug. Seed it.
-	for i in SEED_BLOBS:
-		var where := Vector2(randf(), randf()) * extent
-		_simulation.add_paint(where, _palette[i % _palette.size()], SEED_DENSITY, 150.0, 1.0)
+	if _shared == null:
+		for i in SEED_BLOBS:
+			var where := Vector2(randf(), randf()) * extent
+			_simulation.add_paint(where, _palette[i % _palette.size()], SEED_DENSITY, 150.0, 1.0)
 
 	_last_mouse = get_global_mouse_position()
 

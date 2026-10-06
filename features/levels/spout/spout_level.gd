@@ -52,6 +52,9 @@ var emitter: SpoutEmitter
 var haptics: Haptics
 var pointer: SpoutPointer
 
+## The carousel's persistent layers when this level is hosted in one, else
+## null. See [SharedLayers].
+var _shared: SharedLayers
 var _key_shift := KeyShiftInput.new()
 var _hud: Label
 var _status: Label
@@ -59,14 +62,17 @@ var _status: Label
 
 func _ready() -> void:
 	var extent := get_viewport_rect().size
+	_shared = SharedLayers.find(self)
 
-	var backdrop := ColorRect.new()
-	backdrop.name = "Paper"
-	backdrop.color = PAPER
-	backdrop.size = extent
-	backdrop.z_index = -200
-	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(backdrop)
+	# Hosted, the shared tank is the backdrop; paper would hide it.
+	if _shared == null:
+		var backdrop := ColorRect.new()
+		backdrop.name = "Paper"
+		backdrop.color = PAPER
+		backdrop.size = extent
+		backdrop.z_index = -200
+		backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(backdrop)
 
 	haptics = Haptics.new()
 	haptics.name = "Haptics"
@@ -98,16 +104,34 @@ func _ready() -> void:
 	_key_shift.use_triggers = emitter.leaves_triggers_free()
 	pins.on_dark = emitter.dark_backdrop()
 
-	band = Band.new()
-	band.name = "Band"
-	add_child(band)
+	if _shared != null:
+		# The music carries on from the level before; this one only joins it,
+		# with the whole arrangement.
+		band = _shared.band
+		for part in Band.PARTS:
+			band.set_part_wanted(part, true)
+	else:
+		band = Band.new()
+		band.name = "Band"
+		add_child(band)
 	band.key_changed.connect(_on_key_changed)
 	band.stepped.connect(_on_band_stepped)
-	band.start()
+	if _shared == null:
+		band.start()
 	peg_scale.set_key(band.key_root(), band.is_minor())
 	peg_scale.snap()
 
 	_build_hud()
+
+
+func _exit_tree() -> void:
+	# The shared band outlives this level, so stop following it. Godot would
+	# drop the connections to a freed level anyway; this just says so.
+	if _shared != null and band != null:
+		if band.key_changed.is_connected(_on_key_changed):
+			band.key_changed.disconnect(_on_key_changed)
+		if band.stepped.is_connected(_on_band_stepped):
+			band.stepped.disconnect(_on_band_stepped)
 
 
 func _unhandled_input(event: InputEvent) -> void:
