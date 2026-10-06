@@ -104,7 +104,7 @@ scene_for() {
 		spout-a | level3a) echo "res://features/levels/spout/a_fluid/level_three_a.tscn" ;;
 		spout-b | level3b) echo "res://features/levels/spout/b_balls/level_three_b.tscn" ;;
 		spout | level3) echo "res://features/levels/spout/spout_level.tscn" ;;
-		birds | boids) echo "res://features/levels/boids/boids_level.tscn" ;;
+		waterboatmen | boatmen | birds | boids) echo "res://features/levels/boids/boids_level.tscn" ;;
 		vitreous | floaters) echo "res://features/levels/vitreous/vitreous_tank.tscn" ;;
 		gaze) echo "res://features/levels/gaze/gaze_demo.tscn" ;;
 		refraction) echo "res://features/fluid/refraction_demo.tscn" ;;

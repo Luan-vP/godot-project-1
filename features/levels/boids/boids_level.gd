@@ -1,9 +1,10 @@
 class_name BoidsLevel
 extends Node2D
-## A sky of birds over the eye tank's fluid, as an instrument (#90). Birds in
-## a flock sing on the flock's rhythm — 3, 4 or 6 pulses to a shared bar, so
-## flocks play polyrhythms against each other — each with a voice of its own.
-## Loners are silent.
+## A pond of waterboatmen over the eye tank's fluid, as an instrument (#90).
+## Waterboatmen row in strokes and glides rather than flying. Boatmen in a
+## flock row together on the flock's pulses and sing on the flock's rhythm — 3,
+## 4 or 6 pulses to a shared bar, so flocks play polyrhythms against each
+## other — each with a voice of its own. Loners are silent.
 ##
 ## The player plays a snare (B, Esc, Space or a click; B on a gamepad).
 ## Every tap is read against every rhythm (see [TapReader]): flocks whose
@@ -17,10 +18,10 @@ extends Node2D
 ## heard. The dial in the corner shows the same thing: the bar going round,
 ## every rhythm's pulses, the last bar's taps, and the charge building.
 ##
-## The backdrop is the eye tank's painterly fluid. Birds stir it as they fly —
-## each flock drags a broad wake through it and stains it faintly in its
-## rhythm's colour — but the water never pushes back: the flocks fly as if it
-## were not there. See [BirdWakes].
+## The backdrop is the eye tank's painterly fluid. Boatmen stir it as they
+## row — each flock drags a broad wake through it and stains it faintly in its
+## rhythm's colour — but the water never pushes back: the flocks row as if it
+## carried them nowhere. See [BirdWakes].
 ##
 ## Tempo is [code]TempoControl[/code]'s, like everywhere else: the flocks, the
 ## pulses and the ghosts all run on [AudioManager]'s beats, so they follow a
@@ -76,9 +77,9 @@ const SEED_PALETTE: Array[Color] = [
 ## Birds are binned this many pixels across, and each occupied cell stirs the
 ## tank once — see [BirdWakes].
 const WAKE_CELL := 110.0
-## Acceleration a bird lends the water, per pixel/second of its own speed. A
-## lone bird at full speed pushes about as hard as an eye does in its tank.
-const WAKE_GAIN := 6.0
+## Acceleration a boatman lends the water, per pixel/second of its own speed.
+## Boatmen glide slower than the birds did, so this is higher than it was.
+const WAKE_GAIN := 9.0
 ## Cap on one cell's push, in pixels/second^2, so a packed flock swirls the
 ## water rather than blasting it.
 const WAKE_MAX := 7000.0
@@ -385,7 +386,7 @@ func _draw_flock_halos() -> void:
 
 
 func _draw_bird(bird: Bird) -> void:
-	var heading := bird.velocity.normalized() if bird.velocity.length() > 0.1 else Vector2.RIGHT
+	var heading := bird.heading
 	var side := heading.orthogonal()
 	var at := bird.position
 	var color := LONER_COLOR
@@ -394,8 +395,8 @@ func _draw_bird(bird: Bird) -> void:
 		var rhythm := table.get_rhythm(bird.flock.pulses)
 		color = rhythm.color if rhythm != null else Color.WHITE
 		color = color.lerp(Color.WHITE, bird.glow * 0.6)
-		scale += bird.glow * 0.5
-		# The charge shows on the sky: flocks about to be scattered tremble,
+		scale += bird.glow * 0.3
+		# The charge shows on the pond: flocks about to be scattered tremble,
 		# the flocks that will survive it glow.
 		if charge.charge > 0.0:
 			if bird.flock.pulses == charge.winner:
@@ -404,15 +405,24 @@ func _draw_bird(bird: Bird) -> void:
 				at += (
 					Vector2(_rng.randf_range(-1, 1), _rng.randf_range(-1, 1)) * charge.charge * 3.0
 				)
-	var points := PackedVector2Array(
-		[
-			at + heading * 7.0 * scale,
-			at - heading * 5.0 * scale + side * 5.0 * scale,
-			at - heading * 2.0 * scale,
-			at - heading * 5.0 * scale - side * 5.0 * scale,
-		]
-	)
-	draw_colored_polygon(points, color)
+	# Oars: folded back along the body at rest, flung out sideways on the pull.
+	var oar_angle := lerpf(2.5, 1.35, bird.stroke)
+	var oar_colour := color
+	oar_colour.a *= 0.8
+	for flank: float in [-1.0, 1.0]:
+		var oar := (heading * cos(oar_angle) + side * sin(oar_angle) * flank) * 11.0 * scale
+		var root := at - heading * 1.0 * scale
+		draw_line(root, root + oar, oar_colour, 1.5)
+		draw_line(root + oar, root + oar * 1.25 + heading * 2.0 * scale, oar_colour, 1.0)
+	# Body: a long oval, the head a touch narrower.
+	var body := PackedVector2Array()
+	for i in 10:
+		var t := TAU * i / 10.0
+		var along := cos(t)
+		var across := sin(t)
+		body.append(at + heading * along * 8.0 * scale + side * across * 3.2 * scale)
+	draw_colored_polygon(body, color)
+	draw_circle(at + heading * 7.0 * scale, 2.0 * scale, color.lightened(0.25))
 
 
 ## The eye tank's fluid, the size of the window, behind everything.

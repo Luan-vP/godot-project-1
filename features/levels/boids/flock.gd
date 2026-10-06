@@ -19,6 +19,9 @@ var next_voice: int = 0
 ## Visual kick on a pulse, decaying to 0.
 var flash: float = 0.0
 
+## Index of the last pulse the flock rowed on, so each pulse strokes once.
+var last_pulse: int = -1
+
 
 func size() -> int:
 	return members.size()
