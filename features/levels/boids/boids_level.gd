@@ -129,6 +129,9 @@ var _effect_indices: Array[int] = []
 var _hud: Label
 var _dial: Control
 var _fluid: FluidSimulation
+## The carousel's persistent layers when this level is hosted in one, else
+## null. See [SharedLayers].
+var _shared: SharedLayers
 
 
 func _ready() -> void:
@@ -141,6 +144,7 @@ func _ready() -> void:
 		[DeckDesktopLayout.R2, DeckDesktopLayout.L2] as Array[MouseButton]
 	)
 	_rng.randomize()
+	_shared = SharedLayers.find(self)
 	table = RhythmTable.default_table()
 	_grid = table.grid_steps(BEATS_PER_BAR)
 	reader = TapReader.new(BEATS_PER_BAR)
@@ -159,9 +163,14 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	if not _started:
 		return
-	AudioManager.stop_loops()
+	# Hosted, the music clock is the carousel's and carries on to the next level.
+	if _shared == null:
+		AudioManager.stop_loops()
 	for synth in _synths.values():
 		synth.release_all()
+	# Removed by index, which is safe only while nothing has added a bus effect
+	# since: the shared band's are added before this level exists, and nothing
+	# adds to the bus afterwards.
 	for i in range(_effect_indices.size() - 1, -1, -1):
 		AudioManager.remove_bus_effect(AudioManager.MUSIC_BUS, _effect_indices[i])
 
@@ -172,6 +181,13 @@ func start() -> void:
 		return
 	_started = true
 	_build_audio()
+	if _shared != null:
+		# The shared band's clock is already running, and the boatmen follow
+		# whatever tempo it has. The band drops out at the next bar, leaving
+		# the flocks as the music.
+		for part in Band.PARTS:
+			_shared.band.set_part_wanted(part, false)
+		return
 	AudioManager.set_tempo(START_BPM, BEATS_PER_BAR)
 	# No loops to play — everything here is live — but the loop clock is what
 	# starts musical time, and the demo menu stops it again on the way out.
@@ -427,6 +443,10 @@ func _draw_bird(bird: Bird) -> void:
 
 ## The eye tank's fluid, the size of the window, behind everything.
 func _build_fluid() -> void:
+	# Hosted, the tank is the carousel's, already rendered and already painted.
+	if _shared != null:
+		_fluid = _shared.fluid
+		return
 	var extent := get_viewport_rect().size
 	var config := FluidConfig.new()
 	config.world_size = extent

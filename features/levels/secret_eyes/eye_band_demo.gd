@@ -40,7 +40,13 @@ const PENDING_START_COLOR := Color(1.0, 1.0, 1.0, 0.95)
 const PENDING_STOP_COLOR := Color(0.95, 0.25, 0.2, 0.95)
 const PENDING_RING_WIDTH := 3.0
 
-var _band: EyeBand
+## Which eyes are clear of the walls, and so which parts are wanted. Always this
+## scene's own; it only sounds when standalone.
+var _contacts: EyeBand
+## The band that sounds: [member _contacts] standalone, the carousel's shared
+## band when hosted (see [SharedLayers]), which then gets its parts mirrored
+## from the contacts every frame.
+var _band: Band
 var _overlay: Node2D
 var _parts_label: Label
 var _debug_label: Label
@@ -49,10 +55,15 @@ var _key_shift := KeyShiftInput.new()
 
 func _ready() -> void:
 	super()
-	_band = EyeBand.new()
-	_band.name = "EyeBand"
-	add_child(_band)
-	_band.start()
+	_contacts = EyeBand.new()
+	_contacts.name = "EyeBand"
+	add_child(_contacts)
+	if _shared != null:
+		# Never started, so it makes no sound and its exit leaves the loops be.
+		_band = _shared.band
+	else:
+		_band = _contacts
+		_contacts.start()
 
 	_overlay = Node2D.new()
 	_overlay.name = "PartRings"
@@ -100,6 +111,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	super(delta)
+	if _shared != null:
+		for part in Band.PARTS:
+			_band.set_part_wanted(part, _contacts.wants_part(part))
 	_overlay.queue_redraw()
 	_update_label()
 	_update_debug_label()
@@ -107,7 +121,7 @@ func _process(delta: float) -> void:
 
 func _update_label() -> void:
 	var parts: PackedStringArray = []
-	for part in EyeBand.PARTS:
+	for part in Band.PARTS:
 		var mark := "●" if _band.is_playing(part) else "○"
 		if _band.is_playing(part) != _band.wants_part(part):
 			mark = "◐"
@@ -155,11 +169,11 @@ func _draw_rings() -> void:
 		var eye := child as FloatyEye
 		if eye == null:
 			continue
-		var part := _band.part_for(eye)
+		var part := _contacts.part_for(eye)
 		if part.is_empty():
 			continue
 		var color := PLAYING_COLOR if _band.is_playing(part) else SILENT_COLOR
-		if _band.is_touching(eye):
+		if _contacts.is_touching(eye):
 			color = TOUCHING_COLOR
 		var ring_radius := eye.radius + RING_GAP
 		var pending := _band.pending(part)
