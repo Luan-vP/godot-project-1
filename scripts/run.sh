@@ -69,6 +69,9 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
              the turn it makes. Calibrate, then look. Without the device
              plugin the pointer stands in: C calibrates, Space blinks, F hides
              the face, M switches backend.
+  compare    Edge detector comparison (#25): Canny, contour tracing and Canny
+             plus line fit over three panoramas. Tab panorama, 1/2/3 detector,
+             A saves all screenshots.
   synth      Synth voices. A-K hold notes, Up/Down glide, 1/2/3 waveform,
              R plays a phrase, Space holds a high note.
   groove     Floaty synthwave loop at 70 bpm: rendered drums plus live bass and
@@ -114,6 +117,7 @@ scene_for() {
 		refraction) echo "res://features/fluid/refraction_demo.tscn" ;;
 		canny | edges) echo "res://features/edges/canny_edge_debug.tscn" ;;
 		eye-gaze | eye-tracking) echo "res://core/look/gaze/gaze_debug_demo.tscn" ;;
+		compare | edge-compare) echo "res://features/edges/edge_compare_debug.tscn" ;;
 		synth) echo "res://core/audio/synth_demo.tscn" ;;
 		groove) echo "res://core/audio/groove_demo.tscn" ;;
 		audio) echo "res://core/audio/audio_demo.tscn" ;;
