@@ -40,8 +40,8 @@ const BASE_OFFSET_META := &"carousel_base_offset_x"
 ## Seconds a transition takes.
 @export var slide_seconds := 1.4
 
-## The scenes cycled through. [constant LEVELS] unless a test swaps it before
-## the carousel enters the tree.
+## The scenes cycled through. [constant LEVELS] unless a test, or a variant
+## such as fluid_carousel_birds.gd, swaps it before the carousel enters the tree.
 var level_paths: Array[String] = LEVELS.duplicate()
 
 var _shared: SharedLayers

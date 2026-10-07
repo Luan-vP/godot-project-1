@@ -46,11 +46,16 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
              band playing behind. Stick or A/D aims, Space plucks the pin
              aimed at, Q/E and Z/X move the key, Enter or Y swaps scale;
              touch aims, top-right buttons move key/scale.
-  birds      Flocks of birds singing 3-against-4. B is a snare: tap a rhythm
-             to favour its flocks; hold it and the others scatter.
+  birds      Flying flocks of birds singing 3-against-4. B is a snare: tap a
+             rhythm to favour its flocks; hold it and the others scatter.
+  boatmen    The same, as waterboatmen rowing in strokes and glides
+             (also: waterboatmen, boids).
   carousel   The eye band, spout A and the waterboatmen in turn, sliding over
              one shared tank and one continuous band. Cycles every 20 seconds
              on its own; each level plays as it does alone.
+  carousel-birds
+             The same carousel with the flying birds in place of the
+             waterboatmen.
   vitreous   Out-of-focus floaters drifting in a coasting gel. Drag to push,
              WASD tilts, Space jogs, +/- floaters, F toggles focus, B dark
              background, R stills.
@@ -107,8 +112,10 @@ scene_for() {
 		spout-a | level3a) echo "res://features/levels/spout/a_fluid/level_three_a.tscn" ;;
 		spout-b | level3b) echo "res://features/levels/spout/b_balls/level_three_b.tscn" ;;
 		spout | level3) echo "res://features/levels/spout/spout_level.tscn" ;;
-		waterboatmen | boatmen | birds | boids) echo "res://features/levels/boids/boids_level.tscn" ;;
+		birds) echo "res://features/levels/boids/birds_level.tscn" ;;
+		waterboatmen | boatmen | boids) echo "res://features/levels/boids/boids_level.tscn" ;;
 		carousel | fluid-carousel) echo "res://features/levels/carousel/fluid_carousel.tscn" ;;
+		carousel-birds) echo "res://features/levels/carousel/fluid_carousel_birds.tscn" ;;
 		vitreous | floaters) echo "res://features/levels/vitreous/vitreous_tank.tscn" ;;
 		gaze) echo "res://features/levels/gaze/gaze_demo.tscn" ;;
 		refraction) echo "res://features/fluid/refraction_demo.tscn" ;;

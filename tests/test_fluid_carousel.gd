@@ -59,6 +59,26 @@ func test_the_real_levels_are_the_three_fluid_ones_in_order() -> void:
 	assert_true(FluidCarousel.LEVELS[2].ends_with("boids_level.tscn"), "Then the boatmen")
 
 
+func test_the_birds_carousel_swaps_the_waterboatmen_for_the_birds() -> void:
+	var birds_carousel: FluidCarousel = (
+		load("res://features/levels/carousel/fluid_carousel_birds.tscn").instantiate()
+	)
+	var paths := birds_carousel.level_paths
+	birds_carousel.free()
+	assert_eq(paths.size(), 3, "Three levels")
+	for path in paths:
+		assert_true(ResourceLoader.exists(path), path)
+	assert_true(paths[0].ends_with("eye_band_demo.tscn"), "Eye band first")
+	assert_true(paths[1].ends_with("level_three_a.tscn"), "Then spout A")
+	assert_true(paths[2].ends_with("birds_level.tscn"), "Then the birds")
+	assert_eq(FluidCarousel.LEVELS[2], "res://features/levels/boids/boids_level.tscn", "Original")
+	var original: FluidCarousel = (
+		load("res://features/levels/carousel/fluid_carousel.tscn").instantiate()
+	)
+	assert_eq(original.level_paths, FluidCarousel.LEVELS, "The original carousel is unchanged")
+	original.free()
+
+
 func test_find_returns_the_hosting_layers_from_any_depth() -> void:
 	var shared := SharedLayers.new()
 	var level := Node2D.new()

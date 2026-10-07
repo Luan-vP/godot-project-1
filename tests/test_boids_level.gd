@@ -3,6 +3,8 @@ extends GutTest
 ## tap is read and its ghost lands a bar later on the pulse it was read as, and
 ## what the taps favour reaches the flocks as weight.
 
+const BIRDS_SCENE := "res://features/levels/boids/birds_level.tscn"
+
 var _level: BoidsLevel
 
 
@@ -69,3 +71,37 @@ func test_the_snare_hears_the_deck_in_desktop_mode() -> void:
 		click.button_index = button_index
 		click.pressed = true
 		assert_true(click.is_action_pressed(BoidsLevel.SNARE), "Mouse button %d" % button_index)
+
+
+func _birds_level() -> BoidsLevel:
+	var birds: BoidsLevel = load(BIRDS_SCENE).instantiate()
+	add_child_autofree(birds)
+	return birds
+
+
+func test_a_flying_level_builds_and_steps() -> void:
+	var birds := _birds_level()
+	assert_eq(birds.motion, FlockSim.Motion.FLY, "The scene flies")
+	assert_eq(birds.sim.motion, FlockSim.Motion.FLY, "The sim was told before it populated")
+	assert_eq(birds.sim.pulses_on_screen(), [3, 4] as Array[int], "Still 3-against-4")
+	for i in 30:
+		birds.sim.step(1.0 / 60.0, i / 60.0)
+		birds._stir(1.0 / 60.0)
+	birds.queue_redraw()
+	await get_tree().process_frame
+	for bird in birds.sim.birds:
+		assert_between(
+			bird.velocity.length(), FlockSim.FLY_MIN_SPEED - 0.01, FlockSim.SCATTER_SPEED
+		)
+
+
+func test_the_waterboatmen_level_still_rows() -> void:
+	assert_eq(_level.motion, FlockSim.Motion.ROW, "Rows by default")
+	assert_eq(_level.sim.motion, FlockSim.Motion.ROW, "Sim rows")
+
+
+func test_the_wake_gain_depends_on_the_motion() -> void:
+	assert_eq(_level.wake_gain(), BoidsLevel.WAKE_GAIN_ROW, "Rowing")
+	var birds := _birds_level()
+	assert_eq(birds.wake_gain(), BoidsLevel.WAKE_GAIN_FLY, "Flying")
+	assert_ne(BoidsLevel.WAKE_GAIN_FLY, BoidsLevel.WAKE_GAIN_ROW, "They differ")

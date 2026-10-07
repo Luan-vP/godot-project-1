@@ -1,19 +1,29 @@
 class_name FlockSim
 extends RefCounted
-## Waterboatmen with boids flocking, in explicit flocks that each play one
-## rhythm. They move as waterboatmen do: not flying, but rowing — a hard
-## stroke of the oars, then a glide that the water's drag eats, then another.
+## Boids flocking, in explicit flocks that each play one rhythm. They move in
+## one of two ways ([enum Motion]): as waterboatmen row — a hard stroke of the
+## oars, then a glide that the water's drag eats, then another — or as the
+## original birds fly, steered continuously at a speed that never drops below a
+## minimum.
 ##
 ## Pure: no nodes, no drawing, no sound. [method step] is handed the frame's
 ## seconds and the music's beats, so a test can drive it deterministically. The
 ## level reads [member birds] and [member flocks] to draw and to play.
 ##
-## [b]Rowing.[/b] Flocking steers a boatman's [member Bird.heading] but never
-## its speed; speed comes only from strokes. A loner rows on its own irregular
-## timer and often clings to the bottom for a while instead, so it darts, stops
-## and darts. A flock's members all row together on each of the flock's pulses
-## (a few milliseconds apart), so a 3-flock lurches forward three times a bar
-## and a 4-flock four, and the polyrhythm can be seen as well as heard.
+## [b]Flying[/b] ([constant Motion.FLY]) is the first version of this sim:
+## flocking accelerates a bird's velocity directly, which is clamped between
+## [constant FLY_MIN_SPEED] and [constant FLY_MAX_SPEED]. There are no strokes
+## and no rests, and a bird's [member Bird.heading] simply follows its
+## velocity. Everything below about flocks (joining, leaving, forming,
+## pulsing, weights) is the same in both motions.
+##
+## [b]Rowing[/b] ([constant Motion.ROW], the default). Flocking steers a
+## boatman's [member Bird.heading] but never its speed; speed comes only from
+## strokes. A loner rows on its own irregular timer and often clings to the
+## bottom for a while instead, so it darts, stops and darts. A flock's members
+## all row together on each of the flock's pulses (a few milliseconds apart),
+## so a 3-flock lurches forward three times a bar and a 4-flock four, and the
+## polyrhythm can be seen as well as heard.
 ##
 ## [b]Loners[/b] are silent. They wander, loosely flock with other loners, and
 ## drift towards flocks the player's tapping currently favours.
@@ -48,6 +58,9 @@ signal flock_dissolved(flock: Flock)
 signal bird_joined(bird: Bird, flock: Flock)
 signal scattered(survivor: int, bird_count: int)
 
+## How birds move: rowed in strokes and glides, or flown continuously.
+enum Motion { ROW, FLY }
+
 const MAX_FLOCKS := 5
 const MAX_FLOCK_SIZE := 14
 
@@ -74,6 +87,11 @@ const SEPARATION_RADIUS := 22.0
 const STROKE_SPEED := 230.0
 const MAX_SPEED := 300.0
 const DRAG := 3.0
+
+## Flying speeds: a bird never slows below the minimum or (unless thrown by a
+## scatter) exceeds the maximum.
+const FLY_MIN_SPEED := 70.0
+const FLY_MAX_SPEED := 150.0
 
 ## How fast a heading swings towards where the flocking steers it, per second.
 const TURN_RATE := 6.0
@@ -111,6 +129,9 @@ const ALIGN_SPEED := 100.0
 const CENTROID_GAIN := 0.35
 const LONER_GAIN := 0.35
 const WANDER_ACCEL := 220.0
+## A flying loner wanders far less than a rowing one: a stroke is a lot of speed
+## to steer, a flier only ever has its acceleration.
+const FLY_WANDER_ACCEL := 70.0
 const ATTRACT_ACCEL := 140.0
 const ATTRACT_RADIUS := 260.0
 const EDGE_MARGIN := 90.0
@@ -127,6 +148,9 @@ var bounds: Rect2
 var table: RhythmTable
 var rng: RandomNumberGenerator
 var birds: Array[Bird] = []
+## How the birds move. Set before [method populate], which seeds velocities to
+## suit it.
+var motion: Motion = Motion.ROW
 var flocks: Array[Flock] = []
 
 ## pulses -> attraction weight, 1 neutral. Set by whoever reads the taps.
@@ -172,7 +196,7 @@ func populate(count: int, seed_pulses: Array[int] = []) -> void:
 			rng.randf_range(bounds.position.x, bounds.end.x),
 			rng.randf_range(bounds.position.y, bounds.end.y)
 		)
-		add_bird(position, Vector2.from_angle(rng.randf() * TAU) * STROKE_SPEED / DRAG * 0.5)
+		add_bird(position, Vector2.from_angle(rng.randf() * TAU) * _initial_speed(false))
 	var per_flock := FORM_SIZE + 3
 	var index := 0
 	for pulses in seed_pulses:
@@ -190,9 +214,18 @@ func populate(count: int, seed_pulses: Array[int] = []) -> void:
 			index += 1
 			bird.position = centre + Vector2.from_angle(rng.randf() * TAU) * rng.randf() * 30.0
 			bird.heading = heading
-			bird.velocity = heading * STROKE_SPEED * 0.5
+			bird.velocity = heading * _initial_speed(true)
 			members.append(bird)
 		make_flock(members, pulses)
+
+
+## Speed a bird starts at: a rower coasts at half what a stroke carries it, a
+## loner flier at the slowest it may fly and a flock of fliers at the middle of
+## its range, so a flock starts out as one.
+func _initial_speed(in_flock: bool) -> float:
+	if motion == Motion.FLY:
+		return (FLY_MIN_SPEED + FLY_MAX_SPEED) * 0.5 if in_flock else FLY_MIN_SPEED
+	return STROKE_SPEED / DRAG * 0.5
 
 
 ## A new loner with a voice of its own.
@@ -270,7 +303,8 @@ func scatter(survivor: int) -> int:
 				away = Vector2.from_angle(rng.randf() * TAU)
 			bird.heading = away.normalized()
 			bird.velocity = bird.heading * SCATTER_SPEED
-			bird.stroke_timer = FLEE_STROKE_GAP
+			if motion == Motion.ROW:
+				bird.stroke_timer = FLEE_STROKE_GAP
 			bird.stunned = STUN_SECONDS
 			leave(bird)
 			count += 1
@@ -305,7 +339,8 @@ func step(delta: float, beats: float) -> void:
 	for flock in flocks:
 		_refresh_centroid(flock)
 		flock.flash = maxf(flock.flash - delta * 3.0, 0.0)
-		_row_on_pulse(flock, beats)
+		if motion == Motion.ROW:
+			_row_on_pulse(flock, beats)
 	var accelerations: Array[Vector2] = []
 	for bird in birds:
 		accelerations.append(_steer(bird, beats))
@@ -327,7 +362,7 @@ func _steer(bird: Bird, beats: float) -> Vector2:
 		if distance < SEPARATION_RADIUS and distance > 0.001:
 			separation -= offset / distance * (1.0 - distance / SEPARATION_RADIUS)
 		if distance < NEIGHBOUR_RADIUS and other.flock == bird.flock:
-			heading += other.heading
+			heading += other.velocity if motion == Motion.FLY else other.heading
 			centre += other.position
 			neighbours += 1
 
@@ -338,11 +373,15 @@ func _steer(bird: Bird, beats: float) -> Vector2:
 		gain = weight * (1.0 + surge_gain * surge(beats, bird.flock.pulses, beats_per_bar))
 		accel += (bird.flock.centroid - bird.position) * CENTROID_GAIN * weight
 	else:
-		accel += Vector2.from_angle(rng.randf() * TAU) * WANDER_ACCEL
+		var wander := FLY_WANDER_ACCEL if motion == Motion.FLY else WANDER_ACCEL
+		accel += Vector2.from_angle(rng.randf() * TAU) * wander
 		accel += _attraction(bird)
 	if neighbours > 0:
 		accel += (centre / neighbours - bird.position) * COHESION_GAIN * gain
-		accel += (heading / neighbours - bird.heading) * ALIGN_SPEED * ALIGNMENT_GAIN * gain
+		if motion == Motion.FLY:
+			accel += (heading / neighbours - bird.velocity) * ALIGNMENT_GAIN * gain
+		else:
+			accel += (heading / neighbours - bird.heading) * ALIGN_SPEED * ALIGNMENT_GAIN * gain
 	return accel + _edge_push(bird.position)
 
 
@@ -385,10 +424,39 @@ func _row_on_pulse(flock: Flock, beats: float) -> void:
 		bird.stroke_timer = rng.randf_range(0.0, PULSE_SPREAD)
 
 
+func _integrate(bird: Bird, accel: Vector2, delta: float) -> void:
+	if motion == Motion.FLY:
+		_fly(bird, accel, delta)
+	else:
+		_row_step(bird, accel, delta)
+
+
+## One step of a bird in flight: the flocking accelerates it directly, and its
+## speed is kept within [constant FLY_MIN_SPEED] and [constant FLY_MAX_SPEED]
+## (up to [constant SCATTER_SPEED] while thrown by a scatter, easing back).
+func _fly(bird: Bird, accel: Vector2, delta: float) -> void:
+	bird.velocity += accel * delta
+	var top := FLY_MAX_SPEED
+	if bird.stunned > 0.0:
+		top = lerpf(FLY_MAX_SPEED, SCATTER_SPEED, bird.stunned / STUN_SECONDS)
+	var speed := bird.velocity.length()
+	if speed > top:
+		bird.velocity *= top / speed
+	elif speed < FLY_MIN_SPEED:
+		bird.velocity = (
+			bird.velocity / speed * FLY_MIN_SPEED
+			if speed > 0.001
+			else Vector2.from_angle(rng.randf() * TAU) * FLY_MIN_SPEED
+		)
+	bird.heading = bird.velocity.normalized()
+	bird.position += bird.velocity * delta
+	bird.position = bird.position.clamp(bounds.position, bounds.end)
+
+
 ## One step of a boatman: steer the heading, row if it is time, then let the
 ## water slow it. [param accel] never changes the speed directly beyond
 ## [constant DRIFT]; only [method _row] does.
-func _integrate(bird: Bird, accel: Vector2, delta: float) -> void:
+func _row_step(bird: Bird, accel: Vector2, delta: float) -> void:
 	if accel.length_squared() > 1.0:
 		var turn := clampf(TURN_RATE * delta, 0.0, 1.0)
 		bird.heading = bird.heading.slerp(accel.normalized(), turn).normalized()
