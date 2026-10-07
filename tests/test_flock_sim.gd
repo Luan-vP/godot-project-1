@@ -18,7 +18,7 @@ func before_each() -> void:
 
 
 func _bird_at(position: Vector2) -> Bird:
-	return _sim.add_bird(position, Vector2.RIGHT * FlockSim.MIN_SPEED)
+	return _sim.add_bird(position, Vector2.RIGHT * 60.0)
 
 
 func _flock_at(centre: Vector2, pulses: int, size: int = 4) -> Flock:
@@ -147,7 +147,7 @@ func test_stepping_keeps_birds_in_the_sky() -> void:
 		_sim.step(1.0 / 60.0, i / 60.0)
 	for bird in _sim.birds:
 		assert_true(SKY.grow(0.01).has_point(bird.position), "Inside the sky")
-		assert_between(bird.velocity.length(), FlockSim.MIN_SPEED - 0.01, FlockSim.SCATTER_SPEED)
+		assert_between(bird.velocity.length(), 0.0, FlockSim.SCATTER_SPEED + 0.01)
 
 
 func test_same_rhythm_flocks_that_meet_merge() -> void:
@@ -158,3 +158,33 @@ func test_same_rhythm_flocks_that_meet_merge() -> void:
 	assert_eq(big.size(), 8, "The smaller joined the larger")
 	assert_false(small in _sim.flocks, "The smaller is gone")
 	assert_eq(other.size(), 3, "A different rhythm never merges")
+
+
+func test_a_stroke_kicks_the_boatman_along_its_heading_then_it_glides_to_rest() -> void:
+	_sim.rest_chance = 0.0
+	var bird := _sim.add_bird(Vector2(500, 300), Vector2.ZERO)
+	bird.heading = Vector2.RIGHT
+	bird.stroke_timer = 0.0
+	_sim.step(0.001, 0.0)
+	assert_gt(bird.velocity.x, FlockSim.STROKE_SPEED * 0.5, "Pushed forward")
+	assert_gt(bird.stroke, 0.9, "Oars at the pull")
+	var top := bird.velocity.length()
+	bird.stroke_timer = 100.0
+	for i in 120:
+		_sim.step(1.0 / 60.0, 0.0)
+	assert_lt(bird.velocity.length(), top * 0.1, "The water ate the glide")
+
+
+func test_flock_members_row_on_their_flocks_pulse() -> void:
+	var flock := _flock_at(Vector2(500, 300), 4, 3)
+	_sim.step(0.1, 0.0)
+	for bird in flock.members:
+		bird.stroke_timer = 100.0
+		bird.stroke = 0.0
+	_sim.step(0.1, 0.5)
+	for bird in flock.members:
+		assert_eq(bird.stroke, 0.0, "Between pulses nobody rows")
+	# Beat 1 is the next pulse of a 4-flock; the spread is under a step.
+	_sim.step(0.1, 1.0)
+	for bird in flock.members:
+		assert_gt(bird.stroke, 0.0, "On the pulse everybody rows")

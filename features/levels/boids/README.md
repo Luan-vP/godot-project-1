@@ -1,9 +1,11 @@
-# Birds: flocks as polyrhythms
+# Waterboatmen: flocks as polyrhythms
 
 An alternative to the eye band (#90): instead of eyes that each play a part,
-a dusk sky of birds that flock, where every flock sings one polyrhythm and
-the player plays a snare against them. `scripts/run.sh birds`, or *Birds* in
-the demo menu. The design interview behind it is
+a pond of waterboatmen over the eye tank's fluid, who flock and row, where
+every flock sings one polyrhythm and the player plays a snare against them.
+`scripts/run.sh boatmen` (`birds` still works), or *Waterboatmen* in the demo
+menu. The class and file names (`Bird`, `FlockSim`, `boids/`) keep their
+first names. The design interview behind it is
 [docs/boids-rhythm-scope.md](../../../docs/boids-rhythm-scope.md).
 
 ## Controls
@@ -23,6 +25,16 @@ play the snare, and the d-pad sends the arrows, so tempo works as it is. See
 names the Deck control that sent it.
 
 ## What happens
+
+- **They row, they don't fly.** A waterboatman's speed comes only from
+  strokes of its oars: a hard pull, then a glide that the water's drag slows
+  to nothing before the next (`FlockSim.STROKE_SPEED`, `DRAG`). Flocking only
+  steers which way it faces. A loner rows on its own irregular timer and
+  often clings still for a second or two, so it darts, stops and darts. A
+  flock's members all row together on each of the flock's pulses, so a 3-flock
+  lurches three times a bar and a 4-flock four: the polyrhythm shows in the
+  motion as well as the sound. The oars fold back at rest and fling out on
+  the pull.
 
 - **Flocks sing polyrhythms.** Every flock plays 3, 4 or 6 even pulses across
   one shared bar, all on the same downbeat, so a 3-flock and a 4-flock are
@@ -53,6 +65,14 @@ names the Deck control that sent it.
   nothing can charge for eight bars.
 - **The snare shows how it was heard.** It sounds the instant it is hit, and
   a quiet ghost of it lands a bar later on the pulse it was read as.
+- **Boatmen stir the fluid; the fluid leaves boatmen alone.** The sky is the eye
+  tank's painterly fluid (`features/fluid/`). Every bird pushes the water
+  along its heading, so flocks drag wakes through the wash, and flocked birds
+  stain it faintly in their rhythm's colour. Nothing flows back: `FlockSim`
+  never samples the current, so the flocking is exactly what it was on a
+  plain sky. The tank takes only 16 stirrers a frame, so birds are binned on
+  a coarse grid and each cell pushes once with its birds' summed momentum
+  (`BirdWakes`) — a flock reads as one broad wake.
 
 ## Reading the screen
 
@@ -68,7 +88,8 @@ in the other corner spells out the tempo, the reading and the charge.
 
 | File | What it is |
 | --- | --- |
-| `boids_level.gd` / `.tscn` | The scene: sky, birds, voices, snare, dial. |
+| `boids_level.gd` / `.tscn` | The scene: fluid sky, birds, voices, snare, dial. |
+| `bird_wakes.gd` | `BirdWakes` — bins birds into the wakes that stir the fluid. |
 | `flock_sim.gd` | `FlockSim` — boids plus flock membership, pure and testable. |
 | `bird.gd`, `flock.gd` | The sim's data. |
 | `scatter_charge.gd` | `ScatterCharge` — when the rare full scatter fires. |

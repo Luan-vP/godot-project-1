@@ -16,7 +16,7 @@ A 2D game about floaty eye thingies, in a painterly style. Godot 4.4.
 - `features/levels/spout/` — level 3: aim a spout over a field of pins that
   play a scale, the eye band behind it. Two versions: A pours the eye tank's
   fluid, B fires balls. See its [README](features/levels/spout/README.md).
-- `features/levels/boids/` — flocks of birds that sing polyrhythms, played
+- `features/levels/boids/` — flocks of waterboatmen that row and sing polyrhythms, played
   with a snare. See its [README](features/levels/boids/README.md).
 - `features/levels/panorama/` — the main level's core mechanic: a camera at
   the centre of a look-around panoramic background. See its

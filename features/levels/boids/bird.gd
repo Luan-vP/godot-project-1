@@ -1,6 +1,7 @@
 class_name Bird
 extends RefCounted
-## One bird in a [FlockSim]. Plain data, stepped by the sim.
+## One waterboatman in a [FlockSim] (the class keeps its first name). Plain
+## data, stepped by the sim.
 ##
 ## A bird's voice — [member note] and [member waveform] — is fixed at birth
 ## and never changes. Joining a flock changes only when it plays (the flock's
@@ -8,6 +9,17 @@ extends RefCounted
 
 var position: Vector2 = Vector2.ZERO
 var velocity: Vector2 = Vector2.ZERO
+
+## The way the boatman faces and will row next. Turns smoothly towards where
+## the flocking wants to go; velocity only changes when it rows.
+var heading: Vector2 = Vector2.RIGHT
+
+## Seconds until the next stroke of the oars (or the end of a rest).
+var stroke_timer: float = 0.0
+
+## Visual kick of the oars on a stroke, 1 at the pull, decaying to 0. Set by
+## the sim.
+var stroke: float = 0.0
 
 ## The flock this bird belongs to, or null for a silent loner.
 var flock: Flock = null

@@ -1,9 +1,10 @@
 class_name BoidsLevel
 extends Node2D
-## A dusk sky of birds, as an instrument (#90). Birds in a flock sing on the
-## flock's rhythm — 3, 4 or 6 pulses to a shared bar, so flocks play
-## polyrhythms against each other — each with a voice of its own. Loners are
-## silent.
+## A pond of waterboatmen over the eye tank's fluid, as an instrument (#90).
+## Waterboatmen row in strokes and glides rather than flying. Boatmen in a
+## flock row together on the flock's pulses and sing on the flock's rhythm — 3,
+## 4 or 6 pulses to a shared bar, so flocks play polyrhythms against each
+## other — each with a voice of its own. Loners are silent.
 ##
 ## The player plays a snare (B, Esc, Space or a click; B on a gamepad).
 ## Every tap is read against every rhythm (see [TapReader]): flocks whose
@@ -16,6 +17,11 @@ extends Node2D
 ## bar later on the pulse it was read as, so the player hears how they were
 ## heard. The dial in the corner shows the same thing: the bar going round,
 ## every rhythm's pulses, the last bar's taps, and the charge building.
+##
+## The backdrop is the eye tank's painterly fluid. Boatmen stir it as they
+## row — each flock drags a broad wake through it and stains it faintly in its
+## rhythm's colour — but the water never pushes back: the flocks row as if it
+## carried them nowhere. See [BirdWakes].
 ##
 ## Tempo is [code]TempoControl[/code]'s, like everywhere else: the flocks, the
 ## pulses and the ghosts all run on [AudioManager]'s beats, so they follow a
@@ -55,8 +61,36 @@ const CRASH_DB := -8.0
 ## A bird's note, held this long.
 const NOTE_SECONDS := 0.16
 
-const SKY_TOP := Color(0.10, 0.11, 0.22)
-const SKY_BOTTOM := Color(0.62, 0.38, 0.40)
+## Pigment dropped into the tank when the level opens, as in the eye tank, so
+## the sky does not start as flat colour. Density is a one-shot, not a rate.
+const SEED_BLOBS := 5
+const SEED_DENSITY := 1.6
+const SEED_RADIUS := 150.0
+const SEED_PALETTE: Array[Color] = [
+	Color(0.36, 0.70, 0.68),
+	Color(0.85, 0.45, 0.38),
+	Color(0.53, 0.44, 0.76),
+	Color(0.93, 0.74, 0.36),
+	Color(0.30, 0.55, 0.80),
+]
+
+## Birds are binned this many pixels across, and each occupied cell stirs the
+## tank once — see [BirdWakes].
+const WAKE_CELL := 110.0
+## Acceleration a boatman lends the water, per pixel/second of its own speed.
+## Boatmen glide slower than the birds did, so this is higher than it was.
+const WAKE_GAIN := 9.0
+## Cap on one cell's push, in pixels/second^2, so a packed flock swirls the
+## water rather than blasting it.
+const WAKE_MAX := 7000.0
+## Gaussian radius of a wake: grows with the birds in it, from a lone bird's
+## [constant WAKE_RADIUS] up to [constant WAKE_RADIUS_MAX].
+const WAKE_RADIUS := 45.0
+const WAKE_RADIUS_MAX := 110.0
+## Pigment a flocked bird lays down per second, in its rhythm's colour. Faint:
+## enough that the flocks' paths show in the wash, not enough to bury the seed
+## colours. Loners lay none — at 64 pale birds they bleached the whole sky.
+const WAKE_PAINT := 0.04
 const LONER_COLOR := Color(0.86, 0.87, 0.93, 0.42)
 
 ## Seconds added to a tap before it is read, to cancel the time between
@@ -94,6 +128,10 @@ var _effect_indices: Array[int] = []
 
 var _hud: Label
 var _dial: Control
+var _fluid: FluidSimulation
+## The carousel's persistent layers when this level is hosted in one, else
+## null. See [SharedLayers].
+var _shared: SharedLayers
 
 
 func _ready() -> void:
@@ -106,6 +144,7 @@ func _ready() -> void:
 		[DeckDesktopLayout.R2, DeckDesktopLayout.L2] as Array[MouseButton]
 	)
 	_rng.randomize()
+	_shared = SharedLayers.find(self)
 	table = RhythmTable.default_table()
 	_grid = table.grid_steps(BEATS_PER_BAR)
 	reader = TapReader.new(BEATS_PER_BAR)
@@ -116,6 +155,7 @@ func _ready() -> void:
 	sim = FlockSim.new(table, get_viewport_rect(), _rng)
 	sim.beats_per_bar = BEATS_PER_BAR
 	sim.populate(BIRD_COUNT, SEED_PULSES)
+	_build_fluid()
 	_build_hud()
 	start()
 
@@ -123,9 +163,14 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	if not _started:
 		return
-	AudioManager.stop_loops()
+	# Hosted, the music clock is the carousel's and carries on to the next level.
+	if _shared == null:
+		AudioManager.stop_loops()
 	for synth in _synths.values():
 		synth.release_all()
+	# Removed by index, which is safe only while nothing has added a bus effect
+	# since: the shared band's are added before this level exists, and nothing
+	# adds to the bus afterwards.
 	for i in range(_effect_indices.size() - 1, -1, -1):
 		AudioManager.remove_bus_effect(AudioManager.MUSIC_BUS, _effect_indices[i])
 
@@ -136,6 +181,13 @@ func start() -> void:
 		return
 	_started = true
 	_build_audio()
+	if _shared != null:
+		# The shared band's clock is already running, and the boatmen follow
+		# whatever tempo it has. The band drops out at the next bar, leaving
+		# the flocks as the music.
+		for part in Band.PARTS:
+			_shared.band.set_part_wanted(part, false)
+		return
 	AudioManager.set_tempo(START_BPM, BEATS_PER_BAR)
 	# No loops to play — everything here is live — but the loop clock is what
 	# starts musical time, and the demo menu stops it again on the way out.
@@ -155,7 +207,9 @@ func _process(delta: float) -> void:
 		_scatter(charge.winner)
 
 	sim.bounds = get_viewport_rect()
-	sim.step(minf(delta, 0.05), beats)
+	var step := minf(delta, 0.05)
+	sim.step(step, beats)
+	_stir(step)
 	for bird in sim.birds:
 		bird.glow = maxf(bird.glow - delta * 4.0, 0.0)
 	_scatter_flash = maxf(_scatter_flash - delta * 1.5, 0.0)
@@ -318,17 +372,6 @@ func _build_audio() -> void:
 
 func _draw() -> void:
 	var rect := get_viewport_rect()
-	draw_polygon(
-		PackedVector2Array(
-			[rect.position, Vector2(rect.end.x, 0.0), rect.end, Vector2(0.0, rect.end.y)]
-		),
-		PackedColorArray([SKY_TOP, SKY_TOP, SKY_BOTTOM, SKY_BOTTOM])
-	)
-	draw_circle(
-		Vector2(rect.size.x * 0.78, rect.size.y * 0.86),
-		rect.size.y * 0.12,
-		Color(1, 0.8, 0.6, 0.08)
-	)
 	_draw_flock_halos()
 	for bird in sim.birds:
 		_draw_bird(bird)
@@ -359,7 +402,7 @@ func _draw_flock_halos() -> void:
 
 
 func _draw_bird(bird: Bird) -> void:
-	var heading := bird.velocity.normalized() if bird.velocity.length() > 0.1 else Vector2.RIGHT
+	var heading := bird.heading
 	var side := heading.orthogonal()
 	var at := bird.position
 	var color := LONER_COLOR
@@ -368,8 +411,8 @@ func _draw_bird(bird: Bird) -> void:
 		var rhythm := table.get_rhythm(bird.flock.pulses)
 		color = rhythm.color if rhythm != null else Color.WHITE
 		color = color.lerp(Color.WHITE, bird.glow * 0.6)
-		scale += bird.glow * 0.5
-		# The charge shows on the sky: flocks about to be scattered tremble,
+		scale += bird.glow * 0.3
+		# The charge shows on the pond: flocks about to be scattered tremble,
 		# the flocks that will survive it glow.
 		if charge.charge > 0.0:
 			if bird.flock.pulses == charge.winner:
@@ -378,15 +421,76 @@ func _draw_bird(bird: Bird) -> void:
 				at += (
 					Vector2(_rng.randf_range(-1, 1), _rng.randf_range(-1, 1)) * charge.charge * 3.0
 				)
-	var points := PackedVector2Array(
-		[
-			at + heading * 7.0 * scale,
-			at - heading * 5.0 * scale + side * 5.0 * scale,
-			at - heading * 2.0 * scale,
-			at - heading * 5.0 * scale - side * 5.0 * scale,
-		]
-	)
-	draw_colored_polygon(points, color)
+	# Oars: folded back along the body at rest, flung out sideways on the pull.
+	var oar_angle := lerpf(2.5, 1.35, bird.stroke)
+	var oar_colour := color
+	oar_colour.a *= 0.8
+	for flank: float in [-1.0, 1.0]:
+		var oar := (heading * cos(oar_angle) + side * sin(oar_angle) * flank) * 11.0 * scale
+		var root := at - heading * 1.0 * scale
+		draw_line(root, root + oar, oar_colour, 1.5)
+		draw_line(root + oar, root + oar * 1.25 + heading * 2.0 * scale, oar_colour, 1.0)
+	# Body: a long oval, the head a touch narrower.
+	var body := PackedVector2Array()
+	for i in 10:
+		var t := TAU * i / 10.0
+		var along := cos(t)
+		var across := sin(t)
+		body.append(at + heading * along * 8.0 * scale + side * across * 3.2 * scale)
+	draw_colored_polygon(body, color)
+	draw_circle(at + heading * 7.0 * scale, 2.0 * scale, color.lightened(0.25))
+
+
+## The eye tank's fluid, the size of the window, behind everything.
+func _build_fluid() -> void:
+	# Hosted, the tank is the carousel's, already rendered and already painted.
+	if _shared != null:
+		_fluid = _shared.fluid
+		return
+	var extent := get_viewport_rect().size
+	var config := FluidConfig.new()
+	config.world_size = extent
+	_fluid = FluidSimulation.new()
+	_fluid.name = "Fluid"
+	_fluid.config = config
+	add_child(_fluid)
+
+	var renderer := FluidRenderer.new()
+	renderer.name = "FluidRenderer"
+	renderer.z_index = -100
+	add_child(renderer)
+
+	for i in SEED_BLOBS:
+		var where := Vector2(_rng.randf(), _rng.randf()) * extent
+		_fluid.add_paint(
+			where, SEED_PALETTE[i % SEED_PALETTE.size()], SEED_DENSITY, SEED_RADIUS, 1.0
+		)
+
+
+## Push the birds' wakes into the tank for [param delta] seconds. Nothing
+## comes back the other way.
+func _stir(delta: float) -> void:
+	if _fluid == null or delta <= 0.0:
+		return
+	var wakes := BirdWakes.gather(sim.birds, WAKE_CELL, _bird_color)
+	for i in mini(wakes.size(), FluidSimulation.MAX_SPLATS):
+		var wake := wakes[i]
+		var push := (wake.momentum * WAKE_GAIN).limit_length(WAKE_MAX)
+		var radius := minf(WAKE_RADIUS * sqrt(float(wake.count)), WAKE_RADIUS_MAX)
+		_fluid.add_velocity_impulse(wake.position, push, radius, delta)
+		# Alpha is the share of the cell that is flocked; loners add none.
+		var share := wake.color.a
+		if share > 0.0:
+			var pigment := Color(wake.color / share, 1.0)
+			_fluid.add_paint(wake.position, pigment, WAKE_PAINT * wake.count * share, radius, delta)
+
+
+## The colour a bird paints with: its flock's rhythm, or nothing for a loner.
+func _bird_color(bird: Bird) -> Color:
+	if bird.flock == null:
+		return Color(0.0, 0.0, 0.0, 0.0)
+	var rhythm := table.get_rhythm(bird.flock.pulses)
+	return rhythm.color if rhythm != null else Color.WHITE
 
 
 func _build_hud() -> void:

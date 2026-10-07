@@ -1,10 +1,19 @@
 class_name FlockSim
 extends RefCounted
-## Birds with boids flocking, in explicit flocks that each play one rhythm.
+## Waterboatmen with boids flocking, in explicit flocks that each play one
+## rhythm. They move as waterboatmen do: not flying, but rowing — a hard
+## stroke of the oars, then a glide that the water's drag eats, then another.
 ##
 ## Pure: no nodes, no drawing, no sound. [method step] is handed the frame's
 ## seconds and the music's beats, so a test can drive it deterministically. The
 ## level reads [member birds] and [member flocks] to draw and to play.
+##
+## [b]Rowing.[/b] Flocking steers a boatman's [member Bird.heading] but never
+## its speed; speed comes only from strokes. A loner rows on its own irregular
+## timer and often clings to the bottom for a while instead, so it darts, stops
+## and darts. A flock's members all row together on each of the flock's pulses
+## (a few milliseconds apart), so a 3-flock lurches forward three times a bar
+## and a 4-flock four, and the polyrhythm can be seen as well as heard.
 ##
 ## [b]Loners[/b] are silent. They wander, loosely flock with other loners, and
 ## drift towards flocks the player's tapping currently favours.
@@ -59,8 +68,34 @@ const LEAVE_RADIUS := 140.0
 const NEIGHBOUR_RADIUS := 80.0
 const SEPARATION_RADIUS := 22.0
 
-const MIN_SPEED := 70.0
-const MAX_SPEED := 150.0
+## Speed one stroke adds along the heading, and the speed the water lets a
+## boatman reach however fast it rows. Drag (per second) is what makes it glide
+## rather than cruise: a stroke carries about STROKE_SPEED / DRAG px.
+const STROKE_SPEED := 230.0
+const MAX_SPEED := 300.0
+const DRAG := 3.0
+
+## How fast a heading swings towards where the flocking steers it, per second.
+const TURN_RATE := 6.0
+
+## Fraction of the flocking's push that also shoves a boatman bodily (the rest
+## only steers it), so crowded boatmen are still pushed apart.
+const DRIFT := 0.25
+
+## A loner's gap between strokes, and its chance of clinging still instead of
+## rowing, and for how long. A stroke is aimed this many radians off true.
+const LONER_STROKE_GAP := Vector2(0.5, 1.2)
+const REST_CHANCE := 0.35
+const REST_SECONDS := Vector2(0.8, 2.4)
+const STROKE_AIM_JITTER := 0.35
+
+## A flock member rows on its flock's pulse, within this many seconds; if no
+## pulse arrives (the clock stopped) it still rows at this gap.
+const PULSE_SPREAD := 0.06
+const PULSE_FALLBACK_GAP := 1.4
+
+## A scattered boatman flees in quick strokes this far apart.
+const FLEE_STROKE_GAP := 0.3
 
 ## Speed a scatter throws birds clear at, and how long they stay thrown.
 const SCATTER_SPEED := 340.0
@@ -71,9 +106,11 @@ const STUN_SECONDS := 2.0
 const SEPARATION_ACCEL := 420.0
 const COHESION_GAIN := 1.1
 const ALIGNMENT_GAIN := 1.6
+## Speed that a unit difference of headings counts as when aligning, in px/s.
+const ALIGN_SPEED := 100.0
 const CENTROID_GAIN := 0.35
 const LONER_GAIN := 0.35
-const WANDER_ACCEL := 70.0
+const WANDER_ACCEL := 220.0
 const ATTRACT_ACCEL := 140.0
 const ATTRACT_RADIUS := 260.0
 const EDGE_MARGIN := 90.0
@@ -111,6 +148,9 @@ var snap_rate: float = 1.2
 ## square of the weight, so favoured flocks hold on and others fray.
 var restless_rate: float = 0.06
 
+## Chance that a loner clings still instead of rowing, at each stroke.
+var rest_chance: float = REST_CHANCE
+
 var _next_id := 1
 
 
@@ -132,7 +172,7 @@ func populate(count: int, seed_pulses: Array[int] = []) -> void:
 			rng.randf_range(bounds.position.x, bounds.end.x),
 			rng.randf_range(bounds.position.y, bounds.end.y)
 		)
-		add_bird(position, Vector2.from_angle(rng.randf() * TAU) * MIN_SPEED)
+		add_bird(position, Vector2.from_angle(rng.randf() * TAU) * STROKE_SPEED / DRAG * 0.5)
 	var per_flock := FORM_SIZE + 3
 	var index := 0
 	for pulses in seed_pulses:
@@ -143,13 +183,14 @@ func populate(count: int, seed_pulses: Array[int] = []) -> void:
 			rng.randf_range(inner.position.x, inner.end.x),
 			rng.randf_range(inner.position.y, inner.end.y)
 		)
-		var heading := Vector2.from_angle(rng.randf() * TAU) * (MIN_SPEED + MAX_SPEED) * 0.5
+		var heading := Vector2.from_angle(rng.randf() * TAU)
 		var members: Array[Bird] = []
 		for j in per_flock:
 			var bird := birds[index]
 			index += 1
 			bird.position = centre + Vector2.from_angle(rng.randf() * TAU) * rng.randf() * 30.0
-			bird.velocity = heading
+			bird.heading = heading
+			bird.velocity = heading * STROKE_SPEED * 0.5
 			members.append(bird)
 		make_flock(members, pulses)
 
@@ -159,6 +200,12 @@ func add_bird(position: Vector2, velocity: Vector2) -> Bird:
 	var bird := Bird.new()
 	bird.position = position
 	bird.velocity = velocity
+	bird.heading = (
+		velocity.normalized()
+		if velocity.length_squared() > 0.001
+		else Vector2.from_angle(rng.randf() * TAU)
+	)
+	bird.stroke_timer = rng.randf_range(0.0, LONER_STROKE_GAP.y)
 	bird.note = VOICE_NOTES[rng.randi() % VOICE_NOTES.size()]
 	var roll := rng.randf()
 	if roll < 0.5:
@@ -221,7 +268,9 @@ func scatter(survivor: int) -> int:
 			var away := bird.position - flock.centroid
 			if away.length_squared() < 0.01:
 				away = Vector2.from_angle(rng.randf() * TAU)
-			bird.velocity = away.normalized() * SCATTER_SPEED
+			bird.heading = away.normalized()
+			bird.velocity = bird.heading * SCATTER_SPEED
+			bird.stroke_timer = FLEE_STROKE_GAP
 			bird.stunned = STUN_SECONDS
 			leave(bird)
 			count += 1
@@ -256,6 +305,7 @@ func step(delta: float, beats: float) -> void:
 	for flock in flocks:
 		_refresh_centroid(flock)
 		flock.flash = maxf(flock.flash - delta * 3.0, 0.0)
+		_row_on_pulse(flock, beats)
 	var accelerations: Array[Vector2] = []
 	for bird in birds:
 		accelerations.append(_steer(bird, beats))
@@ -277,7 +327,7 @@ func _steer(bird: Bird, beats: float) -> Vector2:
 		if distance < SEPARATION_RADIUS and distance > 0.001:
 			separation -= offset / distance * (1.0 - distance / SEPARATION_RADIUS)
 		if distance < NEIGHBOUR_RADIUS and other.flock == bird.flock:
-			heading += other.velocity
+			heading += other.heading
 			centre += other.position
 			neighbours += 1
 
@@ -292,7 +342,7 @@ func _steer(bird: Bird, beats: float) -> Vector2:
 		accel += _attraction(bird)
 	if neighbours > 0:
 		accel += (centre / neighbours - bird.position) * COHESION_GAIN * gain
-		accel += (heading / neighbours - bird.velocity) * ALIGNMENT_GAIN * gain
+		accel += (heading / neighbours - bird.heading) * ALIGN_SPEED * ALIGNMENT_GAIN * gain
 	return accel + _edge_push(bird.position)
 
 
@@ -324,22 +374,56 @@ func _edge_push(position: Vector2) -> Vector2:
 	return push * EDGE_ACCEL
 
 
+## Row on every pulse of [param flock] that has not yet been rowed on: each
+## member's next stroke falls within [constant PULSE_SPREAD] of it.
+func _row_on_pulse(flock: Flock, beats: float) -> void:
+	var pulse := floori(beats * flock.pulses / beats_per_bar)
+	if pulse == flock.last_pulse:
+		return
+	flock.last_pulse = pulse
+	for bird in flock.members:
+		bird.stroke_timer = rng.randf_range(0.0, PULSE_SPREAD)
+
+
+## One step of a boatman: steer the heading, row if it is time, then let the
+## water slow it. [param accel] never changes the speed directly beyond
+## [constant DRIFT]; only [method _row] does.
 func _integrate(bird: Bird, accel: Vector2, delta: float) -> void:
-	bird.velocity += accel * delta
+	if accel.length_squared() > 1.0:
+		var turn := clampf(TURN_RATE * delta, 0.0, 1.0)
+		bird.heading = bird.heading.slerp(accel.normalized(), turn).normalized()
+	bird.velocity += accel * DRIFT * delta
+	bird.stroke_timer -= delta
+	if bird.stroke_timer <= 0.0:
+		_row(bird)
+	bird.stroke = maxf(bird.stroke - delta * 5.0, 0.0)
+	bird.velocity *= exp(-DRAG * delta)
 	var top := MAX_SPEED
 	if bird.stunned > 0.0:
 		top = lerpf(MAX_SPEED, SCATTER_SPEED, bird.stunned / STUN_SECONDS)
 	var speed := bird.velocity.length()
 	if speed > top:
 		bird.velocity *= top / speed
-	elif speed < MIN_SPEED:
-		bird.velocity = (
-			bird.velocity / speed * MIN_SPEED
-			if speed > 0.001
-			else Vector2.from_angle(rng.randf() * TAU) * MIN_SPEED
-		)
 	bird.position += bird.velocity * delta
 	bird.position = bird.position.clamp(bounds.position, bounds.end)
+
+
+## A stroke of the oars along the heading, a little off true — or, for a
+## loner now and then, a rest instead. Flock members never rest, and wait for
+## their flock's next pulse (see [method _row_on_pulse]) before rowing again.
+func _row(bird: Bird) -> void:
+	if bird.stunned > 0.0:
+		bird.stroke_timer = FLEE_STROKE_GAP
+	elif bird.flock != null:
+		bird.stroke_timer = PULSE_FALLBACK_GAP
+	elif rng.randf() < rest_chance:
+		bird.stroke_timer = rng.randf_range(REST_SECONDS.x, REST_SECONDS.y)
+		return
+	else:
+		bird.stroke_timer = rng.randf_range(LONER_STROKE_GAP.x, LONER_STROKE_GAP.y)
+	var aim := bird.heading.rotated(rng.randf_range(-STROKE_AIM_JITTER, STROKE_AIM_JITTER))
+	bird.velocity += aim * STROKE_SPEED
+	bird.stroke = 1.0
 
 
 ## Settle who belongs where, without moving anyone: strays and restless birds

@@ -67,19 +67,24 @@ var _rng := RandomNumberGenerator.new()
 
 func bind(level_node: Node, the_spout: Spout, the_pins: PinField) -> void:
 	super(level_node, the_spout, the_pins)
-	var extent := get_viewport_rect().size
-	var config := FluidConfig.new()
-	config.world_size = extent
-	simulation = FluidSimulation.new()
-	simulation.name = "Fluid"
-	simulation.config = config
-	add_child(simulation)
-	simulation.set_current_bias(DOWNWARD_LEAN)
+	# Hosted by the carousel, the tank is the carousel's and already rendered.
+	var shared := SharedLayers.find(level_node)
+	if shared != null:
+		simulation = shared.fluid
+	else:
+		var extent := get_viewport_rect().size
+		var config := FluidConfig.new()
+		config.world_size = extent
+		simulation = FluidSimulation.new()
+		simulation.name = "Fluid"
+		simulation.config = config
+		add_child(simulation)
+		simulation.set_current_bias(DOWNWARD_LEAN)
 
-	var renderer := FluidRenderer.new()
-	renderer.name = "FluidRenderer"
-	renderer.z_index = -100
-	add_child(renderer)
+		var renderer := FluidRenderer.new()
+		renderer.name = "FluidRenderer"
+		renderer.z_index = -100
+		add_child(renderer)
 
 	make_pool(MAX_DROPLETS)
 	_rng.randomize()
@@ -100,6 +105,10 @@ func make_pool(size: int) -> void:
 func _physics_process(delta: float) -> void:
 	if spout == null:
 		return
+	# Re-asserted every frame, not just at bind: a shared tank has its currents
+	# reset at each carousel transition, and this level only runs once it has
+	# arrived. It is a stored vector, so this costs nothing.
+	simulation.set_current_bias(DOWNWARD_LEAN)
 	_elapsed += delta
 	var tint := stream_color(_elapsed)
 	var muzzle := spout.muzzle_position()
