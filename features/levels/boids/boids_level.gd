@@ -1,10 +1,18 @@
 class_name BoidsLevel
 extends Node2D
-## A pond of waterboatmen over the eye tank's fluid, as an instrument (#90).
-## Waterboatmen row in strokes and glides rather than flying. Boatmen in a
-## flock row together on the flock's pulses and sing on the flock's rhythm — 3,
-## 4 or 6 pulses to a shared bar, so flocks play polyrhythms against each
-## other — each with a voice of its own. Loners are silent.
+## Flocks over the eye tank's fluid, as an instrument (#90): waterboatmen or
+## birds, by [member motion].
+##
+## [b]Rowing[/b] ([constant FlockSim.Motion.ROW], the Waterboatmen level):
+## boatmen row in strokes and glides rather than flying. Boatmen in a flock row
+## together on the flock's pulses and sing on the flock's rhythm — 3, 4 or 6
+## pulses to a shared bar, so flocks play polyrhythms against each other — each
+## with a voice of its own. Loners are silent.
+##
+## [b]Flying[/b] ([constant FlockSim.Motion.FLY], the Birds level): the
+## original version, a sky of birds that fly continuously and sing the same
+## way. Only the motion, the drawing and the strength of the wakes differ; the
+## snare, the taps, the scatter and the music are shared.
 ##
 ## The player plays a snare (B, Esc, Space or a click; B on a gamepad).
 ## Every tap is read against every rhythm (see [TapReader]): flocks whose
@@ -18,10 +26,10 @@ extends Node2D
 ## heard. The dial in the corner shows the same thing: the bar going round,
 ## every rhythm's pulses, the last bar's taps, and the charge building.
 ##
-## The backdrop is the eye tank's painterly fluid. Boatmen stir it as they
-## row — each flock drags a broad wake through it and stains it faintly in its
-## rhythm's colour — but the water never pushes back: the flocks row as if it
-## carried them nowhere. See [BirdWakes].
+## The backdrop is the eye tank's painterly fluid. Birds and boatmen stir it as
+## they move — each flock drags a broad wake through it and stains it faintly in
+## its rhythm's colour — but the water never pushes back: the flocks move as if
+## it were not there. See [BirdWakes].
 ##
 ## Tempo is [code]TempoControl[/code]'s, like everywhere else: the flocks, the
 ## pulses and the ghosts all run on [AudioManager]'s beats, so they follow a
@@ -77,9 +85,12 @@ const SEED_PALETTE: Array[Color] = [
 ## Birds are binned this many pixels across, and each occupied cell stirs the
 ## tank once — see [BirdWakes].
 const WAKE_CELL := 110.0
-## Acceleration a boatman lends the water, per pixel/second of its own speed.
-## Boatmen glide slower than the birds did, so this is higher than it was.
-const WAKE_GAIN := 9.0
+## Acceleration a bird lends the water, per pixel/second of its own speed. A
+## lone bird at full speed pushes about as hard as an eye does in its tank.
+## Boatmen glide slower than the birds fly, so theirs is higher. See
+## [method wake_gain].
+const WAKE_GAIN_FLY := 6.0
+const WAKE_GAIN_ROW := 9.0
 ## Cap on one cell's push, in pixels/second^2, so a packed flock swirls the
 ## water rather than blasting it.
 const WAKE_MAX := 7000.0
@@ -96,6 +107,10 @@ const LONER_COLOR := Color(0.86, 0.87, 0.93, 0.42)
 ## Seconds added to a tap before it is read, to cancel the time between
 ## hearing a pulse and a press registering. 0 until measured on a device.
 @export var tap_offset_seconds: float = 0.0
+
+## How the flocks move: rowed waterboatmen, or the original flying birds.
+## Read once, when the level is ready.
+@export var motion: FlockSim.Motion = FlockSim.Motion.ROW
 
 var table: RhythmTable
 var sim: FlockSim
@@ -154,6 +169,7 @@ func _ready() -> void:
 		_weights[pulses] = 1.0
 	sim = FlockSim.new(table, get_viewport_rect(), _rng)
 	sim.beats_per_bar = BEATS_PER_BAR
+	sim.motion = motion
 	sim.populate(BIRD_COUNT, SEED_PULSES)
 	_build_fluid()
 	_build_hud()
@@ -182,7 +198,7 @@ func start() -> void:
 	_started = true
 	_build_audio()
 	if _shared != null:
-		# The shared band's clock is already running, and the boatmen follow
+		# The shared band's clock is already running, and the flocks follow
 		# whatever tempo it has. The band drops out at the next bar, leaving
 		# the flocks as the music.
 		for part in Band.PARTS:
@@ -219,6 +235,12 @@ func _process(delta: float) -> void:
 	queue_redraw()
 	_dial.queue_redraw()
 	_update_hud()
+
+
+## Acceleration a bird lends the water per pixel/second of its speed, for the
+## current [member motion].
+func wake_gain() -> float:
+	return WAKE_GAIN_FLY if motion == FlockSim.Motion.FLY else WAKE_GAIN_ROW
 
 
 ## Every press, before anything handles it, so the HUD can show what a device
@@ -402,6 +424,7 @@ func _draw_flock_halos() -> void:
 
 
 func _draw_bird(bird: Bird) -> void:
+	var flying := motion == FlockSim.Motion.FLY
 	var heading := bird.heading
 	var side := heading.orthogonal()
 	var at := bird.position
@@ -411,9 +434,9 @@ func _draw_bird(bird: Bird) -> void:
 		var rhythm := table.get_rhythm(bird.flock.pulses)
 		color = rhythm.color if rhythm != null else Color.WHITE
 		color = color.lerp(Color.WHITE, bird.glow * 0.6)
-		scale += bird.glow * 0.3
-		# The charge shows on the pond: flocks about to be scattered tremble,
-		# the flocks that will survive it glow.
+		scale += bird.glow * (0.5 if flying else 0.3)
+		# The charge shows on the flocks: those about to be scattered tremble,
+		# the ones that will survive it glow.
 		if charge.charge > 0.0:
 			if bird.flock.pulses == charge.winner:
 				color = color.lerp(Color.WHITE, charge.charge * 0.3)
@@ -421,6 +444,28 @@ func _draw_bird(bird: Bird) -> void:
 				at += (
 					Vector2(_rng.randf_range(-1, 1), _rng.randf_range(-1, 1)) * charge.charge * 3.0
 				)
+	if flying:
+		_draw_flier(at, heading, side, scale, color)
+	else:
+		_draw_boatman(bird, at, heading, side, scale, color)
+
+
+## The original bird: an arrowhead pointing along its heading.
+func _draw_flier(at: Vector2, heading: Vector2, side: Vector2, scale: float, color: Color) -> void:
+	var points := PackedVector2Array(
+		[
+			at + heading * 7.0 * scale,
+			at - heading * 5.0 * scale + side * 5.0 * scale,
+			at - heading * 2.0 * scale,
+			at - heading * 5.0 * scale - side * 5.0 * scale,
+		]
+	)
+	draw_colored_polygon(points, color)
+
+
+func _draw_boatman(
+	bird: Bird, at: Vector2, heading: Vector2, side: Vector2, scale: float, color: Color
+) -> void:
 	# Oars: folded back along the body at rest, flung out sideways on the pull.
 	var oar_angle := lerpf(2.5, 1.35, bird.stroke)
 	var oar_colour := color
@@ -475,7 +520,7 @@ func _stir(delta: float) -> void:
 	var wakes := BirdWakes.gather(sim.birds, WAKE_CELL, _bird_color)
 	for i in mini(wakes.size(), FluidSimulation.MAX_SPLATS):
 		var wake := wakes[i]
-		var push := (wake.momentum * WAKE_GAIN).limit_length(WAKE_MAX)
+		var push := (wake.momentum * wake_gain()).limit_length(WAKE_MAX)
 		var radius := minf(WAKE_RADIUS * sqrt(float(wake.count)), WAKE_RADIUS_MAX)
 		_fluid.add_velocity_impulse(wake.position, push, radius, delta)
 		# Alpha is the share of the cell that is flocked; loners add none.

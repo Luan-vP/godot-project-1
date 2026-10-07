@@ -4,6 +4,12 @@ The three fluid levels in turn â€” the eye band, spout A and the waterboatmen â€
 looping, over one tank and one band. `scripts/run.sh carousel`, or "Fluid
 carousel" in the demo menu.
 
+A second carousel, `fluid_carousel_birds.tscn` (`scripts/run.sh
+carousel-birds`, "Fluid carousel (birds)" in the menu), is the same with the
+original flying birds (`birds_level.tscn`) in place of the waterboatmen. Its
+script, `fluid_carousel_birds.gd`, extends `fluid_carousel.gd` and only
+replaces `level_paths` in `_init`; the original carousel keeps its three.
+
 ## Layers
 
 `SharedLayers` owns what outlives the levels: the eye tank's `FluidSimulation`
@@ -28,7 +34,8 @@ has. Hosted:
 - **Spout** drops the paper backdrop, uses the shared band (all parts wanted)
   and the shared tank. The fluid emitter re-applies its downward lean every
   physics frame, since each transition resets the tank's currents.
-- **Waterboatmen** use the shared tank, and leave the clock alone: no tempo
+- **Waterboatmen and Birds** (the same level, `BoidsLevel`, in its two
+  motions) use the shared tank, and leave the clock alone: no tempo
   change, no loop start or stop. They switch every shared band part off, so
   the flocks are the music, and follow whatever tempo the band has.
 

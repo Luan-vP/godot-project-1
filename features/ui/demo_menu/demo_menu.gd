@@ -83,6 +83,15 @@ const DEMOS: Array[Dictionary] = [
 		"Level 3's shell: aim the spout (stick or touch), Space plucks the pin you aim at.",
 	},
 	{
+		"name": "Birds",
+		"path": "res://features/levels/boids/birds_level.tscn",
+		"blurb":
+		(
+			"Flying flocks singing 3-against-4. "
+			+ "Tap B as a snare to favour a rhythm and scatter the rest."
+		),
+	},
+	{
 		"name": "Waterboatmen",
 		"path": "res://features/levels/boids/boids_level.tscn",
 		"blurb":
@@ -96,6 +105,12 @@ const DEMOS: Array[Dictionary] = [
 		"path": "res://features/levels/carousel/fluid_carousel.tscn",
 		"blurb":
 		"Eye band, Spout A and Waterboatmen in turn over one tank and one band. Cycles on its own.",
+	},
+	{
+		"name": "Fluid carousel (birds)",
+		"path": "res://features/levels/carousel/fluid_carousel_birds.tscn",
+		"blurb":
+		"Eye band, Spout A and Birds in turn over one tank and one band. Cycles on its own.",
 	},
 	{
 		"name": "Vitreous",

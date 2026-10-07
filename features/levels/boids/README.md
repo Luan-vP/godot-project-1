@@ -3,9 +3,10 @@
 An alternative to the eye band (#90): instead of eyes that each play a part,
 a pond of waterboatmen over the eye tank's fluid, who flock and row, where
 every flock sings one polyrhythm and the player plays a snare against them.
-`scripts/run.sh boatmen` (`birds` still works), or *Waterboatmen* in the demo
-menu. The class and file names (`Bird`, `FlockSim`, `boids/`) keep their
-first names. The design interview behind it is
+`scripts/run.sh boatmen`, or *Waterboatmen* in the demo menu. The same level
+also exists with the original flying birds, *Birds* (`scripts/run.sh birds`):
+see [Two motions](#two-motions). The class and file names (`Bird`, `FlockSim`,
+`boids/`) keep their first names. The design interview behind it is
 [docs/boids-rhythm-scope.md](../../../docs/boids-rhythm-scope.md).
 
 ## Controls
@@ -24,9 +25,30 @@ play the snare, and the d-pad sends the arrows, so tempo works as it is. See
 *last input* shows what the game actually received for the last press, and
 names the Deck control that sent it.
 
+## Two motions
+
+One sim and one level, two ways to move, picked by `FlockSim.Motion` and
+`BoidsLevel.motion` (an `@export`, read when the level is ready):
+
+| | Waterboatmen (`ROW`, default) | Birds (`FLY`) |
+| --- | --- | --- |
+| Scene | `boids_level.tscn` | `birds_level.tscn` (`motion = 1`) |
+| Speed | Only from oar strokes, eaten by drag; loners rest | Steered continuously, kept within `FLY_MIN_SPEED`..`FLY_MAX_SPEED` (70..150) |
+| Flock pulses | Members row together on each pulse | Cohesion and alignment surge on each pulse (both modes) |
+| Alignment | Against neighbours' headings | Against neighbours' velocities |
+| Wander | `WANDER_ACCEL` | `FLY_WANDER_ACCEL` |
+| Drawn as | Oval body with oars (`_draw_boatman`) | Arrowhead (`_draw_flier`) |
+| Wake strength | `WAKE_GAIN_ROW` (9) | `WAKE_GAIN_FLY` (6) |
+
+Flocks, voices, the snare, taps, the scatter and the wakes are shared. The
+flying motion is how the level first worked (PR #97, before the boatmen);
+`FlockSim._fly` and `_steer` hold it, `_row_step` and `_row` the rowing. Both
+are hosted by the carousels (`features/levels/carousel/`).
+
 ## What happens
 
-- **They row, they don't fly.** A waterboatman's speed comes only from
+- **They row, they don't fly** (Waterboatmen; the Birds level flies instead,
+  as above). A waterboatman's speed comes only from
   strokes of its oars: a hard pull, then a glide that the water's drag slows
   to nothing before the next (`FlockSim.STROKE_SPEED`, `DRAG`). Flocking only
   steers which way it faces. A loner rows on its own irregular timer and
@@ -88,7 +110,8 @@ in the other corner spells out the tempo, the reading and the charge.
 
 | File | What it is |
 | --- | --- |
-| `boids_level.gd` / `.tscn` | The scene: fluid sky, birds, voices, snare, dial. |
+| `boids_level.gd`, `boids_level.tscn` | The scene: fluid, birds, voices, snare, dial. Waterboatmen. |
+| `birds_level.tscn` | The same script with `motion = FLY`: the flying birds. |
 | `bird_wakes.gd` | `BirdWakes` — bins birds into the wakes that stir the fluid. |
 | `flock_sim.gd` | `FlockSim` — boids plus flock membership, pure and testable. |
 | `bird.gd`, `flock.gd` | The sim's data. |
