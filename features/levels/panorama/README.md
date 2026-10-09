@@ -142,9 +142,21 @@ accessible ones. Settings persist through `SaveManager` and are read once when
 a level's medium is built, not live while one is already running — see the
 [comfort settings demo](../../ui/comfort_settings/comfort_settings_demo.gd).
 
-## Not yet
+## Feel (#15)
 
-The medium is idle beyond its own `ambient_current`: nothing stirs it from
-gaze yet. The vitreous level's README already calls out the intended input —
-`PanoramaLookCamera.angular_velocity` driving a stir, the way a real eye's
-saccades disturb the vitreous humour — left for its own issue.
+`PanoramaLevel` adds a `GazeFluidDriver`, so turning the eye stirs the medium.
+Three behaviours are meant to fall out of that one coupling, each tunable on
+the `Level` resource (`Floater feel` and `Gaze coupling` groups):
+
+- **Lag, then overshoot** — `gaze_hold_sensitivity`, `gaze_flick_sensitivity`,
+  `gaze_settle_rate` and `floater_drag`.
+- **Evading fixation** — no knob of its own, deliberately. Floaters are never
+  told where the gaze is; centring one turns the eye, which moves the gel it
+  rides. If it does not read, the fix is the coupling above, not a script.
+- **Settling when you hold still** — `floater_settle` (sink rate) and
+  `gaze_deadzone` (so jitter does not count as a turn).
+
+**Status: unverified by feel.** The defaults are the previous constants
+moved onto `Level`; nobody has yet tuned them by eye or recorded the result.
+That needs a person at a screen (`scripts/run.sh`), which is why the issue is
+labelled `manual_verification`.

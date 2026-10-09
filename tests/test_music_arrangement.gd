@@ -33,7 +33,10 @@ func before_each() -> void:
 	var layers: Array[LoopLayer] = [beat, hats]
 	AudioManager.configure_loop_layers(layers)
 	AudioManager.play_loops()
-	await wait_frames(2)  # Let the scheduler establish bar 0 as its baseline, at t=0.
+	# The scheduler runs in AudioManager._process, so count process frames: it must
+	# see bar 0 at t=0 before the test moves scripted time, or the jump to bar 1
+	# only becomes its baseline and no layer change ever lands.
+	await wait_process_frames(2)
 
 	_arrangement = add_child_autofree(MusicArrangement.new())
 	_arrangement.configure(["beat", "hats"], [1.0, 3.0], 2.0)
