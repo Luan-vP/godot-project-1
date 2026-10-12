@@ -243,3 +243,14 @@ func test_the_dwell_timer_advances_on_its_own() -> void:
 	add_child_autofree(timed)
 	await wait_for_signal(timed.level_changed, 2.0)
 	assert_eq(timed.current_index(), 1, "Moved on after the dwell")
+
+
+func test_the_flocks_play_over_the_whole_song_rather_than_silencing_it() -> void:
+	var band := _carousel.shared_layers().band
+	band.set_part_wanted("melody", false)
+	var paths: Array[String] = [_carousel.level_paths[0], FluidCarousel.LEVELS[2]]
+	_carousel.level_paths = paths
+	_carousel.advance()
+	assert_true(_carousel.current_level() is BoidsLevel, "The boatmen arrived")
+	for part in Band.PARTS:
+		assert_true(band.wants_part(part), "%s still wanted" % part)

@@ -31,6 +31,9 @@ extends Node2D
 ## its rhythm's colour — but the water never pushes back: the flocks move as if
 ## it were not there. See [BirdWakes].
 ##
+## In a [FluidCarousel] the shared band's song keeps playing in full and the
+## flocks play over it, on its clock.
+##
 ## Tempo is [code]TempoControl[/code]'s, like everywhere else: the flocks, the
 ## pulses and the ghosts all run on [AudioManager]'s beats, so they follow a
 ## tempo change without knowing about it.
@@ -199,10 +202,10 @@ func start() -> void:
 	_build_audio()
 	if _shared != null:
 		# The shared band's clock is already running, and the flocks follow
-		# whatever tempo it has. The band drops out at the next bar, leaving
-		# the flocks as the music.
+		# whatever tempo it has. The song carries on under them with the whole
+		# arrangement, as in the spout; the flocks play over the top.
 		for part in Band.PARTS:
-			_shared.band.set_part_wanted(part, false)
+			_shared.band.set_part_wanted(part, true)
 		return
 	AudioManager.set_tempo(START_BPM, BEATS_PER_BAR)
 	# No loops to play — everything here is live — but the loop clock is what
@@ -313,7 +316,8 @@ func _play_due(source: MusicTimeSource, beats: float) -> void:
 	var lookahead := clock.beats_from_seconds(source.get_lookahead())
 	for step in _sequencer.update(beats, lookahead):
 		var in_bar := step % _grid
-		if in_bar == 0:
+		# Hosted, the band's beat already marks the bar.
+		if in_bar == 0 and _shared == null:
 			_play_one_shot(_kick_stream, KICK_DB)
 		for flock in sim.flocks:
 			if in_bar % (_grid / flock.pulses) == 0:
@@ -384,6 +388,10 @@ func _build_audio() -> void:
 		synth.polyphony = 12
 		_synths[waveform] = synth
 		add_child(synth)
+	# Hosted, the shared band's reverb is already on the bus; a second would
+	# wash the song out.
+	if _shared != null:
+		return
 	var reverb := AudioEffectReverb.new()
 	reverb.room_size = 0.9
 	reverb.damping = 0.35

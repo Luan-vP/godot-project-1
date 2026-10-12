@@ -36,8 +36,10 @@ has. Hosted:
   physics frame, since each transition resets the tank's currents.
 - **Waterboatmen and Birds** (the same level, `BoidsLevel`, in its two
   motions) use the shared tank, and leave the clock alone: no tempo
-  change, no loop start or stop. They switch every shared band part off, so
-  the flocks are the music, and follow whatever tempo the band has.
+  change, no loop start or stop. Like the spout they want every shared band
+  part, so the song (Glass Tide or whichever) carries on in full, and the
+  flocks play over the top at whatever tempo the band has. Their own downbeat
+  kick and extra reverb are left out, since the band has both.
 
 ## Transitions
 
