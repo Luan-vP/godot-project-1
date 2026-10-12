@@ -105,3 +105,18 @@ func test_the_wake_gain_depends_on_the_motion() -> void:
 	var birds := _birds_level()
 	assert_eq(birds.wake_gain(), BoidsLevel.WAKE_GAIN_FLY, "Flying")
 	assert_ne(BoidsLevel.WAKE_GAIN_FLY, BoidsLevel.WAKE_GAIN_ROW, "They differ")
+
+
+func test_hosted_the_flocks_play_over_the_whole_song() -> void:
+	var carousel := FluidCarousel.new()
+	carousel.dwell_seconds = 0.0
+	carousel.slide_seconds = 0.0
+	var paths: Array[String] = [FluidCarousel.LEVELS[2], FluidCarousel.LEVELS[2]]
+	carousel.level_paths = paths
+	add_child_autofree(carousel)
+	var band := carousel.shared_layers().band
+	band.set_part_wanted("melody", false)
+	carousel.advance()
+	assert_true(carousel.current_level() is BoidsLevel, "The boatmen arrived")
+	for part in Band.PARTS:
+		assert_true(band.wants_part(part), "%s still wanted" % part)
