@@ -69,7 +69,12 @@ func _ready() -> void:
 	_current = _instance_level(0)
 	_shared.stage.add_child(_current)
 	_place(_current, 0.0)
+	_note_level()
 	_restart_timer()
+
+
+func _exit_tree() -> void:
+	AudioManager.get_level_meter().set_note("level", "")
 
 
 ## Slide to the next level. Ignored while a transition is running.
@@ -154,8 +159,14 @@ func _arrive(outgoing: Node2D, incoming: Node2D, target: int) -> void:
 	_current = incoming
 	_index = target
 	_sliding = false
+	_note_level()
 	level_changed.emit(_index)
 	_restart_timer()
+
+
+## Tell the level meter which level is playing, so an over says where it was.
+func _note_level() -> void:
+	AudioManager.get_level_meter().set_note("level", _current.name)
 
 
 func _restart_timer() -> void:
