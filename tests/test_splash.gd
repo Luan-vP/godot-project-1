@@ -26,7 +26,7 @@ func test_it_steps_aside_when_a_job_started_the_game() -> void:
 	assert_false(Splash.skips_for(PackedStringArray()), "A player")
 
 
-func test_the_logo_is_printed_as_gold_pigment_where_it_is_and_nowhere_else() -> void:
+func test_the_lockup_is_printed_in_its_own_colours_where_it_is_and_nowhere_else() -> void:
 	var screen := Vector2(1280, 800)
 	var grid := Vector2i(128, 128)
 	var rect := Splash.logo_rect_for(screen)
@@ -34,22 +34,28 @@ func test_the_logo_is_printed_as_gold_pigment_where_it_is_and_nowhere_else() -> 
 	assert_eq(dye.get_size(), grid, "The tank's grid")
 	assert_eq(dye.get_format(), Image.FORMAT_RGBAH, "The field's format")
 	assert_eq(dye.get_pixel(0, 0).a, 0.0, "Nothing in the corner")
-	var densest := Color(0, 0, 0, 0)
+	var gold := 0
+	var white := 0
 	for y in grid.y:
 		for x in grid.x:
 			var cell := dye.get_pixel(x, y)
-			if cell.a > densest.a:
-				densest = cell
-	assert_almost_eq(densest.a, Splash.DENSITY, 0.05, "Solid where the logo is")
-	var hue := Color(densest.r / densest.a, densest.g / densest.a, densest.b / densest.a)
-	assert_almost_eq(hue.r, Splash.GOLD.r, 0.02, "Gold, premultiplied")
-	assert_almost_eq(hue.b, Splash.GOLD.b, 0.02, "Gold, premultiplied")
+			if cell.a < Splash.DENSITY * 0.9:
+				continue
+			var hue := Color(cell.r / cell.a, cell.g / cell.a, cell.b / cell.a)
+			if hue.r > 0.9 and hue.b > 0.9:
+				white += 1
+			elif absf(hue.r - Splash.GOLD.r) < 0.04 and absf(hue.b - Splash.GOLD.b) < 0.04:
+				gold += 1
+	assert_gt(gold, 0, "The shell, and ENGINEERING, in gold")
+	assert_gt(white, 0, "GOLDEN RULE in white")
 
 
-func test_the_logo_sits_in_the_middle() -> void:
-	var rect := Splash.logo_rect_for(Vector2(1280, 800))
-	assert_almost_eq(rect.get_center().x, 640.0, 0.5)
-	assert_almost_eq(rect.get_center().y, 400.0, 0.5)
+func test_the_lockup_sits_in_the_middle_and_fits() -> void:
+	for screen in [Vector2(1280, 800), Vector2(540, 960), Vector2(1920, 1080)]:
+		var rect := Splash.logo_rect_for(screen)
+		assert_almost_eq(rect.get_center().x, screen.x * 0.5, 0.5, "Centred across %s" % screen)
+		assert_almost_eq(rect.get_center().y, screen.y * 0.5, 0.5, "Centred down %s" % screen)
+		assert_true(Rect2(Vector2.ZERO, screen).encloses(rect), "On screen at %s" % screen)
 
 
 func test_the_swipe_crosses_the_logo_left_to_right() -> void:
@@ -78,3 +84,11 @@ func test_opened_from_the_menu_it_closes_back_to_it() -> void:
 	assert_false(menu.is_demo_open(), "A key skips back to the menu")
 	assert_true(menu.visible, "Showing")
 	menu.free()
+
+
+func test_a_full_probe_leaves_the_splash_out() -> void:
+	var options := DemoMenu.launch_options(PackedStringArray(["--probe"]))
+	for demo: Dictionary in options["probe"]:
+		assert_ne(demo["name"], "Splash", "Not probed")
+	var named := DemoMenu.launch_options(PackedStringArray(["--probe=splash"]))
+	assert_eq((named["probe"] as Array).size(), 1, "Unless asked for by name")

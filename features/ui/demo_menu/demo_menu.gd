@@ -130,6 +130,8 @@ const DEMOS: Array[Dictionary] = [
 		"name": "Splash",
 		"path": "res://features/splash/splash.tscn",
 		"blurb": "The studio logo, printed in the tank and stirred away. Any key or tap skips.",
+		# It closes itself, and any tap skips it: nothing for a probe to measure.
+		"probe": false,
 	},
 	{
 		"name": "Pull requests",
@@ -275,7 +277,9 @@ static func launch_options(args: PackedStringArray) -> Dictionary:
 			if found.size() > 0 and not arg.trim_prefix("--open=").is_empty():
 				options["open"] = found[0]["path"]
 		elif arg == "--probe":
-			options["probe"] = demos_named("")
+			options["probe"] = demos_named("").filter(
+				func(demo: Dictionary) -> bool: return demo.get("probe", true)
+			)
 		elif arg.begins_with("--probe="):
 			options["probe"] = demos_named(arg.trim_prefix("--probe="))
 	return options

@@ -9,6 +9,7 @@ extends Control
 ## aside entirely when the game is started for a job rather than a player
 ## ([method skips_for]): the pull request picker's handoff, a probe, or a
 ## demo opened from the command line, all of which the menu reads itself.
+## It also steps aside where there is no compute device to run the tank.
 ##
 ## Opened from the demo menu's own list, it plays the same way and then closes
 ## back to the menu instead of replacing it.
@@ -17,10 +18,12 @@ extends Control
 signal finished
 
 const MENU_PATH := "res://features/ui/demo_menu/demo_menu.tscn"
+## The full lockup: the shell, GOLDEN RULE and ENGINEERING, in the brand's
+## gold with the black lettering turned white for a black screen.
 const LOGO := preload("res://features/splash/logo.png")
 
-## The logo's own gold, as pigment.
-const GOLD := Color(0.718, 0.541, 0.29)
+## The logo's own gold.
+const GOLD := Color(0.718, 0.541, 0.282)
 ## How much pigment the logo is printed with. Enough to read as solid colour
 ## before it thins.
 const DENSITY := 1.6
@@ -34,8 +37,10 @@ const HOLD := 1.0
 const SETTLE := 3.2
 const FADE_OUT := 0.7
 
-## The logo's width, as a share of the screen's shorter side.
+## The lockup's width, as a share of the screen's width, and the most of the
+## screen's height it may take.
 const LOGO_SCALE := 0.62
+const LOGO_MAX_HEIGHT := 0.6
 ## Grid cells across the tank. The finest the solver takes, so the lines
 ## between the logo's chambers survive the printing.
 const RESOLUTION := 512
@@ -67,7 +72,12 @@ var _done := false
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	if not is_inside_menu() and skips_for(OS.get_cmdline_user_args()):
+	# Both lists, as the menu reads them: the iOS launch path passes its
+	# options without a separator, so they arrive as engine arguments.
+	var args := OS.get_cmdline_args() + OS.get_cmdline_user_args()
+	# No compute device (the Compatibility renderer), no tank: only black to
+	# show, so straight on to the menu.
+	if not FluidGPU.is_available() or (not is_inside_menu() and skips_for(args)):
 		_finish.call_deferred()
 		return
 	var screen := get_viewport_rect().size
@@ -135,18 +145,19 @@ static func visibility_at(seconds: float, stir_seconds: float) -> float:
 	return 1.0 - clampf((t - fade_from) / FADE_OUT, 0.0, 1.0)
 
 
-## Where the logo sits on a [param screen]-sized tank: centred, its width a
-## share of the shorter side.
+## Where the lockup sits on a [param screen]-sized tank: centred, a share of
+## the width, but never taller than a share of the height.
 static func logo_rect_for(screen: Vector2) -> Rect2:
-	var width := minf(screen.x, screen.y) * LOGO_SCALE
-	var height := width * LOGO.get_height() / LOGO.get_width()
+	var aspect := float(LOGO.get_height()) / LOGO.get_width()
+	var width := minf(screen.x * LOGO_SCALE, screen.y * LOGO_MAX_HEIGHT / aspect)
+	var height := width * aspect
 	var size := Vector2(width, height)
 	return Rect2((screen - size) * 0.5, size)
 
 
 ## The pigment field that prints [param logo] at [param rect] in a tank
-## [param world] pixels wide and [param grid] cells across: the logo's shape
-## in [constant GOLD], premultiplied as the field is.
+## [param world] pixels wide and [param grid] cells across: each pixel's own
+## colour as pigment, as much as it is opaque, premultiplied as the field is.
 static func logo_dye(logo: Image, rect: Rect2, world: Vector2, grid: Vector2i) -> Image:
 	var cell := world / Vector2(grid)
 	var from := Vector2i((rect.position / cell).round())
@@ -158,8 +169,11 @@ static func logo_dye(logo: Image, rect: Rect2, world: Vector2, grid: Vector2i) -
 	var stamp := Image.create_empty(span.x, span.y, false, Image.FORMAT_RGBAF)
 	for y in span.y:
 		for x in span.x:
-			var density := shape.get_pixel(x, y).a * DENSITY
-			var pigment := Color(GOLD.r * density, GOLD.g * density, GOLD.b * density, density)
+			var colour := shape.get_pixel(x, y)
+			var density := colour.a * DENSITY
+			var pigment := Color(
+				colour.r * density, colour.g * density, colour.b * density, density
+			)
 			stamp.set_pixel(x, y, pigment)
 
 	var field := Image.create_empty(grid.x, grid.y, false, Image.FORMAT_RGBAF)

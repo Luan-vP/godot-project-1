@@ -15,7 +15,7 @@ extends SplashAgitation
 @export var reach: float = 0.22
 ## How hard the hand drags the water along, against what it would take to move
 ## it at the hand's own speed (1).
-@export var grip: float = 0.18
+@export var grip: float = 0.08
 ## A slight rise and fall as the hand passes, in logo heights, so the wake is
 ## not a ruled line.
 @export var sway: float = 0.08
