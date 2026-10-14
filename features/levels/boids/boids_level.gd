@@ -385,7 +385,7 @@ func _draw() -> void:
 
 
 func _draw_flock_halos() -> void:
-	var font := ThemeDB.fallback_font
+	var font := UiTheme.hud_font()
 	for flock in sim.flocks:
 		var rhythm := table.get_rhythm(flock.pulses)
 		var color := rhythm.color if rhythm != null else Color.WHITE
@@ -499,9 +499,7 @@ func _build_hud() -> void:
 	var layer := CanvasLayer.new()
 	add_child(layer)
 
-	_hud = Label.new()
-	_hud.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.72))
-	_hud.add_theme_font_size_override("font_size", 14)
+	_hud = UiTheme.label("", UiTheme.HUD)
 	_hud.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	_hud.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_hud.offset_left = 16.0
@@ -568,7 +566,8 @@ func _silent() -> int:
 func _draw_dial() -> void:
 	var centre := _dial.size * 0.5
 	var outer := minf(centre.x, centre.y) - 8.0
-	_dial.draw_circle(centre, outer + 4.0, Color(0.0, 0.0, 0.0, 0.25))
+	_dial.draw_circle(centre, outer + 4.0, UiTokens.OVERLAY)
+	_dial.draw_arc(centre, outer + 4.0, 0.0, TAU, 64, Color(UiTokens.SIGIL, 0.35), 1.0, true)
 
 	var ring := outer - 14.0
 	for rhythm in table.rhythms:
@@ -582,16 +581,17 @@ func _draw_dial() -> void:
 
 	for phase in reader.window(_last_beats):
 		var at := _dial_point(phase, outer)
-		_dial.draw_line(centre + at * 0.9, centre + at * 1.05, Color(1, 1, 1, 0.9), 2.0, true)
+		_dial.draw_line(centre + at * 0.9, centre + at * 1.05, UiTokens.RUNE, 2.0, true)
 
 	var playhead := reader.phase_of(maxf(_last_beats, 0.0))
-	_dial.draw_line(centre, centre + _dial_point(playhead, outer), Color(1, 1, 1, 0.35), 1.0, true)
+	var hand := Color(UiTokens.TEXT, 0.35)
+	_dial.draw_line(centre, centre + _dial_point(playhead, outer), hand, 1.0, true)
 
 	var start := -PI / 2.0
 	if charge.is_cooling_down():
 		var left := charge.cooldown / charge.cooldown_beats
 		_dial.draw_arc(
-			centre, outer + 3.0, start, start + TAU * left, 64, Color(1, 1, 1, 0.15), 3.0
+			centre, outer + 3.0, start, start + TAU * left, 64, Color(UiTokens.SIGIL, 0.3), 3.0
 		)
 	elif charge.charge > 0.0:
 		var rhythm := table.get_rhythm(charge.winner)
@@ -600,10 +600,16 @@ func _draw_dial() -> void:
 			centre, outer + 3.0, start, start + TAU * charge.charge, 64, color, 4.0, true
 		)
 
-	var font := ThemeDB.fallback_font
+	var font := UiTheme.hud_font()
 	var label := str(reading.winner) if reading.tap_count > 0 else ""
 	_dial.draw_string(
-		font, centre + Vector2(-20.0, 7.0), label, HORIZONTAL_ALIGNMENT_CENTER, 40.0, 20
+		font,
+		centre + Vector2(-20.0, 7.0),
+		label,
+		HORIZONTAL_ALIGNMENT_CENTER,
+		40.0,
+		20,
+		UiTokens.HUD_TEXT
 	)
 
 

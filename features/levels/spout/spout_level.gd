@@ -26,9 +26,6 @@ extends Node2D
 ## two versions are scenes of this script with a different
 ## [member emitter_script].
 
-## HUD text, light over the dark tank.
-const INK := Color(0.95, 0.92, 0.86, 0.85)
-const FAINT := Color(0.95, 0.92, 0.86, 0.5)
 ## Big enough for a thumb on the Deck's screen.
 const TOUCH_BUTTON_SIZE := Vector2(116, 52)
 
@@ -169,15 +166,13 @@ func _on_band_stepped(_bar: int, _step_in_bar: int) -> void:
 func _build_hud() -> void:
 	var layer := CanvasLayer.new()
 	layer.name = "Hud"
-	_hud = Label.new()
-	_hud.add_theme_color_override("font_color", INK)
+	_hud = UiTheme.label("", UiTheme.HUD)
 	_hud.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	_hud.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_hud.offset_left = 16.0
 	_hud.offset_bottom = -12.0
 	layer.add_child(_hud)
-	_status = Label.new()
-	_status.add_theme_color_override("font_color", FAINT)
+	_status = UiTheme.label("", UiTheme.HUD_FAINT)
 	_status.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_status.offset_left = 16.0
 	_status.offset_top = 12.0
@@ -207,7 +202,6 @@ func _build_touch_buttons() -> Control:
 		button.text = spec[1]
 		button.focus_mode = Control.FOCUS_NONE
 		button.custom_minimum_size = TOUCH_BUTTON_SIZE
-		button.add_theme_font_size_override("font_size", 18)
 		button.pressed.connect(spec[2])
 		row.add_child(button)
 	return row

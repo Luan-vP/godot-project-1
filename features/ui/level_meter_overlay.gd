@@ -77,24 +77,26 @@ static func fraction_for_db(db: float) -> float:
 
 static func colour_for_db(db: float) -> Color:
 	if db >= 0.0:
-		return Color(0.95, 0.3, 0.25)
+		return UiTokens.ALERT
 	if db >= HOT_DB:
-		return Color(0.95, 0.75, 0.3)
-	return Color(0.4, 0.85, 0.5)
+		return UiTokens.EMBER
+	return UiTokens.RUNE
 
 
 func _draw_panel() -> void:
 	var size := _panel.size
-	_panel.draw_rect(Rect2(Vector2.ZERO, size), Color(0.0, 0.0, 0.0, 0.55))
+	var plate := Rect2(Vector2.ZERO, size)
+	_panel.draw_rect(plate, UiTokens.OVERLAY)
+	_panel.draw_rect(plate, Color(UiTokens.SIGIL, 0.35), false, 1.0)
 
 	var bar := Rect2(8.0, 8.0, size.x - 36.0, 10.0)
-	_panel.draw_rect(bar, Color(1.0, 1.0, 1.0, 0.08))
+	_panel.draw_rect(bar, Color(UiTokens.LINE, 0.8))
 	var lit := bar
 	lit.size.x = bar.size.x * fraction_for_db(_peak_db)
 	_panel.draw_rect(lit, colour_for_db(_peak_db))
 	var zero_x := bar.position.x + bar.size.x * fraction_for_db(0.0)
 	_panel.draw_line(
-		Vector2(zero_x, bar.position.y - 2.0), Vector2(zero_x, bar.end.y + 2.0), Color.WHITE, 1.0
+		Vector2(zero_x, bar.position.y - 2.0), Vector2(zero_x, bar.end.y + 2.0), UiTokens.TEXT, 1.0
 	)
 	var hold_x := bar.position.x + bar.size.x * fraction_for_db(_hold_db)
 	_panel.draw_line(
@@ -102,9 +104,9 @@ func _draw_panel() -> void:
 	)
 
 	var lamp_centre := Vector2(size.x - 14.0, bar.get_center().y)
-	_panel.draw_circle(lamp_centre, 6.0, Color(1.0, 1.0, 1.0, 0.12))
+	_panel.draw_circle(lamp_centre, 6.0, Color(UiTokens.LINE, 0.9))
 	if _lamp > 0.0:
-		_panel.draw_circle(lamp_centre, 6.0, Color(0.95, 0.3, 0.25, _lamp))
+		_panel.draw_circle(lamp_centre, 6.0, Color(UiTokens.ALERT, _lamp))
 
 	var watch := AudioManager.get_level_meter().watch
 	var text := (
@@ -116,11 +118,11 @@ func _draw_panel() -> void:
 		]
 	)
 	_panel.draw_string(
-		ThemeDB.fallback_font,
+		UiTheme.hud_font(),
 		Vector2(8.0, size.y - 9.0),
 		text,
 		HORIZONTAL_ALIGNMENT_LEFT,
 		size.x - 16.0,
 		12,
-		Color(1.0, 1.0, 1.0, 0.8)
+		UiTokens.HUD_TEXT
 	)

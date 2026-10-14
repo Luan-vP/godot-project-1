@@ -1,6 +1,6 @@
-# Menu design system
+# Design system
 
-One place decides how every menu looks. The look is arcane-digital: a
+One place decides how every menu, HUD and readout looks. The look is arcane-digital: a
 near-black violet void, hairline plates the colour of a dim screen, a teal
 "rune" glow on whatever is selected, violet "sigil" ornament, and titles cut in
 an inscription face over a terminal face for everything else.
@@ -11,7 +11,16 @@ an inscription face over a terminal face for everything else.
 | `ui_theme.gd` (`UiTheme`) | Builds the one shared `Theme` from the tokens, names the roles in it, and makes headers, labels and rules in those roles. |
 | `arcane_card.gd` (`ArcaneCard`) | The one way to make a card: a `Button` with a name, a blurb, an index and corner brackets that light with focus. |
 | `arcane_backdrop.gd` (`ArcaneBackdrop`) | The drawn ground: gradient, lattice, a turning sigil, a scan line. |
-| `fonts/` | Cinzel (titles) and Share Tech Mono (everything else), both under the SIL Open Font License; the licences sit beside them. |
+| `ui_look.gd` | The `UiLook` autoload: calls `UiTheme.install()` before the first scene. |
+| `fonts/` | Cinzel (titles), Share Tech Mono (everything else) and a symbol subset of Noto Sans Math (arrows, notes, dots), all under the SIL Open Font License; the licences sit beside them. |
+
+## Installed everywhere
+
+`UiTheme.install()` folds the theme into Godot's default theme and makes the
+terminal face the fallback font. So every Control in the game has the look
+with no code of its own — under a `CanvasLayer` too, where a parent's theme
+does not reach — and level text drawn with `draw_string` uses
+`UiTheme.hud_font()`.
 
 ## Using it in a menu
 
@@ -40,22 +49,29 @@ particular role sets `theme_type_variation` to one of `UiTheme`'s names:
 | `CARD` | Button | A card in a list or grid. |
 | `GHOST` | Button | A button that sits back: text only, lit on hover. |
 | `HOLD_BAR` | ProgressBar | A hold that will do something irreversible (ember). |
+| `HUD`, `HUD_FAINT` | Label | Text over a level, shadowed to read over bright fluid. |
+| `TOAST` | Label | A large passing readout, like the tempo after a nudge. |
+| `HUD_PANEL` | PanelContainer | The plate behind a readout over a level. |
+
+HUD colours drawn by hand (rings, dials, meters) come from `UiTokens` too:
+`HUD_TEXT`, `RUNE` for live, `EMBER` for hot, `ALERT` for wrong, `OVERLAY`
+for plates. Game art — eyes, parts, pins, fluid — is not UI and keeps its own
+colours.
 
 ## Rules
 
 - Menus set no colours, fonts or font sizes of their own; `test_ui_theme.gd`
-  checks the menu scripts for `Color(` and theme overrides. Layout (margins,
+  checks the menu scripts for `Color(` and theme overrides, and the HUD
+  scripts for overrides and `ThemeDB.fallback_font`. Layout (margins,
   separations, minimum sizes) is fine, using `UiTokens` sizes where one fits.
-- A `CanvasLayer` is not a `Control`, so the theme does not reach through
-  one: call `UiTheme.apply` on the first Control under it (the demo menu's
-  corner button does).
-- A menu opened as its own scene (the picker, comfort) is not under the demo
-  menu, so it applies the theme itself.
 - To add a role, add its name to `UiTheme`, give it a look in `_build`, and
   add it to the table above.
 
 ## Fonts and glyphs
 
-Neither face has geometric symbols (◆, ▸, ⌫ ...), and a Deck may have no
-system font to fall back on, so ornament is drawn (`ArcaneCard`, `rule()`,
-`diamond()`), never typed. Their punctuation covers `· ‹ › — … #`.
+Neither face has symbols, and a Deck may have no system font to fall back
+on, so both fall back to the bundled symbol subset: `♩ ♪ ← → ↑ ↓ ● ○ ◐ ▸ ±`
+and the rest of the arrow, maths, geometric-shape and miscellaneous-symbol
+blocks. A symbol outside those still needs adding to the subset (see the
+`pyftsubset` line in the PR that added it). Ornament is drawn (`ArcaneCard`,
+`rule()`, `diamond()`) rather than typed.

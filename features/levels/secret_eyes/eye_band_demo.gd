@@ -33,9 +33,9 @@ const PAINT_RATE := 3.2
 const CENTRE_PULL := 0.1
 
 const RING_GAP := 7.0
-const PLAYING_COLOR := Color(1.0, 1.0, 1.0, 0.8)
-const SILENT_COLOR := Color(1.0, 1.0, 1.0, 0.14)
-const TOUCHING_COLOR := Color(0.95, 0.45, 0.38, 0.85)
+const PLAYING_COLOR := UiTokens.HUD_TEXT
+const SILENT_COLOR := Color(UiTokens.SIGIL, 0.22)
+const TOUCHING_COLOR := UiTokens.ALERT
 
 ## Read straight from [Input], not [KeyShiftInput], so the debug line shows
 ## whether the hardware event reaches Godot at all — independent of any bug
@@ -49,10 +49,10 @@ const DEBUG_AXES := {
 	"R2": JOY_AXIS_TRIGGER_RIGHT,
 }
 
-## Countdown ring while a part is about to start (white) or stop (red) — see
+## Countdown ring while a part is about to start (rune) or stop (alert) — see
 ## [enum EyeBand.Pending].
-const PENDING_START_COLOR := Color(1.0, 1.0, 1.0, 0.95)
-const PENDING_STOP_COLOR := Color(0.95, 0.25, 0.2, 0.95)
+const PENDING_START_COLOR := UiTokens.RUNE
+const PENDING_STOP_COLOR := UiTokens.ALERT
 const PENDING_RING_WIDTH := 3.0
 
 ## Which eyes are clear of the walls, and so which parts are wanted. Always this
@@ -100,16 +100,14 @@ func _ready() -> void:
 	add_child(_overlay)
 
 	var layer := CanvasLayer.new()
-	_parts_label = Label.new()
-	_parts_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.7))
+	_parts_label = UiTheme.label("", UiTheme.HUD)
 	_parts_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	_parts_label.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_parts_label.offset_left = 16.0
 	_parts_label.offset_bottom = -12.0
 	layer.add_child(_parts_label)
 
-	_debug_label = Label.new()
-	_debug_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.7))
+	_debug_label = UiTheme.label("", UiTheme.HUD_FAINT)
 	_debug_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_debug_label.offset_left = 16.0
 	_debug_label.offset_top = 12.0
@@ -252,7 +250,7 @@ func _update_debug_label() -> void:
 ## countdown instead — white or red, its arc shrinking to nothing as the bar
 ## line arrives (see [method EyeBand.pending]).
 func _draw_rings() -> void:
-	var font := ThemeDB.fallback_font
+	var font := UiTheme.hud_font()
 	var countdown := EyeBand.countdown_fraction(
 		AudioManager.get_seconds_until_next_bar(), AudioManager.get_music_clock().seconds_per_bar()
 	)
@@ -297,9 +295,8 @@ func _draw_rings() -> void:
 func _build_readout() -> void:
 	var layer := CanvasLayer.new()
 	layer.name = "Readout"
-	_readout = Label.new()
+	_readout = UiTheme.label("", UiTheme.HUD_FAINT)
 	_readout.position = Vector2(16.0, 12.0)
-	_readout.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.65))
 	layer.add_child(_readout)
 	SafeArea.offset_layer(layer, get_viewport())
 	add_child(layer)

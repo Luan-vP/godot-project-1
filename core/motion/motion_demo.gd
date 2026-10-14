@@ -21,9 +21,8 @@ const HORIZON_HALF_WIDTH := 220.0
 const ROLL_DEGREES := 12.0
 const PITCH_DEGREES := 6.0
 
-const INK := Color(0.20, 0.22, 0.26, 0.85)
-const FAINT := Color(0.20, 0.22, 0.26, 0.30)
-const LIVE := Color(0.35, 0.55, 0.85, 0.95)
+const FAINT := UiTokens.SIGIL * Color(1, 1, 1, 0.45)
+const LIVE := UiTokens.RUNE
 
 var _motion: MotionInput
 var _haptics: Haptics
@@ -33,7 +32,12 @@ var _jogs: int = 0
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# Offsets too: the scene's root has none, and a full-rect anchor alone
+	# would leave it the size it was, nothing.
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var backdrop := ArcaneBackdrop.new()
+	backdrop.show_behind_parent = true
+	add_child(backdrop)
 	_motion = MotionInput.new()
 	_motion.name = "MotionInput"
 	add_child(_motion)
@@ -42,18 +46,16 @@ func _ready() -> void:
 	_haptics.name = "Haptics"
 	add_child(_haptics)
 
-	_readout = Label.new()
+	_readout = UiTheme.label("", UiTheme.STATUS)
 	_readout.name = "Readout"
 	_readout.position = Vector2(16.0, 12.0)
-	_readout.add_theme_color_override("font_color", INK)
 	add_child(_readout)
 
-	var hint := Label.new()
+	var hint := UiTheme.label("", UiTheme.HINT)
 	hint.name = "Hint"
 	hint.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	hint.offset_left = 16.0
 	hint.offset_top = -34.0
-	hint.add_theme_color_override("font_color", FAINT)
 	hint.text = "tilt the device · arrows tilt on a desktop · space jogs · C recentres · H / A pulses"
 	add_child(hint)
 
