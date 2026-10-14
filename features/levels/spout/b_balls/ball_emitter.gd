@@ -32,17 +32,8 @@ const QUIET_SPEED := 45.0
 const BALL_LAYER := 1 << 3
 const WALL_LAYER := 1 << 4
 
-## Billiard colours, ivory first.
-const COLORS: Array[Color] = [
-	Color(0.94, 0.91, 0.82),
-	Color(0.89, 0.72, 0.26),
-	Color(0.27, 0.42, 0.72),
-	Color(0.78, 0.3, 0.26),
-	Color(0.45, 0.32, 0.55),
-	Color(0.88, 0.5, 0.25),
-	Color(0.3, 0.55, 0.38),
-	Color(0.5, 0.25, 0.22),
-]
+## Billiard colours, moon-white cue ball first.
+const COLORS: Array[Color] = ArtPalette.BALLS
 
 ## Whether to read the pad and keyboard; off for tests.
 var reads_input := true

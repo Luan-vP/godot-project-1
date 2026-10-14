@@ -11,6 +11,7 @@ an inscription face over a terminal face for everything else.
 | `ui_theme.gd` (`UiTheme`) | Builds the one shared `Theme` from the tokens, names the roles in it, and makes headers, labels and rules in those roles. |
 | `arcane_card.gd` (`ArcaneCard`) | The one way to make a card: a `Button` with a name, a blurb, an index and corner brackets that light with focus. |
 | `arcane_backdrop.gd` (`ArcaneBackdrop`) | The drawn ground: gradient, lattice, a turning sigil, a scan line. |
+| `art_palette.gd` (`ArtPalette`) | The game art's colours: the five dyes, the tank's paper and depth, moon-white, eyes, pins, balls, rhythms, spout. Built on `UiTokens`, so a part's colour in the tank is the same colour in the menus. **Change the art here.** |
 | `ui_look.gd` | The `UiLook` autoload: calls `UiTheme.install()` before the first scene. |
 | `fonts/` | Cinzel (titles), Share Tech Mono (everything else) and a symbol subset of Noto Sans Math (arrows, notes, dots), all under the SIL Open Font License; the licences sit beside them. |
 
@@ -55,8 +56,9 @@ particular role sets `theme_type_variation` to one of `UiTheme`'s names:
 
 HUD colours drawn by hand (rings, dials, meters) come from `UiTokens` too:
 `HUD_TEXT`, `RUNE` for live, `EMBER` for hot, `ALERT` for wrong, `OVERLAY`
-for plates. Game art — eyes, parts, pins, fluid — is not UI and keeps its own
-colours.
+for plates. Game art — eyes, parts, pins, fluid — takes its colours from
+`ArtPalette` instead; `test_art_palette.gd` checks the art scripts spell out
+no colours of their own.
 
 ## Rules
 

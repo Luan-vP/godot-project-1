@@ -16,7 +16,7 @@ extends FluidBody
 @export var shape: FloaterShape:
 	set = set_shape
 
-@export var color: Color = Color(0.13, 0.14, 0.17, 0.55)
+@export var color: Color = ArtPalette.FLOATER
 
 ## Visible size in pixels, at the shape's own unit of [code]1.0[/code].
 @export var radius: float = 6.0:

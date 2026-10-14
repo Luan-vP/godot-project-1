@@ -45,14 +45,8 @@ const FULL_STRENGTH_SPEED := 420.0
 const PIN_RESISTANCE := 5.0
 const PIN_SPLASH := 1400.0
 
-## The palette the stream cycles through, slowly — the eye tank's own.
-const PALETTE: Array[Color] = [
-	Color(0.36, 0.70, 0.68),
-	Color(0.85, 0.45, 0.38),
-	Color(0.53, 0.44, 0.76),
-	Color(0.93, 0.74, 0.36),
-	Color(0.30, 0.55, 0.80),
-]
+## The palette the stream cycles through, slowly: the dyes.
+const PALETTE: Array[Color] = ArtPalette.DYES
 ## Seconds to drift from one palette colour to the next.
 const PALETTE_SECONDS := 9.0
 

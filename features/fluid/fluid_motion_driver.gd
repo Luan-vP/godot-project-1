@@ -17,7 +17,7 @@ extends Node
 ## Pigment stirred up by a jog, so a shake is visible and not merely felt.
 @export_range(0.0, 8.0, 0.1) var nudge_paint: float = 1.1
 
-@export var paint_color: Color = Color(0.62, 0.70, 0.88)
+@export var paint_color: Color = ArtPalette.MOON.lerp(ArtPalette.AZURE, 0.4)
 
 @export_group("Wiring")
 ## Tank to drive. Left empty, the first one in the scene is used.

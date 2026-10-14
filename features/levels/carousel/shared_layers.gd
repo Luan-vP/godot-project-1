@@ -21,14 +21,8 @@ const SEED_BLOBS := 5
 ## Pigment density dropped in at the start, as a one-shot rather than a rate.
 const SEED_DENSITY := 1.6
 const SEED_RADIUS := 150.0
-## The eye tank's own palette.
-const SEED_PALETTE: Array[Color] = [
-	Color(0.36, 0.70, 0.68),
-	Color(0.85, 0.45, 0.38),
-	Color(0.53, 0.44, 0.76),
-	Color(0.93, 0.74, 0.36),
-	Color(0.30, 0.55, 0.80),
-]
+## The dyes, from [ArtPalette].
+const SEED_PALETTE: Array[Color] = ArtPalette.DYES
 
 var fluid: FluidSimulation
 var band: Band

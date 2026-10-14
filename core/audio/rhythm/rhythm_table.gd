@@ -19,9 +19,9 @@ func _init(p_rhythms: Array[Rhythm] = []) -> void:
 ## third voice that nests over the 3.
 static func default_table() -> RhythmTable:
 	var table: Array[Rhythm] = [
-		Rhythm.create(3, 1.0, Color(0.98, 0.62, 0.36)),
-		Rhythm.create(4, 1.0, Color(0.42, 0.78, 0.96)),
-		Rhythm.create(6, 0.5, Color(0.80, 0.56, 0.96)),
+		Rhythm.create(3, 1.0, ArtPalette.RHYTHM_3),
+		Rhythm.create(4, 1.0, ArtPalette.RHYTHM_4),
+		Rhythm.create(6, 0.5, ArtPalette.RHYTHM_6),
 	]
 	return RhythmTable.new(table)
 
