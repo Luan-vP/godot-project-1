@@ -105,9 +105,7 @@ func _build_readout() -> Label:
 	layer.layer = 110
 	add_child(layer)
 	var label := Label.new()
-	label.add_theme_font_size_override("font_size", 22)
-	label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.85))
-	label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.5))
+	label.theme_type_variation = UiTheme.TOAST
 	label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	label.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	label.offset_right = -16.0

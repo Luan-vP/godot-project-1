@@ -24,17 +24,30 @@ const LINE := Color("2c2950")
 const RUNE := Color("5ef2d6")
 ## Ornament: sigils, brackets, the backdrop's rings.
 const SIGIL := Color("9d7bff")
-## Something about to happen that cannot be undone, like a merge.
+## Something about to happen that cannot be undone, like a merge; running hot.
 const EMBER := Color("ffb35c")
+## Gone wrong: a clip, a part about to be cut.
+const ALERT := Color("ff5c7a")
 
 const TEXT := Color("e8e4ff")
 const MUTED := Color("8d89b3")
 const FAINT := Color("4b4774")
 
+## Heads-up text over a level, which has to read over bright fluid as well as
+## the void, so it carries a shadow.
+const HUD_TEXT := Color(0.91, 0.89, 1.0, 0.86)
+const HUD_FAINT := Color(0.71, 0.69, 0.86, 0.62)
+const HUD_SHADOW := Color(0.027, 0.024, 0.05, 0.7)
+## The plate behind a readout drawn over a level.
+const OVERLAY := Color(0.027, 0.024, 0.05, 0.62)
+
 # --- Type -----------------------------------------------------------------
 
 const DISPLAY_FONT_PATH := "res://features/ui/design/fonts/Cinzel-Variable.ttf"
 const MONO_FONT_PATH := "res://features/ui/design/fonts/ShareTechMono-Regular.ttf"
+## Symbols neither face has (arrows, notes, dots), so they never fall through
+## to a system font a Deck may not have.
+const SYMBOL_FONT_PATH := "res://features/ui/design/fonts/NotoSansMath-Symbols.ttf"
 ## Cinzel is a variable font; this is its weight axis.
 const DISPLAY_WEIGHT := 600
 ## Extra pixels between letters, for the carved look of the titles.
@@ -46,6 +59,8 @@ const SIZE_HEADING := 22
 const SIZE_BODY := 16
 const SIZE_SMALL := 14
 const SIZE_TINY := 12
+const SIZE_HUD := 14
+const SIZE_TOAST := 22
 
 # --- Shape and space ------------------------------------------------------
 

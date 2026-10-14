@@ -56,13 +56,13 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	# Clear of the Dynamic Island and home indicator on a phone.
 	SafeArea.fit_control(self)
+	add_child(ArcaneBackdrop.new())
 	_patch.glide_seconds = 0.25
 	_synth = Synth.new()
 	_synth.patch = _patch
 	add_child(_synth)
 
-	var help := Label.new()
-	help.position = Vector2(16, 16)
+	var help := UiTheme.label("", UiTheme.STATUS)
 	help.text = (
 		"Synth voices (#56)\n\n"
 		+ "A S D F G H J K  hold notes\n"
@@ -71,11 +71,14 @@ func _ready() -> void:
 		+ "R                harmonic-series phrase (past the 8-voice cap)\n"
 		+ "Space            hold a high note"
 	)
-	add_child(help)
+	var stack := VBoxContainer.new()
+	stack.position = Vector2(16, 16)
+	stack.add_theme_constant_override("separation", UiTokens.GAP)
+	add_child(stack)
+	stack.add_child(help)
 
-	_status = Label.new()
-	_status.position = Vector2(16, 190)
-	add_child(_status)
+	_status = UiTheme.label("", UiTheme.HINT)
+	stack.add_child(_status)
 
 
 func _process(_delta: float) -> void:

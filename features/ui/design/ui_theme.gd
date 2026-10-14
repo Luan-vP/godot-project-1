@@ -1,15 +1,21 @@
 class_name UiTheme
 extends RefCounted
-## The menus' one [Theme], built from [UiTokens], and the names of the styles
+## The game's one [Theme], built from [UiTokens], and the names of the styles
 ## in it.
 ##
-## A menu calls [method apply] on its root Control and everything under it
-## picks the look up: buttons, sliders, scroll bars and tooltips by type, and
+## [method install] runs at startup (the [code]UiLook[/code] autoload): it
+## folds this theme into Godot's default theme and makes the terminal face the
+## fallback font, so every Control anywhere, under a [CanvasLayer] or not, and
+## every [code]draw_string[/code] given [method hud_font], has the look with no
+## code of its own. A menu may still call [method apply] on its root, which
+## changes nothing but says where the look comes from.
+##
+## Buttons, sliders, scroll bars and tooltips are styled by type, and
 ## anything that needs a particular role by [member Control.theme_type_variation]
 ## set to one of the names below ([constant TITLE], [constant CARD] ...).
 ## [method label] makes a [Label] in one of those roles.
 ##
-## No menu sets its own colours, fonts or sizes. To restyle, change
+## No menu or HUD sets its own colours, fonts or sizes. To restyle, change
 ## [UiTokens]; to add a role, add a name here and give it a look in
 ## [method _build].
 ##
@@ -36,8 +42,18 @@ const CARD := &"Card"
 const GHOST := &"Ghost"
 ## A [ProgressBar] for a hold that will do something irreversible.
 const HOLD_BAR := &"HoldBar"
+## Heads-up text over a level, shadowed to read over anything.
+const HUD := &"Hud"
+## Quieter heads-up text: hints and debug lines.
+const HUD_FAINT := &"HudFaint"
+## A large passing readout, like the tempo after a nudge.
+const TOAST := &"Toast"
+## A [PanelContainer] behind a readout drawn over a level.
+const HUD_PANEL := &"HudPanel"
 
 static var _theme: Theme
+static var _mono: Font
+static var _installed := false
 
 
 ## The shared theme, built on first use.
@@ -45,6 +61,22 @@ static func get_theme() -> Theme:
 	if _theme == null:
 		_theme = _build()
 	return _theme
+
+
+## Make the look the game's default: fold the theme into Godot's default
+## theme, and the terminal face into the fallback font. Safe to call twice.
+static func install() -> void:
+	if _installed:
+		return
+	_installed = true
+	ThemeDB.fallback_font = mono_font()
+	ThemeDB.fallback_font_size = UiTokens.SIZE_BODY
+	ThemeDB.get_default_theme().merge_with(get_theme())
+
+
+## The face for text a level draws itself with [code]draw_string[/code].
+static func hud_font() -> Font:
+	return mono_font()
 
 
 ## Give [param control] and everything under it the menu look.
@@ -116,21 +148,31 @@ static func rule() -> Control:
 ## The inscription face, at the tokens' weight and with [param tracking]
 ## extra pixels between letters.
 static func display_font(tracking: int = UiTokens.DISPLAY_TRACKING) -> Font:
-	var font := FontVariation.new()
-	font.base_font = load(UiTokens.DISPLAY_FONT_PATH)
+	var font := _face(UiTokens.DISPLAY_FONT_PATH)
 	font.variation_opentype = {"wght": UiTokens.DISPLAY_WEIGHT}
 	font.spacing_glyph = tracking
 	return font
 
 
-## The terminal face, with [param tracking] extra pixels between letters.
+## The terminal face, with [param tracking] extra pixels between letters. The
+## plain one is shared.
 static func mono_font(tracking: int = 0) -> Font:
-	var base: Font = load(UiTokens.MONO_FONT_PATH)
 	if tracking == 0:
-		return base
-	var font := FontVariation.new()
-	font.base_font = base
+		if _mono == null:
+			_mono = _face(UiTokens.MONO_FONT_PATH)
+		return _mono
+	var font := _face(UiTokens.MONO_FONT_PATH)
 	font.spacing_glyph = tracking
+	return font
+
+
+## The font at [param path], falling back to the bundled symbol font for the
+## arrows, notes and dots it lacks. A variation, so the imported font itself
+## is left alone.
+static func _face(path: String) -> FontVariation:
+	var font := FontVariation.new()
+	font.base_font = load(path)
+	font.fallbacks = [load(UiTokens.SYMBOL_FONT_PATH)]
 	return font
 
 
@@ -188,6 +230,15 @@ static func _labels(theme: Theme, mono: Font, display: Font) -> void:
 		theme, CARD_INDEX, mono_font(UiTokens.LABEL_TRACKING), UiTokens.SIZE_TINY, UiTokens.FAINT
 	)
 
+	_label_role(theme, HUD, mono, UiTokens.SIZE_HUD, UiTokens.HUD_TEXT)
+	_label_role(theme, HUD_FAINT, mono, UiTokens.SIZE_HUD, UiTokens.HUD_FAINT)
+	_label_role(theme, TOAST, mono, UiTokens.SIZE_TOAST, UiTokens.HUD_TEXT)
+	for role in [HUD, HUD_FAINT, TOAST]:
+		theme.set_color("font_shadow_color", role, UiTokens.HUD_SHADOW)
+		theme.set_constant("shadow_offset_x", role, 1)
+		theme.set_constant("shadow_offset_y", role, 1)
+		theme.set_constant("shadow_outline_size", role, 4)
+
 	theme.set_stylebox("panel", "TooltipPanel", plate(UiTokens.VOID_DEEP, UiTokens.SIGIL))
 	theme.set_font("font", "TooltipLabel", mono)
 	theme.set_font_size("font_size", "TooltipLabel", UiTokens.SIZE_TINY)
@@ -210,6 +261,12 @@ static func _buttons(theme: Theme) -> void:
 
 	theme.set_type_variation(CARD, "Button")
 	_button_states(theme, CARD)
+
+	for state in ["font_color", "font_focus_color"]:
+		theme.set_color(state, "CheckBox", UiTokens.TEXT)
+	theme.set_color("font_hover_color", "CheckBox", UiTokens.RUNE)
+	theme.set_color("font_pressed_color", "CheckBox", UiTokens.RUNE)
+	theme.set_color("font_hover_pressed_color", "CheckBox", UiTokens.RUNE)
 
 	theme.set_type_variation(GHOST, "Button")
 	var none := StyleBoxEmpty.new()
@@ -299,6 +356,10 @@ static func _panels(theme: Theme) -> void:
 	panel.set_content_margin_all(UiTokens.PAD)
 	theme.set_stylebox("panel", "PanelContainer", panel)
 	theme.set_stylebox("panel", "Panel", panel)
+	theme.set_type_variation(HUD_PANEL, "PanelContainer")
+	var hud := plate(UiTokens.OVERLAY, Color(UiTokens.SIGIL, 0.35))
+	hud.set_content_margin_all(10.0)
+	theme.set_stylebox("panel", HUD_PANEL, hud)
 
 
 ## A filled diamond [param size] pixels across, for slider grabbers.

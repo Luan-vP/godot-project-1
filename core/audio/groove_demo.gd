@@ -44,6 +44,7 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	# Clear of the Dynamic Island and home indicator on a phone.
 	SafeArea.fit_control(self)
+	add_child(ArcaneBackdrop.new())
 	_build_labels()
 	_build_instruments()
 	_add_space()
@@ -184,8 +185,7 @@ func _add_space() -> void:
 
 
 func _build_labels() -> void:
-	var help := Label.new()
-	help.position = Vector2(16, 16)
+	var help := UiTheme.label("", UiTheme.STATUS)
 	help.text = (
 		"Groove demo: step grid + drum kit (70 bpm)\n\n"
 		+ "Space   play / stop\n"
@@ -195,10 +195,13 @@ func _build_labels() -> void:
 		+ "P       pads (live, a chord each bar)\n\n"
 		+ "Layer changes land on the next bar."
 	)
-	add_child(help)
-	_status = Label.new()
-	_status.position = Vector2(16, 270)
-	add_child(_status)
+	var stack := VBoxContainer.new()
+	stack.position = Vector2(16, 16)
+	stack.add_theme_constant_override("separation", UiTokens.GAP)
+	add_child(stack)
+	stack.add_child(help)
+	_status = UiTheme.label("", UiTheme.HINT)
+	stack.add_child(_status)
 
 
 func _on_off(value: bool) -> String:

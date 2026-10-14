@@ -21,6 +21,7 @@ buses/default_bus_layout="res://resources/audio/default_bus_layout.tres"
 
 [autoload]
 
+UiLook="*res://features/ui/design/ui_look.gd"
 EventBus="*res://autoload/EventBus.gd"
 GameState="*res://autoload/GameState.gd"
 AudioManager="*res://autoload/AudioManager.gd"

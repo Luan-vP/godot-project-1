@@ -277,7 +277,7 @@ func _on_pin_changed(column: int, _old_note: int, _new_note: int) -> void:
 func _draw() -> void:
 	if _positions.is_empty():
 		return
-	var font := ThemeDB.fallback_font
+	var font := UiTheme.hud_font()
 	var scrolling_at := _scale.scroll_position() if _scale != null else -1
 	var shimmer := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 90.0)
 	for i in _positions.size():

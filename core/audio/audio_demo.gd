@@ -41,14 +41,16 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	# Clear of the Dynamic Island and home indicator on a phone.
 	SafeArea.fit_control(self)
+	add_child(ArcaneBackdrop.new())
 
 	var root := VBoxContainer.new()
-	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.set_anchors_and_offsets_preset(
+		Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, int(UiTokens.MARGIN_NARROW)
+	)
 	root.add_theme_constant_override("separation", 12)
 	add_child(root)
 
-	var title := Label.new()
-	title.text = "Audio foundation demo"
+	var title := UiTheme.label("Audio foundation", UiTheme.TITLE)
 	root.add_child(title)
 
 	for bus_name in _BUSES:
@@ -127,8 +129,7 @@ func _advance_fader_sweep(delta: float) -> void:
 func _build_loop_layer_demo_section() -> VBoxContainer:
 	var section := VBoxContainer.new()
 
-	var title := Label.new()
-	title.text = "Loop layering demo (#31)"
+	var title := UiTheme.label("LOOP LAYERING · #31", UiTheme.KICKER)
 	section.add_child(title)
 
 	_configure_demo_loops()

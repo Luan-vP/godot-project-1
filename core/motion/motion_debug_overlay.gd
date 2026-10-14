@@ -21,34 +21,28 @@ const TOGGLE_KEY := KEY_F3
 ## Gamepad button that toggles it on a device with no keyboard — the Deck.
 const TOGGLE_BUTTON := JOY_BUTTON_Y
 
-const INK := Color(0.88, 0.90, 0.94, 0.95)
-const BACKDROP := Color(0.05, 0.06, 0.08, 0.55)
-
 ## Shown when the tilt is below this, to name what a still tank means.
 const RESTING_TILT := 0.02
 
 var _motion: MotionInput
 var _label: Label
-var _panel: ColorRect
+var _panel: PanelContainer
 var _jogs: int = 0
 
 
 func _ready() -> void:
 	layer = 100
-	_panel = ColorRect.new()
+	_panel = PanelContainer.new()
 	_panel.name = "Backdrop"
-	_panel.color = BACKDROP
+	_panel.theme_type_variation = UiTheme.HUD_PANEL
 	_panel.position = Vector2(12.0, 10.0)
-	_panel.size = Vector2(320.0, 132.0)
+	_panel.custom_minimum_size = Vector2(320.0, 0.0)
 	_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_panel)
 
-	_label = Label.new()
+	_label = UiTheme.label("", UiTheme.HUD)
 	_label.name = "Readout"
-	_label.position = Vector2(20.0, 14.0)
-	_label.add_theme_color_override("font_color", INK)
-	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_label)
+	_panel.add_child(_label)
 
 
 func _process(_delta: float) -> void:
