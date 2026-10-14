@@ -1,8 +1,8 @@
 class_name Splash
 extends Control
 ## The studio logo printed into a fluid tank: it appears still, then time
-## starts, the water is stirred ([member agitation]) and the logo drifts apart
-## and dissolves, and the demo menu takes over.
+## starts, the water is swirled slowly ([member agitation]) and the logo winds
+## into a spiral and dissolves, and the demo menu takes over.
 ##
 ## This is [code]run/main_scene[/code], so it is the first thing the game
 ## shows. Any key, pad button or tap skips straight to the menu. It steps
@@ -59,7 +59,7 @@ const JOB_ARGS: Array[String] = ["--prs", "--from-picker", "--no-splash", "--pro
 const JOB_PREFIXES: Array[String] = ["--open=", "--probe="]
 
 ## How the water is stirred once time starts.
-@export var agitation: SplashAgitation = SwipeAgitation.new()
+@export var agitation: SplashAgitation = SwirlAgitation.new()
 
 var fluid: FluidSimulation
 var _config: FluidConfig

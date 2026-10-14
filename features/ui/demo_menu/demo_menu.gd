@@ -129,7 +129,7 @@ const DEMOS: Array[Dictionary] = [
 	{
 		"name": "Splash",
 		"path": "res://features/splash/splash.tscn",
-		"blurb": "The studio logo, printed in the tank and stirred away. Any key or tap skips.",
+		"blurb": "The studio logo, printed in the tank and swirled away. Any key or tap skips.",
 		# It closes itself, and any tap skips it: nothing for a probe to measure.
 		"probe": false,
 	},
