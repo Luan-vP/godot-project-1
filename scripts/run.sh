@@ -2,7 +2,7 @@
 # Run a level or demo straight from the command line.
 #
 #   scripts/run.sh                 list what can be run
-#   scripts/run.sh vitreous        run the vitreous tank
+#   scripts/run.sh carousel        run the fluid carousel
 #   scripts/run.sh eyes --fresh    clear compiled shaders first, then run
 #   scripts/run.sh synth -- --resolution 1280x720
 #                                  anything after -- is passed to Godot
@@ -23,14 +23,9 @@ usage() {
 	cat <<'USAGE'
 Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
 
-  play       The level select every player sees (run/main_scene): pick a
-             level, Backspace comes back. Press Shift to reveal the secret
-             eye tank.
+  play       The demo menu every player sees (run/main_scene): pick a level,
+             Backspace comes back.
   menu       Click into any of the demos below; Backspace comes back.
-  level1     Level 1: pure exploration. No score, no timer, no way to fail —
-             just look. Mouse or right stick to look, Esc frees the cursor.
-  eyes       Secret level: the eye tank. Drag to stir and paint, WASD tilts,
-             Space jogs, B blinks, R empties the tank, C recalibrates.
   band       The eye tank as a band: each eye plays one part of a 70 bpm loop
              while it floats clear of the walls. WASD tilts, drag stirs.
   spout-a    Level 3, version A: the spout pours the eye tank's fluid over
@@ -56,36 +51,17 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
   carousel-birds
              The same carousel with the flying birds in place of the
              waterboatmen.
-  vitreous   Out-of-focus floaters drifting in a coasting gel. Drag to push,
-             WASD tilts, Space jogs, +/- floaters, F toggles focus, B dark
-             background, R stills.
-  overcast   Panorama level: bright overcast sky, floaters unmissable. Mouse
-             or right stick to look, Esc frees the cursor, click to recapture.
-  interior   Panorama level: dim interior, floaters barely there. Same
-             controls as overcast.
-  gaze       Floaters swished by looking around. Mouse or right stick to look,
-             1/2 and 3/4 tune hold and flick sensitivity, R stills, F focus.
-  refraction Clear medium over a checkerboard: only the bend shows. Drag to
-             stir, +/- tune strength down to zero, R stills.
-  canny      CannyEdgeSource's debug overlay: traced edges over a synthetic
-             panorama. Up/Down tunes blur, [/] and +/- tune thresholds,
-             Left/Right tunes minimum run length.
-  eye-gaze   Eye tracking debug: tracking state, raw gaze, the gaze point and
-             the turn it makes. Calibrate, then look. Without the device
-             plugin the pointer stands in: C calibrates, Space blinks, F hides
-             the face, M switches backend.
   synth      Synth voices. A-K hold notes, Up/Down glide, 1/2/3 waveform,
              R plays a phrase, Space holds a high note.
   groove     Floaty synthwave loop at 70 bpm: rendered drums plus live bass and
              pads on the step grid. Space plays, 1/2 drum layers, B bass, P pads.
   audio      Audio foundation: bus sliders and mutes, loop layers, the
              smoothed effect fader.
-  motion     Device tilt readout: the live source, its raw gravity, and the
-             scene leaning with it. Tilt a Deck or a phone, or arrows on a
-             desktop; C or the right stick click recentres.
-  comfort    Comfort options (#17): distortion strength, look sensitivity,
-             floater overshoot reduction. Open a panorama level afterwards to
-             feel a change take effect.
+  motion     Device tilt readout: the live source, its raw gravity, jogs and
+             haptics. Tilt a Deck or a phone, or arrows on a desktop; C or
+             the right stick click recentres.
+  comfort    Comfort options (#17): floater overshoot reduction and haptics
+             strength.
   arrangement Scoring drives the layer stack (#34): drums join in stages as a
              soft pad bed. +/- simulated floaters, C toggles clustered vs
              scattered scoring.
@@ -106,9 +82,7 @@ USAGE
 scene_for() {
 	case "$1" in
 		play | menu | levels) echo "res://features/ui/demo_menu/demo_menu.tscn" ;;
-		level1 | level-one) echo "res://features/levels/panorama/level_one.tscn" ;;
-		eyes | secret-eyes | fluid) echo "res://features/levels/secret_eyes/fluid_demo.tscn" ;;
-		band | eye-band) echo "res://features/levels/secret_eyes/eye_band_demo.tscn" ;;
+		band | eye-band | eyes) echo "res://features/levels/secret_eyes/eye_band_demo.tscn" ;;
 		spout-a | level3a) echo "res://features/levels/spout/a_fluid/level_three_a.tscn" ;;
 		spout-b | level3b) echo "res://features/levels/spout/b_balls/level_three_b.tscn" ;;
 		spout | level3) echo "res://features/levels/spout/spout_level.tscn" ;;
@@ -116,11 +90,6 @@ scene_for() {
 		waterboatmen | boatmen | boids) echo "res://features/levels/boids/boids_level.tscn" ;;
 		carousel | fluid-carousel) echo "res://features/levels/carousel/fluid_carousel.tscn" ;;
 		carousel-birds) echo "res://features/levels/carousel/fluid_carousel_birds.tscn" ;;
-		vitreous | floaters) echo "res://features/levels/vitreous/vitreous_tank.tscn" ;;
-		gaze) echo "res://features/levels/gaze/gaze_demo.tscn" ;;
-		refraction) echo "res://features/fluid/refraction_demo.tscn" ;;
-		canny | edges) echo "res://features/edges/canny_edge_debug.tscn" ;;
-		eye-gaze | eye-tracking) echo "res://core/look/gaze/gaze_debug_demo.tscn" ;;
 		synth) echo "res://core/audio/synth_demo.tscn" ;;
 		groove) echo "res://core/audio/groove_demo.tscn" ;;
 		audio) echo "res://core/audio/audio_demo.tscn" ;;

@@ -145,13 +145,13 @@ func test_opening_a_second_demo_closes_the_first() -> void:
 
 
 func test_launch_options_pick_demos_by_loose_name() -> void:
-	var options := DemoMenu.launch_options(PackedStringArray(["--verbose", "--open=Vitreous"]))
-	var vitreous: Dictionary = DemoMenu.DEMOS.filter(func(d): return d["name"] == "Vitreous")[0]
-	assert_eq(options.get("open"), vitreous["path"], "Case does not matter")
+	var options := DemoMenu.launch_options(PackedStringArray(["--verbose", "--open=Waterboatmen"]))
+	var boatmen: Dictionary = DemoMenu.DEMOS.filter(func(d): return d["name"] == "Waterboatmen")[0]
+	assert_eq(options.get("open"), boatmen["path"], "Case does not matter")
 	assert_false(options.has("probe"), "Not probing")
-	var probe := DemoMenu.launch_options(PackedStringArray(["--probe=eyes,vitreous"]))
+	var probe := DemoMenu.launch_options(PackedStringArray(["--probe=eye_band,waterboatmen"]))
 	var names: Array = probe["probe"].map(func(demo): return demo["name"])
-	assert_eq(names, ["Eyes", "Vitreous"], "Menu order, spaces as underscores")
+	assert_eq(names, ["Eye band", "Waterboatmen"], "Menu order, spaces as underscores")
 	assert_eq(
 		DemoMenu.launch_options(PackedStringArray(["--probe"]))["probe"].size(),
 		DemoMenu.DEMOS.size(),

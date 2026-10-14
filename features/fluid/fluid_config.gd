@@ -84,8 +84,8 @@ extends Resource
 @export_range(0.004, 0.1, 0.001) var max_time_step: float = 1.0 / 45.0
 
 @export_group("Pigment")
-## Whether the dye field is simulated at all. A tank rendered with
-## [FluidRefractionRenderer] never reads it, so turning this off skips the dye
+## Whether the dye field is simulated at all. A tank that is never painted,
+## or rendered from its velocity alone, never reads it, so turning this off skips the dye
 ## dispatch and the texture copy that follows it every frame, and the dye
 ## texture pair is never allocated. [method FluidSimulation.get_dye_texture]
 ## returns null and [method FluidSimulation.add_paint] becomes a no-op. In the

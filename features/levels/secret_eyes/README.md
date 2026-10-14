@@ -24,10 +24,9 @@ readout shows where the key sits relative to the song, -5 to +6.
 
 ## Access
 
-Listed openly as "Eyes" in `features/ui/demo_menu/`, the game's front door
-(`run/main_scene`). It was briefly a secret entry on a level-select screen,
-revealed by `Shift` or the gamepad's `Y`; that screen is gone, and with it
-the gesture. The tank is not a [`Level`](../../level.gd) resource.
+The plain tank, without the band, is gone. The eye band is the first level in
+the fluid carousel (`features/levels/carousel/`) and is listed on its own as
+"Eye band" in `features/ui/demo_menu/`.
 
 ## Eye band
 
@@ -60,8 +59,7 @@ of a wall within 10 px of its rim and lets go only past 40 px — so one bobbing
 at the edge does not stutter its part.
 
 This is a sketch of the idea in #9 — the music is the reward for an
-arrangement you hold against a drifting medium — using walls where the real
-game will use panorama edges, and with the rule inverted: here staying *off*
+arrangement you hold against a drifting medium — using walls for edges, and with the rule inverted: here staying *off*
 the edge is what plays.
 
 ## Pieces
@@ -70,10 +68,10 @@ Kept together because they only make sense as a set:
 
 | File | What it is |
 | --- | --- |
-| `fluid_demo.gd` | Builds the tank, drops the eyes in, wires up input. |
+| `fluid_demo.gd` | The base `eye_band_demo.gd` extends: the tank, the eyes, input. |
 | `eye_band.gd` | `EyeBand` — one part of the music per eye, heard while it is clear of the walls. The music itself is [`Band`](../../../core/audio/band.gd)'s; this only decides which parts are wanted. |
 | `eye_band_songs.gd` | `EyeBandSongs` — the four songs the band picks from. |
 | `eye_band_demo.gd` | The tank plus an `EyeBand`, rings round the eyes and a parts readout. |
 | `floaty_eye.gd` | `FloatyEye` — a [`FluidBody`](../../fluid/fluid_body.gd) with a face. |
 | `eye.gdshader` | The procedural eye look: squash-along-motion and gaze read off the fluid. |
-| `fluid_demo.tscn` | The single-node scene entry point. |
+| `eye_band_demo.tscn` | The single-node scene entry point. |
