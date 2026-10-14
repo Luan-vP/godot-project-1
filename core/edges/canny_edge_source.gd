@@ -110,25 +110,11 @@ func get_edges() -> Array[PanoramaEdge]:
 
 
 func _detect() -> Array[PanoramaEdge]:
-	if panorama_texture == null:
+	var image := load_working_image(panorama_texture, working_width)
+	if image == null:
 		return []
-	var source_image := panorama_texture.get_image()
-	if source_image == null:
-		return []
-	var image := source_image.duplicate() as Image
-	if image.is_compressed():
-		image.decompress()
-
-	var target_width := mini(working_width, image.get_width())
-	if target_width < image.get_width():
-		var aspect := float(image.get_height()) / float(image.get_width())
-		var target_height := maxi(1, roundi(target_width * aspect))
-		image.resize(target_width, target_height, Image.INTERPOLATE_LANCZOS)
-
 	var width := image.get_width()
 	var height := image.get_height()
-	if width < 3 or height < 3:
-		return []
 
 	var gray := _grayscale(image)
 	var blurred := _gaussian_blur(gray, width, height, blur_sigma)
@@ -137,8 +123,45 @@ func _detect() -> Array[PanoramaEdge]:
 	var angle: PackedFloat32Array = sobel[1]
 	var suppressed := _non_max_suppression(magnitude, angle, width, height)
 	var mask := _hysteresis(suppressed, width, height, low_threshold, high_threshold)
-	var runs := _trace_runs(mask, width, height, min_run_length)
+	var runs := _refine_runs(_trace_runs(mask, width, height, min_run_length), width, height)
+	return build_edges(runs, width, height)
 
+
+## Hook between tracing and embedding: subclasses reshape the traced pixel
+## runs (see [LineFitEdgeSource]) without re-implementing the pipeline above.
+## The base class keeps every run it traced.
+func _refine_runs(runs: Array, _width: int, _height: int) -> Array:
+	return runs
+
+
+## [param texture] as a decompressed [Image] at most [param max_width] wide
+## (aspect preserved, never upscaled), or [code]null[/code] when there is
+## nothing usable to detect in. Shared by every detector in this package so
+## each compares like with like.
+static func load_working_image(texture: Texture2D, max_width: int) -> Image:
+	if texture == null:
+		return null
+	var source_image := texture.get_image()
+	if source_image == null:
+		return null
+	var image := source_image.duplicate() as Image
+	if image.is_compressed():
+		image.decompress()
+
+	var target_width := mini(max_width, image.get_width())
+	if target_width < image.get_width():
+		var aspect := float(image.get_height()) / float(image.get_width())
+		var target_height := maxi(1, roundi(target_width * aspect))
+		image.resize(target_width, target_height, Image.INTERPOLATE_LANCZOS)
+
+	if image.get_width() < 3 or image.get_height() < 3:
+		return null
+	return image
+
+
+## Every pixel run in [param runs] embedded on the sphere as a
+## [PanoramaEdge], ids in order.
+static func build_edges(runs: Array, width: int, height: int) -> Array[PanoramaEdge]:
 	var edges: Array[PanoramaEdge] = []
 	for i in runs.size():
 		edges.append(_build_edge(i, runs[i] as Array[Vector2i], width, height))
