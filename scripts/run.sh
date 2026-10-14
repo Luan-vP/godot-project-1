@@ -60,13 +60,7 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
   motion     Device tilt readout: the live source, its raw gravity, jogs and
              haptics. Tilt a Deck or a phone, or arrows on a desktop; C or
              the right stick click recentres.
-  comfort    Comfort options (#17): floater overshoot reduction and haptics
-             strength.
-  arrangement Scoring drives the layer stack (#34): drums join in stages as a
-             soft pad bed. +/- simulated floaters, C toggles clustered vs
-             scattered scoring.
-  contacts   Scoring contact sound. 1-6 hold a simulated floater's contact,
-             Space fires a flickering burst.
+  comfort    Comfort options (#17): haptics strength.
   prs        Open pull requests on GitHub. Picking one builds and swaps to it
              only on the Deck (scripts/deck-demo.sh); elsewhere it just lists.
 
@@ -95,8 +89,6 @@ scene_for() {
 		audio) echo "res://core/audio/audio_demo.tscn" ;;
 		motion | tilt) echo "res://core/motion/motion_demo.tscn" ;;
 		comfort) echo "res://features/ui/comfort_settings/comfort_settings_demo.tscn" ;;
-		arrangement) echo "res://core/audio/arrangement_demo.tscn" ;;
-		contacts) echo "res://features/scoring_sound/contact_sound_demo.tscn" ;;
 		prs | pulls) echo "res://features/ui/pr_picker/pr_picker.tscn" ;;
 		*) return 1 ;;
 	esac
