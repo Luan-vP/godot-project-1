@@ -101,6 +101,9 @@ func _rebuild_medium() -> void:
 		level.fluid_config.duplicate() if level.fluid_config != null else FluidConfig.new()
 	)
 	tank_config.world_size = Vector2(get_viewport().get_visible_rect().size)
+	# A turn carries the whole medium across the view rather than sloshing it
+	# off walls; GazeFluidDriver needs this to feel like looking through gel.
+	tank_config.wrap_edges = true
 
 	var simulation := FluidSimulation.new()
 	simulation.name = "Medium"
@@ -124,11 +127,25 @@ func _rebuild_medium() -> void:
 	floaters.size_skew = level.floater_size_skew
 	# Comfort setting, not level tuning — see ComfortSettings' note on
 	# reducing a floater's inertial lag and overshoot (#17).
-	floaters.drag = ComfortSettings.apply_to_floater_drag(floaters.drag)
+	floaters.drag = ComfortSettings.apply_to_floater_drag(level.floater_drag)
+	floaters.buoyancy = level.floater_settle
+	floaters.max_speed = level.floater_max_speed
 	# Real floaters sit too close to the retina to ever be crisp; see the
 	# floaters README's "Depth of field" section.
 	floaters.depths = FloaterDepth.vitreous_bands()
 	_overlay.add_child(floaters)
+
+	# The only thing tying where the player looks to the medium. Floaters are
+	# never told where the gaze is: evading fixation has to fall out of this
+	# coupling, because centring a floater turns the eye and so moves the gel
+	# it is riding.
+	var driver := GazeFluidDriver.new()
+	driver.name = "GazeFluidDriver"
+	driver.deadzone_rad_per_sec = level.gaze_deadzone
+	driver.hold_sensitivity = level.gaze_hold_sensitivity
+	driver.flick_sensitivity = level.gaze_flick_sensitivity
+	driver.settle_rate = level.gaze_settle_rate
+	_overlay.add_child(driver)
 
 
 static func _build_environment() -> WorldEnvironment:
