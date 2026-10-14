@@ -58,7 +58,6 @@ scripts/run.sh groove      # synthwave loop: drums on the step grid, bass and pa
 scripts/run.sh audio       # buses, loop layers, the effect fader
 scripts/run.sh motion      # tilt readout: the live source, its axes, the lean
 scripts/run.sh comfort     # haptics strength
-scripts/run.sh arrangement # scoring drives the layer stack (#34)
 ```
 
 In every scene, the arrow keys (or d-pad) move the music's tempo: up and down
