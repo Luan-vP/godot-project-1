@@ -387,24 +387,21 @@ func _set_status(text: String) -> void:
 
 
 func _build() -> void:
-	var background := ColorRect.new()
-	background.color = DemoMenu.BACKGROUND
-	background.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(background)
+	UiTheme.apply(self)
+	add_child(ArcaneBackdrop.new())
 
 	var margin := MarginContainer.new()
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
 	for side in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 48)
+		margin.add_theme_constant_override("margin_" + side, int(UiTokens.MARGIN))
 	add_child(margin)
 
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 14)
+	column.add_theme_constant_override("separation", UiTokens.GAP)
 	margin.add_child(column)
 
-	column.add_child(DemoMenu._label("Pull requests", 40, DemoMenu.TEXT))
-	column.add_child(DemoMenu._label(_running_build(), 14, DemoMenu.MUTED))
-	_status = DemoMenu._label("", 16, DemoMenu.TEXT)
+	column.add_child(UiTheme.header(_running_build(), "Pull requests"))
+	_status = UiTheme.label("", UiTheme.STATUS)
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(_status)
 
@@ -414,43 +411,41 @@ func _build() -> void:
 	scroll.follow_focus = true
 	column.add_child(scroll)
 
+	# A gutter so the scroll bar does not sit on the cards.
+	var gutter := MarginContainer.new()
+	gutter.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	gutter.add_theme_constant_override("margin_right", UiTokens.GAP)
+	scroll.add_child(gutter)
+
 	var content := VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(content)
+	gutter.add_child(content)
 
 	_list = VBoxContainer.new()
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_list.add_theme_constant_override("separation", 10)
+	_list.add_theme_constant_override("separation", UiTokens.GAP)
 	content.add_child(_list)
 
-	_log_view = DemoMenu._label("", 13, DemoMenu.MUTED)
+	_log_view = UiTheme.label("", UiTheme.LOG)
 	_log_view.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_log_view.hide()
 	content.add_child(_log_view)
 
 
 func _card(entry: Dictionary, now_unix: int) -> Button:
-	var button := Button.new()
-	button.name = "PR%d" % entry["number"]
-	button.custom_minimum_size = Vector2(0.0, 72.0)
-	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var button := ArcaneCard.make(
+		"PR%d" % entry["number"],
+		entry["title"],
+		describe(entry, now_unix),
+		"#%d" % entry["number"],
+		UiTokens.ROW_HEIGHT
+	)
 	button.pressed.connect(start_build.bind(entry["number"]))
-
-	var text := VBoxContainer.new()
-	text.set_anchors_preset(Control.PRESET_FULL_RECT)
-	text.offset_left = 16.0
-	text.offset_right = -16.0
-	text.alignment = BoxContainer.ALIGNMENT_CENTER
-	text.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var title := DemoMenu._label("#%d  %s" % [entry["number"], entry["title"]], 20, DemoMenu.TEXT)
-	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	text.add_child(title)
-	text.add_child(DemoMenu._label(describe(entry, now_unix), 14, DemoMenu.MUTED))
-	button.add_child(text)
 
 	# A thin sliver along the bottom edge, hidden until held; see _process.
 	var bar := ProgressBar.new()
 	bar.name = "MergeHold"
+	bar.theme_type_variation = UiTheme.HOLD_BAR
 	bar.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	bar.custom_minimum_size = Vector2(0.0, 4.0)
 	bar.show_percentage = false

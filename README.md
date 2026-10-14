@@ -38,8 +38,12 @@ Pressing play opens `features/ui/demo_menu/`, the list of every level and
 demo (also `scripts/run.sh menu`): pick one with a click, `Enter`, or a
 gamepad, and press `Backspace` (or `Select` on a gamepad) from inside one to
 come back. `Backspace` or `Select` at the list itself quits, as does its Quit
-button. On a touch screen with no `Backspace`, a tappable `⌫ menu` button in
+button. On a touch screen with no `Backspace`, a tappable `‹ menu` button in
 the corner takes its place.
+
+Every menu takes its look from one design system in `features/ui/design/`:
+change a colour, font or size in `UiTokens` and every menu follows. See
+[features/ui/design/README.md](features/ui/design/README.md).
 
 ## Running a level
 
@@ -200,7 +204,7 @@ so the desktop window is untouched:
 - **Safe area.** `SafeArea` keeps the menu and demo labels clear of the
   Dynamic Island and the home indicator.
 - **Touch.** Touches arrive as the left mouse button, so tapping the menu,
-  and dragging to stir need no code of their own. The corner `⌫ menu` is a button: it is the only way
+  and dragging to stir need no code of their own. The corner `‹ menu` is a button: it is the only way
   back without a keyboard. Tilt and jog come from the real sensors —
   `MotionInput` picks them — and the eye tank's corner readout says so.
 
