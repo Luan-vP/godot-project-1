@@ -66,3 +66,11 @@ func test_a_key_skips_it() -> void:
 	splash._unhandled_input(key)
 	assert_false(menu.is_demo_open(), "Skipped to the menu")
 	menu.free()
+
+
+func test_a_full_probe_leaves_the_splash_out() -> void:
+	var options := DemoMenu.launch_options(PackedStringArray(["--probe"]))
+	for demo: Dictionary in options["probe"]:
+		assert_ne(demo["name"], "Splash", "Not probed")
+	var named := DemoMenu.launch_options(PackedStringArray(["--probe=splash"]))
+	assert_eq((named["probe"] as Array).size(), 1, "Unless asked for by name")

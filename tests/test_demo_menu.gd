@@ -154,8 +154,8 @@ func test_launch_options_pick_demos_by_loose_name() -> void:
 	assert_eq(names, ["Eye band", "Waterboatmen"], "Menu order, spaces as underscores")
 	assert_eq(
 		DemoMenu.launch_options(PackedStringArray(["--probe"]))["probe"].size(),
-		DemoMenu.DEMOS.size(),
-		"All"
+		DemoMenu.DEMOS.filter(func(demo): return demo.get("probe", true)).size(),
+		"All that can be probed"
 	)
 
 

@@ -52,7 +52,10 @@ var _done := false
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	if not is_inside_menu() and skips_for(OS.get_cmdline_user_args()):
+	# Both lists, as the menu reads them: the iOS launch path passes its
+	# options without a separator, so they arrive as engine arguments.
+	var args := OS.get_cmdline_args() + OS.get_cmdline_user_args()
+	if not is_inside_menu() and skips_for(args):
 		_finish.call_deferred()
 		return
 	var black := ColorRect.new()
