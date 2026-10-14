@@ -82,12 +82,12 @@ USAGE
 scene_for() {
 	case "$1" in
 		play | menu | levels) echo "res://features/ui/demo_menu/demo_menu.tscn" ;;
-		band | eye-band | eyes) echo "res://features/levels/secret_eyes/eye_band_demo.tscn" ;;
-		spout-a | level3a) echo "res://features/levels/spout/a_fluid/level_three_a.tscn" ;;
-		spout-b | level3b) echo "res://features/levels/spout/b_balls/level_three_b.tscn" ;;
-		spout | level3) echo "res://features/levels/spout/spout_level.tscn" ;;
-		birds) echo "res://features/levels/boids/birds_level.tscn" ;;
-		waterboatmen | boatmen | boids) echo "res://features/levels/boids/boids_level.tscn" ;;
+		band | eye-band | eyes) echo "res://features/levels/carousel/solo/eye_band.tscn" ;;
+		spout-a | level3a) echo "res://features/levels/carousel/solo/spout_a.tscn" ;;
+		spout-b | level3b) echo "res://features/levels/carousel/solo/spout_b.tscn" ;;
+		spout | level3) echo "res://features/levels/carousel/solo/spout_shell.tscn" ;;
+		birds) echo "res://features/levels/carousel/solo/birds.tscn" ;;
+		waterboatmen | boatmen | boids) echo "res://features/levels/carousel/solo/waterboatmen.tscn" ;;
 		carousel | fluid-carousel) echo "res://features/levels/carousel/fluid_carousel.tscn" ;;
 		carousel-birds) echo "res://features/levels/carousel/fluid_carousel_birds.tscn" ;;
 		synth) echo "res://core/audio/synth_demo.tscn" ;;

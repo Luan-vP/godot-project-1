@@ -1,12 +1,27 @@
-extends "res://features/levels/secret_eyes/fluid_demo.gd"
-## The eye tank, with a band in it: each eye plays one part of the music while
-## it floats clear of the walls. Tilt (WASD) or stir to push eyes against a
-## wall and strip the arrangement back; let them drift free to fill it out.
-## L1/R1 (or Q/E) move the key down/up a fourth, L2/R2 (or Z/X) a fifth — see
-## [KeyShiftInput].
+extends Node2D
+## The eye band: a tank full of floaty eyes, each playing one part of the
+## host's band while it floats clear of the walls. Tilt (WASD) or stir to push
+## eyes against a wall and strip the arrangement back; let them drift free to
+## fill it out. L1/R1 (or Q/E) move the key down/up a fourth, L2/R2 (or Z/X) a
+## fifth — see [KeyShiftInput].
 ##
-## Everything else — the tank, the eyes, the controls — is the secret level as
-## it is. See [EyeBand] for how eyes become parts.
+## A foreground over the host's tank ([SharedLayers]): the eyes float in its
+## fluid and stir it, and their wants decide which of the band's parts play.
+## See [EyeBand] for how eyes become parts.
+##
+## Drag to stir and paint. Arrows tilt, space jogs, C recalibrates, R empties
+## the tank, B makes everyone blink. On a phone WASD and space are replaced by
+## the real accelerometer, with no change here — [MotionInput] picks the
+## source.
+
+const EYE_COUNT := 7
+const FLOATER_COUNT := 70
+
+## Mouse motion is a speed; the tank wants an acceleration. This bridges them.
+const STIR_GAIN := 9.0
+
+const STIR_RADIUS := 110.0
+const PAINT_RATE := 3.2
 
 ## Left alone, the eyes in this tank random-walk into the walls within ten
 ## seconds and stay there, which would leave the band silent almost at once.
@@ -42,6 +57,20 @@ const PENDING_RING_WIDTH := 3.0
 
 ## Which eyes are clear of the walls, and so which parts are wanted. Always this
 ## scene's own; it only sounds when standalone.
+var _simulation: FluidSimulation
+## The level's host: the tank to float in and the band to play.
+var _shared: SharedLayers
+var _motion: MotionInput
+var _readout: Label
+var _last_mouse: Vector2 = Vector2.ZERO
+var _palette: Array[Color] = [
+	Color(0.36, 0.70, 0.68),
+	Color(0.85, 0.45, 0.38),
+	Color(0.53, 0.44, 0.76),
+	Color(0.93, 0.74, 0.36),
+	Color(0.30, 0.55, 0.80),
+]
+
 var _contacts: EyeBand
 ## The band that sounds: [member _contacts] standalone, the carousel's shared
 ## band when hosted (see [SharedLayers]), which then gets its parts mirrored
@@ -54,16 +83,15 @@ var _key_shift := KeyShiftInput.new()
 
 
 func _ready() -> void:
-	super()
+	_shared = SharedLayers.host_of(self)
+	if _shared == null:
+		process_mode = PROCESS_MODE_DISABLED
+		return
+	_build_tank_level()
 	_contacts = EyeBand.new()
 	_contacts.name = "EyeBand"
 	add_child(_contacts)
-	if _shared != null:
-		# Never started, so it makes no sound and its exit leaves the loops be.
-		_band = _shared.band
-	else:
-		_band = _contacts
-		_contacts.start()
+	_band = _shared.band
 
 	_overlay = Node2D.new()
 	_overlay.name = "PartRings"
@@ -90,6 +118,70 @@ func _ready() -> void:
 	_update_label()
 
 
+## The eyes, the tilt and jog that move the tank, the floaters, and the
+## motion readout.
+func _build_tank_level() -> void:
+	var extent := get_viewport_rect().size
+
+	_simulation = _shared.fluid
+
+	_motion = MotionInput.new()
+	_motion.name = "MotionInput"
+	add_child(_motion)
+
+	# Live tilt values on the device itself, where there is no console: F3, or
+	# the gamepad's Y button, hides them.
+	var motion_debug := MotionDebugOverlay.new()
+	motion_debug.name = "MotionDebugOverlay"
+	add_child(motion_debug)
+
+	var driver := FluidMotionDriver.new()
+	driver.name = "FluidMotionDriver"
+	add_child(driver)
+
+	_build_readout()
+
+	for i in EYE_COUNT:
+		add_child(_make_eye(i, extent))
+
+	var floaters := FloaterField.new()
+	floaters.name = "Floaters"
+	floaters.count = FLOATER_COUNT
+	add_child(floaters)
+
+	_last_mouse = get_global_mouse_position()
+
+
+## Drag to stir and paint.
+func _stir(delta: float) -> void:
+	var mouse := get_global_mouse_position()
+	var motion := mouse - _last_mouse
+	_last_mouse = mouse
+	if not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		return
+	if delta <= 0.0 or motion.length() < 0.5:
+		return
+	var color := _palette[int(Time.get_ticks_msec() / 900) % _palette.size()]
+	_simulation.add_velocity_impulse(mouse, motion / delta * STIR_GAIN, STIR_RADIUS, delta)
+	_simulation.add_paint(mouse, color, PAINT_RATE, STIR_RADIUS * 0.6, delta)
+
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if not event.is_pressed() or event.is_echo():
+		return
+	var key := event as InputEventKey
+	if key == null:
+		return
+	if key.keycode == KEY_R:
+		_simulation.reset()
+	elif key.keycode == KEY_C:
+		_motion.calibrate()
+	elif key.keycode == KEY_B:
+		for eye in get_children():
+			if eye is FloatyEye:
+				(eye as FloatyEye).blink()
+
+
 func _physics_process(delta: float) -> void:
 	var centre := _simulation.get_world_rect().get_center()
 	for child in get_children():
@@ -110,10 +202,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _process(delta: float) -> void:
-	super(delta)
-	if _shared != null:
-		for part in Band.PARTS:
-			_band.set_part_wanted(part, _contacts.wants_part(part))
+	_stir(delta)
+	for part in Band.PARTS:
+		_band.set_part_wanted(part, _contacts.wants_part(part))
 	_overlay.queue_redraw()
 	_update_label()
 	_update_debug_label()
@@ -199,3 +290,39 @@ func _draw_rings() -> void:
 		_overlay.draw_string(
 			font, text_at, part, HORIZONTAL_ALIGNMENT_CENTER, ring_radius * 2.0, 13, color
 		)
+
+
+## Which source won, and what the tilt is doing. Worth showing: the whole point
+## of the port is that this line changes on a phone and nothing else does.
+func _build_readout() -> void:
+	var layer := CanvasLayer.new()
+	layer.name = "Readout"
+	_readout = Label.new()
+	_readout.position = Vector2(16.0, 12.0)
+	_readout.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.65))
+	layer.add_child(_readout)
+	SafeArea.offset_layer(layer, get_viewport())
+	add_child(layer)
+	_motion.source_changed.connect(_on_source_changed)
+	_on_source_changed(_motion.get_source_description())
+
+
+func _on_source_changed(description: String) -> void:
+	if _readout != null:
+		_readout.text = "motion: %s" % description
+
+
+func _make_eye(index: int, extent: Vector2) -> FloatyEye:
+	var eye := FloatyEye.new()
+	eye.name = "Eye%d" % index
+	eye.position = Vector2(randf_range(0.15, 0.85), randf_range(0.15, 0.85)) * extent
+	eye.radius = randf_range(26.0, 62.0)
+	eye.iris_color = _palette[index % _palette.size()]
+	# Bigger eyes shove more water and are harder for it to shove back.
+	eye.wake_radius = eye.radius * 2.2
+	eye.wake_strength = 5.0 + eye.radius * 0.07
+	eye.drag = 4.4 - eye.radius * 0.03
+	eye.paint_amount = 0.55
+	eye.paint_color = eye.iris_color.lerp(Color(0.9, 0.95, 1.0), 0.35)
+	eye.paint_radius = eye.radius * 1.4
+	return eye

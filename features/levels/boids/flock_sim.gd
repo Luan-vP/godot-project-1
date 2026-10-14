@@ -140,9 +140,10 @@ const EDGE_ACCEL := 520.0
 ## How sharply a pulse's surge dies away across the gap to the next pulse.
 const SURGE_DECAY := 5.0
 
-## D major pentatonic over two octaves: any handful of these sounds fine
-## together, so a flock of any size stays musical rather than a cluster.
-const VOICE_NOTES: Array[int] = [62, 64, 66, 69, 71, 74, 76, 78, 81, 83, 86]
+## How many steps of a pentatonic a bird's voice is drawn from: two octaves
+## and the tonic above. Any handful of pentatonic notes sounds fine together,
+## so a flock of any size stays musical rather than a cluster.
+const VOICE_DEGREES := 11
 
 var bounds: Rect2
 var table: RhythmTable
@@ -239,7 +240,7 @@ func add_bird(position: Vector2, velocity: Vector2) -> Bird:
 		else Vector2.from_angle(rng.randf() * TAU)
 	)
 	bird.stroke_timer = rng.randf_range(0.0, LONER_STROKE_GAP.y)
-	bird.note = VOICE_NOTES[rng.randi() % VOICE_NOTES.size()]
+	bird.degree = rng.randi() % VOICE_DEGREES
 	var roll := rng.randf()
 	if roll < 0.5:
 		bird.waveform = SynthWavetable.Waveform.SINE

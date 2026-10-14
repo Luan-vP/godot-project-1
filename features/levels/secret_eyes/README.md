@@ -1,14 +1,15 @@
-# Secret level: the eye tank
+# The eye band
 
-What used to be the fluid demo, kept as a level in its own right. A tank full
-of [`FloatyEye`](floaty_eye.gd) thingies drifting on the [fluid](../../fluid/README.md),
-in a painterly style, plus a dusting of [`Floater`](../../floaters/README.md)
-debris.
+[`FloatyEye`](floaty_eye.gd) thingies drifting on the host's
+[fluid](../../fluid/README.md), in a painterly style, plus a dusting of
+[`Floater`](../../floaters/README.md) debris, each eye playing a part of the
+band while it stays off the walls. Like every level it is a foreground over a
+`SharedLayers` host: the tank and the band are the host's (see
+[the carousel README](../carousel/README.md#the-level-format)).
 
-It moved here — unchanged — because the eyes were never meant to be the point
-of the game; they were a placeholder built from a misreading of "eye
-floaters" as floating eyeballs. The tank itself is good enough to keep around
-as a secret rather than throw away.
+The eyes started as the fluid demo's placeholder, built from a misreading of
+"eye floaters" as floating eyeballs, and stayed because the band made them
+worth keeping.
 
 ## Controls
 
@@ -16,7 +17,7 @@ Drag to stir and paint, WASD to tilt, `Space` to jog, `C` to recalibrate,
 `R` to empty the tank, `B` to make everyone blink. On a device with sensors
 WASD and space give way to the real accelerometer with no code change.
 
-In the eye band demo, L1/R1 (`Q`/`E`) move the band's key down/up a fourth
+L1/R1 (`Q`/`E`) move the band's key down/up a fourth
 and L2/R2 (`Z`/`X`) down/up a fifth, from the next step. The move is round the
 circle of fifths, so every part stays in its register: two fourths up lands a
 whole tone *below* where you started, not an octave and a third above. The
@@ -68,10 +69,9 @@ Kept together because they only make sense as a set:
 
 | File | What it is |
 | --- | --- |
-| `fluid_demo.gd` | The base `eye_band_demo.gd` extends: the tank, the eyes, input. |
 | `eye_band.gd` | `EyeBand` — one part of the music per eye, heard while it is clear of the walls. The music itself is [`Band`](../../../core/audio/band.gd)'s; this only decides which parts are wanted. |
 | `eye_band_songs.gd` | `EyeBandSongs` — the four songs the band picks from. |
-| `eye_band_demo.gd` | The tank plus an `EyeBand`, rings round the eyes and a parts readout. |
+| `eye_band_demo.gd` | The level: the eyes over the host's tank, input, an `EyeBand` driving the host's band, rings round the eyes and a parts readout. |
 | `floaty_eye.gd` | `FloatyEye` — a [`FluidBody`](../../fluid/fluid_body.gd) with a face. |
 | `eye.gdshader` | The procedural eye look: squash-along-motion and gaze read off the fluid. |
 | `eye_band_demo.tscn` | The single-node scene entry point. |

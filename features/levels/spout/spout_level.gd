@@ -1,6 +1,7 @@
 class_name SpoutLevel
 extends Node2D
-## Level 3: a spout at the top, pins at the bottom, a band behind it all.
+## Level 3: a spout at the top, pins at the bottom, over the host's tank and
+## band ([SharedLayers]).
 ##
 ## Swing the [Spout] with either stick or A/D, or touch the screen (or hold
 ## the mouse button) where you want it to point; whatever comes out of it —
@@ -9,7 +10,7 @@ extends Node2D
 ## laid out low to high, left to right ([PegScale]), starting on the
 ## pentatonic that matches the song.
 ##
-## Behind it the eye band's songs play in full ([Band]), with the eye band's
+## Behind it the host's band plays its song in full, with the eye band's
 ## key moves: L1/R1 (Q/E) a fourth, L2/R2 (Z/X) a fifth — unless the emitter
 ## wants the triggers, as version B does. A key move scrolls the pins over to
 ## the new key, one column per step of the music, left to right. So does a
@@ -25,12 +26,9 @@ extends Node2D
 ## two versions are scenes of this script with a different
 ## [member emitter_script].
 
-## Paper the level is painted on.
-const PAPER := Color(0.94, 0.91, 0.85)
-const INK := Color(0.2, 0.17, 0.16, 0.8)
-const FAINT := Color(0.2, 0.17, 0.16, 0.45)
-const INK_ON_DARK := Color(0.95, 0.92, 0.86, 0.85)
-const FAINT_ON_DARK := Color(0.95, 0.92, 0.86, 0.5)
+## HUD text, light over the dark tank.
+const INK := Color(0.95, 0.92, 0.86, 0.85)
+const FAINT := Color(0.95, 0.92, 0.86, 0.5)
 ## Big enough for a thumb on the Deck's screen.
 const TOUCH_BUTTON_SIZE := Vector2(116, 52)
 
@@ -52,8 +50,7 @@ var emitter: SpoutEmitter
 var haptics: Haptics
 var pointer: SpoutPointer
 
-## The carousel's persistent layers when this level is hosted in one, else
-## null. See [SharedLayers].
+## The level's host: the tank behind it and the band. See [SharedLayers].
 var _shared: SharedLayers
 var _key_shift := KeyShiftInput.new()
 var _hud: Label
@@ -62,17 +59,10 @@ var _status: Label
 
 func _ready() -> void:
 	var extent := get_viewport_rect().size
-	_shared = SharedLayers.find(self)
-
-	# Hosted, the shared tank is the backdrop; paper would hide it.
+	_shared = SharedLayers.host_of(self)
 	if _shared == null:
-		var backdrop := ColorRect.new()
-		backdrop.name = "Paper"
-		backdrop.color = PAPER
-		backdrop.size = extent
-		backdrop.z_index = -200
-		backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(backdrop)
+		process_mode = PROCESS_MODE_DISABLED
+		return
 
 	haptics = Haptics.new()
 	haptics.name = "Haptics"
@@ -102,22 +92,14 @@ func _ready() -> void:
 	add_child(emitter)
 	emitter.bind(self, spout, pins)
 	_key_shift.use_triggers = emitter.leaves_triggers_free()
-	pins.on_dark = emitter.dark_backdrop()
 
-	if _shared != null:
-		# The music carries on from the level before; this one only joins it,
-		# with the whole arrangement.
-		band = _shared.band
-		for part in Band.PARTS:
-			band.set_part_wanted(part, true)
-	else:
-		band = Band.new()
-		band.name = "Band"
-		add_child(band)
+	# The music carries on from the level before; this one only joins it, with
+	# the whole arrangement.
+	band = _shared.band
+	for part in Band.PARTS:
+		band.set_part_wanted(part, true)
 	band.key_changed.connect(_on_key_changed)
 	band.stepped.connect(_on_band_stepped)
-	if _shared == null:
-		band.start()
 	peg_scale.set_key(band.key_root(), band.is_minor())
 	peg_scale.snap()
 
@@ -125,9 +107,9 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
-	# The shared band outlives this level, so stop following it. Godot would
+	# The host's band outlives this level, so stop following it. Godot would
 	# drop the connections to a freed level anyway; this just says so.
-	if _shared != null and band != null:
+	if band != null:
 		if band.key_changed.is_connected(_on_key_changed):
 			band.key_changed.disconnect(_on_key_changed)
 		if band.stepped.is_connected(_on_band_stepped):
@@ -188,15 +170,14 @@ func _build_hud() -> void:
 	var layer := CanvasLayer.new()
 	layer.name = "Hud"
 	_hud = Label.new()
-	var dark := emitter.dark_backdrop()
-	_hud.add_theme_color_override("font_color", INK_ON_DARK if dark else INK)
+	_hud.add_theme_color_override("font_color", INK)
 	_hud.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	_hud.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_hud.offset_left = 16.0
 	_hud.offset_bottom = -12.0
 	layer.add_child(_hud)
 	_status = Label.new()
-	_status.add_theme_color_override("font_color", FAINT_ON_DARK if dark else FAINT)
+	_status.add_theme_color_override("font_color", FAINT)
 	_status.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_status.offset_left = 16.0
 	_status.offset_top = 12.0
