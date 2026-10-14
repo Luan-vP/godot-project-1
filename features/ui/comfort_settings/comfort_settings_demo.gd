@@ -33,7 +33,7 @@ func _ready() -> void:
 	)
 
 	var panel := PanelContainer.new()
-	panel.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	root.add_child(panel)
 	panel.add_child(
 		_build_row(
@@ -46,31 +46,31 @@ func _ready() -> void:
 	)
 
 
+## A name and its value on one line, the slider across the full width under
+## them, so the row fits a phone's 540-unit canvas as well as a Deck's.
 func _build_row(
 	label_text: String, min_value: float, max_value: float, value: float, setter: Callable
-) -> HBoxContainer:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", UiTokens.GAP)
+) -> VBoxContainer:
+	var row := VBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
 
+	var head := HBoxContainer.new()
+	row.add_child(head)
 	var label := UiTheme.label(label_text, UiTheme.STATUS)
-	label.custom_minimum_size = Vector2(200, 0)
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(label)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(label)
+	var value_label := UiTheme.label("%.2f" % value, UiTheme.CARD_INDEX)
+	value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	head.add_child(value_label)
 
 	var slider := HSlider.new()
 	slider.min_value = min_value
 	slider.max_value = max_value
 	slider.step = 0.01
 	slider.value = value
-	slider.custom_minimum_size = Vector2(280, 32)
-	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	slider.custom_minimum_size = Vector2(0, 32)
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(slider)
-
-	var value_label := UiTheme.label("%.2f" % value, UiTheme.CARD_INDEX)
-	value_label.custom_minimum_size = Vector2(60, 0)
-	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(value_label)
 
 	slider.value_changed.connect(
 		func(new_value: float):
