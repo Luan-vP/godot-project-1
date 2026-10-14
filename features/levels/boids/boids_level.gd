@@ -26,14 +26,15 @@ extends Node2D
 ## heard. The dial in the corner shows the same thing: the bar going round,
 ## every rhythm's pulses, the last bar's taps, and the charge building.
 ##
-## The backdrop is the eye tank's painterly fluid. Birds and boatmen stir it as
-## they move — each flock drags a broad wake through it and stains it faintly in
-## its rhythm's colour — but the water never pushes back: the flocks move as if
-## it were not there. See [BirdWakes].
+## A foreground over the host's tank and band ([SharedLayers]). Birds and
+## boatmen stir the tank as they move — each flock drags a broad wake through
+## it and stains it faintly in its rhythm's colour — but the water never
+## pushes back: the flocks move as if it were not there. See [BirdWakes].
 ##
-## In a [FluidCarousel] the shared band's song keeps playing in full and the
-## flocks play over it, on its clock.
-##
+## The music is the host's [Band]: its song keeps playing in full, and the
+## flocks play over it, on its clock and in its key. A bird's voice is a step
+## of the band's pentatonic ([method voice_note]), so a key move (L1/R1 or Q/E
+## a fourth, Z/X a fifth — see [KeyShiftInput]) carries every flock with it.
 ## Tempo is [code]TempoControl[/code]'s, like everywhere else: the flocks, the
 ## pulses and the ghosts all run on [AudioManager]'s beats, so they follow a
 ## tempo change without knowing about it.
@@ -41,7 +42,6 @@ extends Node2D
 ## See the README beside this file, and docs/boids-rhythm-scope.md for the
 ## design.
 
-const START_BPM := 84.0
 const BEATS_PER_BAR := 4
 const BIRD_COUNT := 64
 
@@ -66,24 +66,16 @@ const WEIGHT_RETENTION := 0.12
 
 const SNARE_DB := -3.0
 const GHOST_DB := -17.0
-const KICK_DB := -15.0
+## The kick under a scatter's crash.
+const SCATTER_KICK_DB := -7.0
 const CRASH_DB := -8.0
+
+## Lowest note a voice can sing is the band's tonic at or above this, so the
+## flocks sit in the same register whatever the key: E3 up to D#4.
+const VOICE_FLOOR := 52
 
 ## A bird's note, held this long.
 const NOTE_SECONDS := 0.16
-
-## Pigment dropped into the tank when the level opens, as in the eye tank, so
-## the sky does not start as flat colour. Density is a one-shot, not a rate.
-const SEED_BLOBS := 5
-const SEED_DENSITY := 1.6
-const SEED_RADIUS := 150.0
-const SEED_PALETTE: Array[Color] = [
-	Color(0.36, 0.70, 0.68),
-	Color(0.85, 0.45, 0.38),
-	Color(0.53, 0.44, 0.76),
-	Color(0.93, 0.74, 0.36),
-	Color(0.30, 0.55, 0.80),
-]
 
 ## Birds are binned this many pixels across, and each occupied cell stirs the
 ## tank once — see [BirdWakes].
@@ -142,14 +134,15 @@ var _next_player := 0
 var _snare_stream: AudioStreamWAV
 var _kick_stream: AudioStreamWAV
 var _crash_stream: AudioStreamWAV
-var _effect_indices: Array[int] = []
+var _key_shift := KeyShiftInput.new()
 
 var _hud: Label
 var _dial: Control
 var _fluid: FluidSimulation
-## The carousel's persistent layers when this level is hosted in one, else
-## null. See [SharedLayers].
+## The level's host: the tank to stir and the band to play over. See
+## [SharedLayers].
 var _shared: SharedLayers
+var _band: Band
 
 
 func _ready() -> void:
@@ -161,8 +154,15 @@ func _ready() -> void:
 		[JOY_BUTTON_B] as Array[JoyButton],
 		[DeckDesktopLayout.R2, DeckDesktopLayout.L2] as Array[MouseButton]
 	)
+	_shared = SharedLayers.host_of(self)
+	if _shared == null:
+		process_mode = PROCESS_MODE_DISABLED
+		return
+	_fluid = _shared.fluid
+	_band = _shared.band
+	# The snare has the triggers.
+	_key_shift.use_triggers = false
 	_rng.randomize()
-	_shared = SharedLayers.find(self)
 	table = RhythmTable.default_table()
 	_grid = table.grid_steps(BEATS_PER_BAR)
 	reader = TapReader.new(BEATS_PER_BAR)
@@ -174,44 +174,26 @@ func _ready() -> void:
 	sim.beats_per_bar = BEATS_PER_BAR
 	sim.motion = motion
 	sim.populate(BIRD_COUNT, SEED_PULSES)
-	_build_fluid()
 	_build_hud()
 	start()
 
 
 func _exit_tree() -> void:
-	if not _started:
-		return
-	# Hosted, the music clock is the carousel's and carries on to the next level.
-	if _shared == null:
-		AudioManager.stop_loops()
+	# The band and its clock are the host's and carry on to the next level.
 	for synth in _synths.values():
 		synth.release_all()
-	# Removed by index, which is safe only while nothing has added a bus effect
-	# since: the shared band's are added before this level exists, and nothing
-	# adds to the bus afterwards.
-	for i in range(_effect_indices.size() - 1, -1, -1):
-		AudioManager.remove_bus_effect(AudioManager.MUSIC_BUS, _effect_indices[i])
 
 
-## Build the instruments and start the music clock.
+## Build the instruments and join the band. The band's clock is already
+## running and the flocks follow whatever tempo it has; the song carries on
+## under them with the whole arrangement, as in the spout.
 func start() -> void:
 	if _started:
 		return
 	_started = true
 	_build_audio()
-	if _shared != null:
-		# The shared band's clock is already running, and the flocks follow
-		# whatever tempo it has. The song carries on under them with the whole
-		# arrangement, as in the spout; the flocks play over the top.
-		for part in Band.PARTS:
-			_shared.band.set_part_wanted(part, true)
-		return
-	AudioManager.set_tempo(START_BPM, BEATS_PER_BAR)
-	# No loops to play — everything here is live — but the loop clock is what
-	# starts musical time, and the demo menu stops it again on the way out.
-	AudioManager.configure_loop_layers([] as Array[LoopLayer])
-	AudioManager.play_loops()
+	for part in Band.PARTS:
+		_band.set_part_wanted(part, true)
 
 
 func _process(delta: float) -> void:
@@ -256,6 +238,11 @@ func _input(event: InputEvent) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	var key_step := _key_shift.step_for(event)
+	if key_step != 0:
+		_band.set_key_offset(_band.get_key_offset() + key_step)
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed(SNARE) and not event.is_echo():
 		get_viewport().set_input_as_handled()
 		_play_one_shot(_snare_stream, SNARE_DB)
@@ -299,7 +286,7 @@ func _scatter(survivor: int) -> void:
 		return
 	_scatter_flash = 1.0
 	_play_one_shot(_crash_stream, CRASH_DB)
-	_play_one_shot(_kick_stream, KICK_DB + 8.0)
+	_play_one_shot(_kick_stream, SCATTER_KICK_DB)
 
 
 ## Every grid step due now: the downbeat's soft kick, each flock's pulses, and
@@ -316,9 +303,6 @@ func _play_due(source: MusicTimeSource, beats: float) -> void:
 	var lookahead := clock.beats_from_seconds(source.get_lookahead())
 	for step in _sequencer.update(beats, lookahead):
 		var in_bar := step % _grid
-		# Hosted, the band's beat already marks the bar.
-		if in_bar == 0 and _shared == null:
-			_play_one_shot(_kick_stream, KICK_DB)
 		for flock in sim.flocks:
 			if in_bar % (_grid / flock.pulses) == 0:
 				_sing(flock, in_bar == 0)
@@ -335,7 +319,8 @@ func _sing(flock: Flock, downbeat: bool) -> void:
 	var weight := sim.weight_for(flock.pulses)
 	var velocity := clampf(0.3 + 0.35 * weight, 0.3, 0.95)
 	for bird in flock.take_voices(count):
-		var voice: SynthVoice = _synths[bird.waveform].note_on(midi_to_hz(bird.note), velocity)
+		var note := voice_note(bird.degree, _band.key_root(), _band.is_minor())
+		var voice: SynthVoice = _synths[bird.waveform].note_on(midi_to_hz(note), velocity)
 		bird.glow = 1.0
 		if voice != null:
 			get_tree().create_timer(NOTE_SECONDS).timeout.connect(
@@ -388,16 +373,6 @@ func _build_audio() -> void:
 		synth.polyphony = 12
 		_synths[waveform] = synth
 		add_child(synth)
-	# Hosted, the shared band's reverb is already on the bus; a second would
-	# wash the song out.
-	if _shared != null:
-		return
-	var reverb := AudioEffectReverb.new()
-	reverb.room_size = 0.9
-	reverb.damping = 0.35
-	reverb.wet = 0.3
-	reverb.dry = 0.9
-	_effect_indices.append(AudioManager.add_bus_effect(AudioManager.MUSIC_BUS, reverb))
 
 
 func _draw() -> void:
@@ -494,32 +469,6 @@ func _draw_boatman(
 	draw_circle(at + heading * 7.0 * scale, 2.0 * scale, color.lightened(0.25))
 
 
-## The eye tank's fluid, the size of the window, behind everything.
-func _build_fluid() -> void:
-	# Hosted, the tank is the carousel's, already rendered and already painted.
-	if _shared != null:
-		_fluid = _shared.fluid
-		return
-	var extent := get_viewport_rect().size
-	var config := FluidConfig.new()
-	config.world_size = extent
-	_fluid = FluidSimulation.new()
-	_fluid.name = "Fluid"
-	_fluid.config = config
-	add_child(_fluid)
-
-	var renderer := FluidRenderer.new()
-	renderer.name = "FluidRenderer"
-	renderer.z_index = -100
-	add_child(renderer)
-
-	for i in SEED_BLOBS:
-		var where := Vector2(_rng.randf(), _rng.randf()) * extent
-		_fluid.add_paint(
-			where, SEED_PALETTE[i % SEED_PALETTE.size()], SEED_DENSITY, SEED_RADIUS, 1.0
-		)
-
-
 ## Push the birds' wakes into the tank for [param delta] seconds. Nothing
 ## comes back the other way.
 func _stir(delta: float) -> void:
@@ -584,11 +533,21 @@ func _update_hud() -> void:
 		state = "settling"
 	_hud.text = (
 		(
-			"♩ %d bpm · %d flocks · %d singing, %d silent\n"
-			% [roundi(AudioManager.get_tempo()), sim.flocks.size(), _singing(), _silent()]
+			"♪ %s · key %+d · ♩ %d bpm · %d flocks · %d singing, %d silent\n"
+			% [
+				_band.song_title(),
+				KeyShiftInput.display_offset(_band.get_key_offset()),
+				roundi(AudioManager.get_tempo()),
+				sim.flocks.size(),
+				_singing(),
+				_silent(),
+			]
 		)
 		+ "reads as %s · %s\n" % [read, state]
-		+ "B / Esc / Space / click snare · ↑↓ ±2 bpm · ←→ ±10 bpm · last input: %s" % _last_input
+		+ (
+			"B / Esc / Space / click snare · Q/E Z/X key · ↑↓ ±2 bpm · ←→ ±10 bpm · last input: %s"
+			% _last_input
+		)
 	)
 
 
@@ -646,6 +605,16 @@ func _draw_dial() -> void:
 	_dial.draw_string(
 		font, centre + Vector2(-20.0, 7.0), label, HORIZONTAL_ALIGNMENT_CENTER, 40.0, 20
 	)
+
+
+## The MIDI note [param degree] sings in a key with tonic [param root] (pitch
+## class, 0 = C): that step of the key's pentatonic, minor or major as the
+## song is, counted up from the tonic at or above [constant VOICE_FLOOR].
+static func voice_note(degree: int, root: int, minor: bool) -> int:
+	var intervals := PegScale.pentatonic_for(minor)
+	var tonic := VOICE_FLOOR + posmod(root - VOICE_FLOOR, 12)
+	var octave := degree / intervals.size()
+	return tonic + 12 * octave + intervals[degree % intervals.size()]
 
 
 static func midi_to_hz(note: int) -> float:

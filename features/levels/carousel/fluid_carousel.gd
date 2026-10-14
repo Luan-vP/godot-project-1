@@ -19,6 +19,10 @@ extends Node2D
 ##
 ## It advances on a timer for now. [method advance] and [method retreat] are
 ## public so that keys can be bound to them later.
+##
+## [member level_paths] is exported, so a variant is just a scene that sets it:
+## the birds carousel, and a carousel of one for each level played on its own
+## (features/levels/carousel/solo/), which never advances.
 
 ## Emitted once a level has finished arriving, with its index in [member
 ## level_paths].
@@ -40,9 +44,9 @@ const BASE_OFFSET_META := &"carousel_base_offset_x"
 ## Seconds a transition takes.
 @export var slide_seconds := 1.4
 
-## The scenes cycled through. [constant LEVELS] unless a test, or a variant
-## such as fluid_carousel_birds.gd, swaps it before the carousel enters the tree.
-var level_paths: Array[String] = LEVELS.duplicate()
+## The scenes cycled through. [constant LEVELS] unless a scene or a test sets
+## it before the carousel enters the tree.
+@export var level_paths: Array[String] = LEVELS.duplicate()
 
 var _shared: SharedLayers
 var _timer: Timer
@@ -155,7 +159,7 @@ func _arrive(outgoing: Node2D, incoming: Node2D, target: int) -> void:
 
 
 func _restart_timer() -> void:
-	if dwell_seconds > 0.0:
+	if dwell_seconds > 0.0 and level_paths.size() > 1:
 		_timer.start(dwell_seconds)
 
 

@@ -2,12 +2,14 @@ extends GutTest
 ## Covers #114: the spout level's shell — it loads, binds an emitter through
 ## its slot, and a key move scrolls the pins over to the new key's pentatonic.
 
+const Hosting := preload("res://tests/hosting.gd")
+
 var _level: SpoutLevel
 
 
 func before_each() -> void:
 	_level = load("res://features/levels/spout/spout_level.tscn").instantiate()
-	add_child_autofree(_level)
+	Hosting.host(self, _level)
 
 
 func after_each() -> void:
@@ -56,7 +58,7 @@ func test_cycle_scale_swaps_and_scrolls() -> void:
 func test_a_custom_emitter_goes_in_the_slot() -> void:
 	var level: SpoutLevel = SpoutLevel.new()
 	level.emitter_script = DebugSpoutEmitter
-	add_child_autofree(level)
+	Hosting.host(self, level)
 	assert_true(level.emitter is DebugSpoutEmitter)
 
 

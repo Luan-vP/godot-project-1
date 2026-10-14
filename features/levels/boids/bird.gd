@@ -3,9 +3,10 @@ extends RefCounted
 ## One waterboatman in a [FlockSim] (the class keeps its first name). Plain
 ## data, stepped by the sim.
 ##
-## A bird's voice — [member note] and [member waveform] — is fixed at birth
+## A bird's voice — [member degree] and [member waveform] — is fixed at birth
 ## and never changes. Joining a flock changes only when it plays (the flock's
-## rhythm), never what it sounds like.
+## rhythm), never what it sounds like. The pitch a degree sings follows the
+## band's key; see [method BoidsLevel.voice_note].
 
 var position: Vector2 = Vector2.ZERO
 var velocity: Vector2 = Vector2.ZERO
@@ -24,8 +25,9 @@ var stroke: float = 0.0
 ## The flock this bird belongs to, or null for a silent loner.
 var flock: Flock = null
 
-## MIDI note this bird sings.
-var note: int = 69
+## Step of the band's pentatonic this bird sings, 0 the tonic, counting up
+## through [constant FlockSim.VOICE_DEGREES] steps (a little over two octaves).
+var degree: int = 0
 
 ## [enum SynthWavetable.Waveform] this bird sings with.
 var waveform: int = SynthWavetable.Waveform.SINE

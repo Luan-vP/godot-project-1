@@ -49,8 +49,6 @@ const FLIP_SECONDS := 0.3
 
 @export_group("Look")
 @export var show_note_names: bool = true
-## Light labels and outlines, for a field over a dark backdrop.
-@export var on_dark: bool = false
 
 var _positions: Array[Vector2] = []
 ## Column (index into the scale) of each pin.
@@ -292,7 +290,7 @@ func _draw() -> void:
 		if flash > 0.0:
 			draw_circle(at, pin_radius * (1.6 + 1.4 * flash), Color(color, 0.22 * flash))
 		draw_circle(at, pin_radius * pop, color.lerp(Color.WHITE, flash * 0.6))
-		var outline := Color(1, 1, 1, 0.45) if on_dark else Color(0.15, 0.12, 0.1, 0.6)
+		var outline := Color(1, 1, 1, 0.45)
 		draw_arc(at, pin_radius * pop, 0.0, TAU, 24, outline, 1.5, true)
 		if _scale != null and _scale.pending_for(column) >= 0:
 			var waiting := note_color(_scale.pending_for(column))
@@ -313,9 +311,5 @@ func _draw() -> void:
 				HORIZONTAL_ALIGNMENT_CENTER,
 				40.0,
 				12,
-				(
-					note_color(note, 1.0).lightened(0.3)
-					if on_dark
-					else note_color(note, 0.0).darkened(0.25)
-				)
+				note_color(note, 1.0).lightened(0.3)
 			)

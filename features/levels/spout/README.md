@@ -58,8 +58,9 @@ already means "back to the menu".
 | `spout_emitter.gd` | `SpoutEmitter` — the slot an emitter fills. |
 | `debug_spout_emitter.gd` | `DebugSpoutEmitter` — the shell's stand-in: Space plucks. |
 
-The music is a bare [`Band`](../../../core/audio/band.gd): every part plays,
-on whichever of the eye band's songs comes up. Its `key_changed` keeps the
+The music is the host's [`Band`](../../../core/audio/band.gd) (see
+[the level format](../carousel/README.md#the-level-format)): every part
+plays, on whichever of the eye band's songs comes up. Its `key_changed` keeps the
 `PegScale` on the band's key, and its `stepped` signal advances the scroll.
 
 **Columns, not pins, carry notes.** The rows are staggered, so every pin sits
@@ -91,9 +92,7 @@ stays quiet.
 ## Version A: fluid
 
 `a_fluid/level_three_a.tscn` (`scripts/run.sh spout-a`). The spout pours the
-eye tank's own fluid — a `FluidSimulation` with a default `FluidConfig` the
-size of the screen, painted by a `FluidRenderer` — so it is the same water
-the eyes float in, on the same dark painterly ground.
+host's fluid, the same water the eyes float in.
 
 The solve has no particles and no solid obstacles, so "a fluid element hits a
 pin" needed an answer. [`FluidEmitter`](a_fluid/fluid_emitter.gd) gives it in

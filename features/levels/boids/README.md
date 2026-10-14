@@ -14,6 +14,7 @@ see [Two motions](#two-motions). The class and file names (`Bird`, `FlockSim`,
 | Input | Does |
 | --- | --- |
 | `B` (keyboard or gamepad), `Esc`, `Space`, left or right click | Snare |
+| L1 / R1 (`Q` / `E`), `Z` / `X` | Move the band's key a fourth, a fifth — see `KeyShiftInput` |
 | ↑ / ↓ (d-pad too) | Tempo ±2 bpm — in every scene, see `TempoControl` |
 | ← / → (d-pad too) | Tempo ±10 bpm |
 
@@ -43,7 +44,9 @@ One sim and one level, two ways to move, picked by `FlockSim.Motion` and
 Flocks, voices, the snare, taps, the scatter and the wakes are shared. The
 flying motion is how the level first worked (PR #97, before the boatmen);
 `FlockSim._fly` and `_steer` hold it, `_row_step` and `_row` the rowing. Both
-are hosted by the carousels (`features/levels/carousel/`).
+are foregrounds over a `SharedLayers` host, like every level (see
+[the level format](../carousel/README.md#the-level-format)): the tank they stir
+and the band they sing over are the host's.
 
 ## What happens
 
@@ -60,11 +63,13 @@ are hosted by the carousels (`features/levels/carousel/`).
 
 - **Flocks sing polyrhythms.** Every flock plays 3, 4 or 6 even pulses across
   one shared bar, all on the same downbeat, so a 3-flock and a 4-flock are
-  3-against-4. A soft kick marks each downbeat for reference, since it
-  belongs to every rhythm and favours none.
+  3-against-4, over the band's song, whose beat marks the downbeat they all
+  share.
 - **Loners are silent.** A loner that flies into a flock joins it, taking its
-  rhythm and keeping its own voice: every bird has a note from D major
-  pentatonic and a timbre (sine, square or saw) for life. On each pulse a
+  rhythm and keeping its own voice: every bird has a step of the band's
+  pentatonic (`Bird.degree`, sung by `BoidsLevel.voice_note` from E3 up) and
+  a timbre (sine, square or saw) for life. The step is fixed; its pitch
+  follows the band's key, so a key move carries every flock with it. On each pulse a
   few members sing in turn, so a flock's melody comes from who is in it.
 - **Flocks breathe on their pulses.** Cohesion and alignment surge on each
   pulse and die away before the next (`FlockSim.surge`), so a 3-flock
@@ -87,8 +92,8 @@ are hosted by the carousels (`features/levels/carousel/`).
   nothing can charge for eight bars.
 - **The snare shows how it was heard.** It sounds the instant it is hit, and
   a quiet ghost of it lands a bar later on the pulse it was read as.
-- **Boatmen stir the fluid; the fluid leaves boatmen alone.** The sky is the eye
-  tank's painterly fluid (`features/fluid/`). Every bird pushes the water
+- **Boatmen stir the fluid; the fluid leaves boatmen alone.** The sky is the
+  host's painterly fluid (`features/fluid/`). Every bird pushes the water
   along its heading, so flocks drag wakes through the wash, and flocked birds
   stain it faintly in their rhythm's colour. Nothing flows back: `FlockSim`
   never samples the current, so the flocking is exactly what it was on a

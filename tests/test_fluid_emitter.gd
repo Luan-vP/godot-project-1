@@ -2,6 +2,8 @@ extends GutTest
 ## Covers #115: version A's droplets — the pool, a droplet bouncing off a pin
 ## and playing it, and the contact maths — without a GPU tank.
 
+const Hosting := preload("res://tests/hosting.gd")
+
 var _pins: PinField
 var _emitter: FluidEmitter
 
@@ -89,7 +91,7 @@ func test_version_a_scene_loads() -> void:
 	var level: SpoutLevel = (
 		load("res://features/levels/spout/a_fluid/level_three_a.tscn").instantiate()
 	)
-	add_child_autofree(level)
+	var shared := Hosting.host(self, level)
 	assert_true(level.emitter is FluidEmitter)
-	assert_true(level.pins.on_dark, "Light labels over the dark tank")
+	assert_eq((level.emitter as FluidEmitter).simulation, shared.fluid, "Pours the host's tank")
 	AudioManager.set_tempo(120.0, 4)
