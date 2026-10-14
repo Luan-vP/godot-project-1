@@ -100,7 +100,7 @@ const DEMOS: Array[Dictionary] = [
 	{
 		"name": "Edge Compare",
 		"path": "res://features/edges/edge_compare_debug.tscn",
-		"blurb": "Detectors side by side over three panoramas. Tab panorama, 1/2/3 detector, A saves.",
+		"blurb": "Edge detectors side by side on three panoramas. Tab panorama, 1/2/3 detector.",
 	},
 	{
 		"name": "Synth",

@@ -96,7 +96,10 @@ func _draw() -> void:
 		var segment := PackedVector2Array()
 		var color := Color.from_hsv(fposmod(edge.id * 0.137, 1.0), 0.9, 1.0, 0.95)
 		for pixel in pixels:
-			if not segment.is_empty() and absf(pixel.x - segment[segment.size() - 1].x) > WIDTH / 2:
+			if (
+				not segment.is_empty()
+				and absf(pixel.x - segment[segment.size() - 1].x) > WIDTH / 2
+			):
 				_draw_segment(segment, color)
 				segment = PackedVector2Array()
 			segment.append(pixel)
@@ -148,9 +151,7 @@ func _save_all() -> void:
 		for d in DETECTORS.size():
 			_show(p, d)
 			await RenderingServer.frame_post_draw
-			var path := (
-				"user://edges_%s_%d.png" % [PANORAMAS[p].replace(" ", "_"), d + 1]
-			)
+			var path := "user://edges_%s_%d.png" % [PANORAMAS[p].replace(" ", "_"), d + 1]
 			get_viewport().get_texture().get_image().save_png(path)
 			print("saved ", ProjectSettings.globalize_path(path))
 	_saving = false
@@ -172,7 +173,8 @@ static func _build_panorama(panorama_name: String) -> Image:
 
 static func _sky(image: Image, horizon_row: int, top: Color, bottom: Color) -> void:
 	for y in horizon_row:
-		image.fill_rect(Rect2i(0, y, WIDTH, 1), top.lerp(bottom, float(y) / float(horizon_row)))
+		var blend := float(y) / float(horizon_row)
+		image.fill_rect(Rect2i(0, y, WIDTH, 1), top.lerp(bottom, blend))
 
 
 ## Scatters [param count] small speckles inside [param area], each a random
@@ -251,7 +253,7 @@ static func _paint_brick_wall(image: Image, rng: RandomNumberGenerator) -> void:
 	_sky(image, horizon, Color(0.7, 0.72, 0.75), Color(0.8, 0.8, 0.8))
 	image.fill_rect(Rect2i(0, horizon, WIDTH, HEIGHT - horizon), Color(0.3, 0.3, 0.3))
 	_bricks(image, rng, Rect2i(150, 60, 560, 340), Color(0.5, 0.28, 0.2))
-	for window in [Rect2i(200, 110, 70, 100), Rect2i(330, 110, 70, 100), Rect2i(460, 110, 70, 100)]:
-		image.fill_rect(window, Color(0.1, 0.12, 0.16))
+	for window_x in [200, 330, 460]:
+		image.fill_rect(Rect2i(window_x, 110, 70, 100), Color(0.1, 0.12, 0.16))
 	image.fill_rect(Rect2i(590, 250, 70, 150), Color(0.2, 0.14, 0.1))
 	_speckle(image, rng, Rect2i(720, 120, 250, 280), Color(0.2, 0.3, 0.15), 0.2, 1500)
