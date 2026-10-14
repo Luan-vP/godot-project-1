@@ -38,12 +38,12 @@ func test_surge_peaks_on_each_pulse() -> void:
 func test_joining_takes_the_rhythm_and_keeps_the_voice() -> void:
 	var flock := _flock_at(Vector2(500, 300), 3)
 	var bird := _bird_at(Vector2(100, 100))
-	var note := bird.note
+	var degree := bird.degree
 	var waveform := bird.waveform
 	_sim.join(bird, flock)
 	assert_eq(bird.flock, flock, "In the flock")
 	assert_eq(bird.flock.pulses, 3, "Plays the flock's rhythm")
-	assert_eq(bird.note, note, "Same note")
+	assert_eq(bird.degree, degree, "Same voice")
 	assert_eq(bird.waveform, waveform, "Same timbre")
 
 

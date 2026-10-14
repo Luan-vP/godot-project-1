@@ -2,6 +2,8 @@ extends GutTest
 ## Covers how birds become wakes in the fluid: birds sharing a cell push as
 ## one, with their summed momentum, and the strongest wake comes first.
 
+const Hosting := preload("res://tests/hosting.gd")
+
 
 func _bird(position: Vector2, velocity: Vector2) -> Bird:
 	var bird := Bird.new()
@@ -39,13 +41,9 @@ func test_the_strongest_wake_comes_first() -> void:
 	assert_eq(wakes[1].count, 1, "The lone bird after")
 
 
-func test_the_level_has_a_tank_behind_the_birds() -> void:
+func test_the_birds_stir_the_hosts_tank() -> void:
 	var level: BoidsLevel = load("res://features/levels/boids/boids_level.tscn").instantiate()
-	add_child_autofree(level)
-	var fluid := level.get_node_or_null("Fluid") as FluidSimulation
-	assert_not_null(fluid, "A fluid tank")
-	assert_eq(fluid.get_world_rect().size, level.get_viewport_rect().size, "Filling the window")
-	var renderer := level.get_node_or_null("FluidRenderer") as FluidRenderer
-	assert_not_null(renderer, "Painted")
-	assert_lt(renderer.z_index, 0, "Behind the birds")
+	var shared := Hosting.host(self, level)
+	assert_eq(level._fluid, shared.fluid, "The host's tank")
+	assert_null(level.get_node_or_null("Fluid"), "No tank of its own")
 	AudioManager.set_tempo(120.0, 4)

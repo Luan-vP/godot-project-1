@@ -2,44 +2,57 @@
 
 The three fluid levels in turn — the eye band, spout A and the waterboatmen —
 looping, over one tank and one band. `scripts/run.sh carousel`, or "Fluid
-carousel" in the demo menu.
+carousel" in the demo menu. This is the main way to play.
 
-A second carousel, `fluid_carousel_birds.tscn` (`scripts/run.sh
-carousel-birds`, "Fluid carousel (birds)" in the menu), is the same with the
-original flying birds (`birds_level.tscn`) in place of the waterboatmen. Its
-script, `fluid_carousel_birds.gd`, extends `fluid_carousel.gd` and only
-replaces `level_paths` in `_init`; the original carousel keeps its three.
+`level_paths` is exported, so every other way in is just a scene that sets
+it:
 
-## Layers
+- `fluid_carousel_birds.tscn` (`scripts/run.sh carousel-birds`) has the
+  flying birds in place of the waterboatmen.
+- `solo/` has a carousel of one for each level played on its own: the eye
+  band, spouts A and B, the spout shell, the birds and the waterboatmen. A
+  carousel of one never advances. The demo menu's level entries and
+  `run.sh`'s level names open these.
 
-`SharedLayers` owns what outlives the levels: the eye tank's `FluidSimulation`
-and its `FluidRenderer`, seeded once, and a `Band` started once. The band is the
-music layer. Its clock (the `AudioManager` loops and tempo) runs without a break
-across every level, and its own `_exit_tree` stops the loops when the carousel
-leaves the tree, which is the only time they stop.
+## The level format
 
-`FluidCarousel` instances each level under `SharedLayers.stage`, drawn over the
-tank. The tank itself never moves.
+Every level has the same shape: **a foreground over a host.**
 
-## Hosted levels
+The host is `SharedLayers`. It owns the background — the eye tank's
+`FluidSimulation` and its `FluidRenderer`, seeded once — and the music, a
+`Band` started once. The band's clock (the `AudioManager` loops and tempo)
+runs without a break across every level, and its own `_exit_tree` stops the
+loops when the carousel leaves the tree, which is the only time they stop.
 
-A level calls `SharedLayers.find(self)` in `_ready`: an ancestor walk, not a
-group lookup, so it can never adopt a tank from a demo that is still being
-freed. Null means standalone, and then the level behaves exactly as it always
-has. Hosted:
+A level is everything in front: its bodies, its input, its HUD. It is
+instanced under `SharedLayers.stage`, and in `_ready` it calls
+`SharedLayers.host_of(self)` and takes what it needs from the host:
 
-- **Eye tank / eye band** use the shared tank and add no renderer or seed
-  paint. The band demo keeps its own `EyeBand` only to track which eyes touch
-  walls, and mirrors that into the shared band's wanted parts every frame.
-- **Spout** drops the paper backdrop, uses the shared band (all parts wanted)
-  and the shared tank. The fluid emitter re-applies its downward lean every
-  physics frame, since each transition resets the tank's currents.
-- **Waterboatmen and Birds** (the same level, `BoidsLevel`, in its two
-  motions) use the shared tank, and leave the clock alone: no tempo
-  change, no loop start or stop. Like the spout they want every shared band
-  part, so the song (Glass Tide or whichever) carries on in full, and the
-  flocks play over the top at whatever tempo the band has. Their own downbeat
-  kick and extra reverb are left out, since the band has both.
+- **`fluid`** to stir and paint. A level never builds a tank, a renderer, a
+  backdrop or seed paint of its own.
+- **`band`** for its music. A level never starts a clock, sets a tempo or
+  adds bus effects of its own. It chooses which parts it wants, moves the key,
+  follows `key_changed` and `stepped`, and plays its own notes over the top in
+  the band's key.
+
+`host_of` is an ancestor walk, not a group lookup, so a level can never adopt
+a tank from a demo still being freed. With no host it reports an error and
+the level disables itself.
+
+What each level does with the band:
+
+- **Eye band** keeps its own `EyeBand`, never started, only to track which
+  eyes touch walls, and mirrors that into the band's wanted parts every frame.
+- **Spout** wants every part, scrolls its pins to the band's key, and plays
+  pins on its own synth.
+- **Waterboatmen and birds** (`BoidsLevel`, in its two motions) want every
+  part and sing over the song: each bird's voice is a step of the band's
+  pentatonic, so the flocks are in the song's key and follow its key moves.
+  They add a snare, its ghosts and a scatter crash, and no kick or reverb,
+  which the band already has.
+
+The tank does not move. The fluid emitter re-applies its downward lean every
+physics frame, since each transition resets the tank's currents.
 
 ## Transitions
 

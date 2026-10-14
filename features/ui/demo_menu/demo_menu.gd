@@ -48,29 +48,29 @@ const PR_PICKER_PATH := "res://features/ui/pr_picker/pr_picker.tscn"
 const DEMOS: Array[Dictionary] = [
 	{
 		"name": "Eye band",
-		"path": "res://features/levels/secret_eyes/eye_band_demo.tscn",
+		"path": "res://features/levels/carousel/solo/eye_band.tscn",
 		"blurb":
 		"Each eye plays a part while it stays off the walls. Tilt or stir to thin the music.",
 	},
 	{
 		"name": "Spout A: fluid",
-		"path": "res://features/levels/spout/a_fluid/level_three_a.tscn",
+		"path": "res://features/levels/carousel/solo/spout_a.tscn",
 		"blurb": "Level 3, A: pour the eye tank's fluid over singing pins. Stick or touch aims.",
 	},
 	{
 		"name": "Spout B: balls",
-		"path": "res://features/levels/spout/b_balls/level_three_b.tscn",
+		"path": "res://features/levels/carousel/solo/spout_b.tscn",
 		"blurb": "Level 3, B: RT or a touch fires billiard balls at the pins. Stick or touch aims.",
 	},
 	{
 		"name": "Spout (shell)",
-		"path": "res://features/levels/spout/spout_level.tscn",
+		"path": "res://features/levels/carousel/solo/spout_shell.tscn",
 		"blurb":
 		"Level 3's shell: aim the spout (stick or touch), Space plucks the pin you aim at.",
 	},
 	{
 		"name": "Birds",
-		"path": "res://features/levels/boids/birds_level.tscn",
+		"path": "res://features/levels/carousel/solo/birds.tscn",
 		"blurb":
 		(
 			"Flying flocks singing 3-against-4. "
@@ -79,7 +79,7 @@ const DEMOS: Array[Dictionary] = [
 	},
 	{
 		"name": "Waterboatmen",
-		"path": "res://features/levels/boids/boids_level.tscn",
+		"path": "res://features/levels/carousel/solo/waterboatmen.tscn",
 		"blurb":
 		(
 			"Boatmen row in strokes and sing 3-against-4. "

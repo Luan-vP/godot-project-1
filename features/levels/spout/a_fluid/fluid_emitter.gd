@@ -2,9 +2,8 @@ class_name FluidEmitter
 extends SpoutEmitter
 ## Version A: the spout pours the eye tank's fluid.
 ##
-## The tank is the eye band's own — a [FluidSimulation] with a default
-## [FluidConfig] the size of the screen and a [FluidRenderer] painting it —
-## so the level reads as the same water the eyes float in. Three things make
+## The tank is the host's ([SharedLayers]), the same water the eyes float
+## in. Three things make
 ## that water pour and play:
 ##
 ## 1. [b]The stream.[/b] Every physics frame the spout pushes the fluid along
@@ -67,25 +66,10 @@ var _rng := RandomNumberGenerator.new()
 
 func bind(level_node: Node, the_spout: Spout, the_pins: PinField) -> void:
 	super(level_node, the_spout, the_pins)
-	# Hosted by the carousel, the tank is the carousel's and already rendered.
+	# The host's tank, already rendered and painted.
 	var shared := SharedLayers.find(level_node)
 	if shared != null:
 		simulation = shared.fluid
-	else:
-		var extent := get_viewport_rect().size
-		var config := FluidConfig.new()
-		config.world_size = extent
-		simulation = FluidSimulation.new()
-		simulation.name = "Fluid"
-		simulation.config = config
-		add_child(simulation)
-		simulation.set_current_bias(DOWNWARD_LEAN)
-
-		var renderer := FluidRenderer.new()
-		renderer.name = "FluidRenderer"
-		renderer.z_index = -100
-		add_child(renderer)
-
 	make_pool(MAX_DROPLETS)
 	_rng.randomize()
 
@@ -221,10 +205,6 @@ static func stream_color(seconds: float) -> Color:
 	var from := int(position)
 	var to := (from + 1) % PALETTE.size()
 	return PALETTE[from].lerp(PALETTE[to], position - from)
-
-
-func dark_backdrop() -> bool:
-	return true
 
 
 func hit_count() -> int:

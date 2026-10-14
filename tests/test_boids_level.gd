@@ -3,6 +3,8 @@ extends GutTest
 ## tap is read and its ghost lands a bar later on the pulse it was read as, and
 ## what the taps favour reaches the flocks as weight.
 
+const Hosting := preload("res://tests/hosting.gd")
+
 const BIRDS_SCENE := "res://features/levels/boids/birds_level.tscn"
 
 var _level: BoidsLevel
@@ -10,7 +12,7 @@ var _level: BoidsLevel
 
 func before_each() -> void:
 	_level = load("res://features/levels/boids/boids_level.tscn").instantiate()
-	add_child_autofree(_level)
+	Hosting.host(self, _level)
 
 
 func after_each() -> void:
@@ -20,8 +22,7 @@ func after_each() -> void:
 func test_the_sky_opens_with_three_against_four() -> void:
 	assert_eq(_level.sim.birds.size(), BoidsLevel.BIRD_COUNT, "Every bird")
 	assert_eq(_level.sim.pulses_on_screen(), [3, 4] as Array[int], "A 3 and a 4")
-	assert_eq(AudioManager.get_tempo(), BoidsLevel.START_BPM, "Its own tempo")
-	assert_true(AudioManager.get_music_time_source().is_running(), "Music clock running")
+	assert_true(AudioManager.get_music_time_source().is_running(), "The band's clock running")
 
 
 func test_a_tap_ghosts_a_bar_later_on_the_pulse_it_reads_as() -> void:
@@ -75,7 +76,7 @@ func test_the_snare_hears_the_deck_in_desktop_mode() -> void:
 
 func _birds_level() -> BoidsLevel:
 	var birds: BoidsLevel = load(BIRDS_SCENE).instantiate()
-	add_child_autofree(birds)
+	Hosting.host(self, birds)
 	return birds
 
 
@@ -120,3 +121,25 @@ func test_hosted_the_flocks_play_over_the_whole_song() -> void:
 	assert_true(carousel.current_level() is BoidsLevel, "The boatmen arrived")
 	for part in Band.PARTS:
 		assert_true(band.wants_part(part), "%s still wanted" % part)
+
+
+func test_voices_sing_the_bands_pentatonic_in_one_register() -> void:
+	# A minor, as in Glass Tide: A C D E G.
+	var notes: Array[int] = []
+	for degree in FlockSim.VOICE_DEGREES:
+		notes.append(BoidsLevel.voice_note(degree, 9, true))
+	assert_eq(notes.slice(0, 6), [57, 60, 62, 64, 67, 69] as Array[int], "A3 up the pentatonic")
+	for root in 12:
+		var tonic := BoidsLevel.voice_note(0, root, false)
+		assert_between(tonic, BoidsLevel.VOICE_FLOOR, BoidsLevel.VOICE_FLOOR + 11, "Register")
+		assert_eq(posmod(tonic - root, 12), 0, "On the tonic")
+
+
+func test_a_key_move_moves_the_band_and_the_flocks_with_it() -> void:
+	var band: Band = _level._band
+	var before := band.get_key_offset()
+	var press := InputEventKey.new()
+	press.keycode = KEY_E
+	press.pressed = true
+	_level._unhandled_input(press)
+	assert_eq(band.get_key_offset(), before + KeyShiftInput.FOURTH, "Up a fourth")

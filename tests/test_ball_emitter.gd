@@ -2,6 +2,8 @@ extends GutTest
 ## Covers #116: version B's fire rate from trigger depth, hit strength from
 ## impact speed, and a haptic tick per ball fired.
 
+const Hosting := preload("res://tests/hosting.gd")
+
 const _TEST_SETTINGS_PATH := "user://test_ball_emitter_settings.cfg"
 const LEVEL_B := preload("res://features/levels/spout/b_balls/level_three_b.tscn")
 
@@ -83,7 +85,7 @@ func test_strength_follows_impact_speed() -> void:
 
 func test_every_ball_fired_ticks_the_haptics() -> void:
 	var level: SpoutLevel = LEVEL_B.instantiate()
-	add_child_autofree(level)
+	Hosting.host(self, level)
 	var output := NullHapticsOutput.new()
 	output.available = true
 	var outputs: Array[HapticsOutput] = [output]
@@ -100,7 +102,7 @@ func test_every_ball_fired_ticks_the_haptics() -> void:
 
 func test_version_b_takes_the_triggers_from_key_moves() -> void:
 	var level: SpoutLevel = LEVEL_B.instantiate()
-	add_child_autofree(level)
+	Hosting.host(self, level)
 	assert_false(level._key_shift.use_triggers, "RT fires, it does not move the key")
 	var rt := InputEventJoypadMotion.new()
 	rt.axis = JOY_AXIS_TRIGGER_RIGHT
@@ -110,7 +112,7 @@ func test_version_b_takes_the_triggers_from_key_moves() -> void:
 
 func test_the_pool_is_capped() -> void:
 	var level: SpoutLevel = LEVEL_B.instantiate()
-	add_child_autofree(level)
+	Hosting.host(self, level)
 	var emitter: BallEmitter = level.emitter
 	emitter.reads_input = false
 	for i in BallEmitter.MAX_BALLS + 5:
@@ -130,7 +132,7 @@ func test_pointer_depth_grows_with_distance_and_always_fires() -> void:
 
 func test_a_touch_fires_in_version_b() -> void:
 	var level: SpoutLevel = LEVEL_B.instantiate()
-	add_child_autofree(level)
+	Hosting.host(self, level)
 	var emitter: BallEmitter = level.emitter
 	assert_eq(emitter.pointer_depth(), 0.0, "Nothing touching")
 	level.pointer.press(level.spout.global_position + Vector2(0, 300))

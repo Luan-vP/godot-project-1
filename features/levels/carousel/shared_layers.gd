@@ -1,17 +1,21 @@
 class_name SharedLayers
 extends Node2D
-## The layers a [FluidCarousel] keeps through every transition: the eye tank's
-## fluid and the band.
+## The background every level plays over: the eye tank's fluid, and the band.
 ##
-## All three fluid levels paint the same tank and layer their own things over
-## it, so in the carousel the tank is built once, here, and the levels are
-## foreground layers that slide over it. The band is the music layer: its clock
-## (the [AudioManager] loops and tempo) runs without a break across every
-## level, and the band's own [method Band._exit_tree] stops it when the
-## carousel leaves the tree, which is the only time it should stop.
+## This is the canonical shape of a level. A level is a foreground layer: its
+## own bodies, input and HUD, instanced under [member stage]. It never builds a
+## tank, a backdrop or a music clock of its own. It takes [member fluid] to
+## stir and paint, and [member band] to play with: wanting parts, moving the
+## key, following its steps, and adding notes of its own over the top.
 ##
-## A level finds out whether it is hosted with [method find]. The levels are
-## instanced under [member stage], so the walk up from any of them ends here.
+## A [FluidCarousel] owns one of these and keeps it through every transition,
+## so the tank and the song carry on while levels slide over them. The band's
+## clock (the [AudioManager] loops and tempo) runs without a break, and the
+## band's own [method Band._exit_tree] stops it when the carousel leaves the
+## tree. A level played on its own is a carousel of one: see
+## [code]features/levels/carousel/solo/[/code].
+##
+## A level finds its host with [method host_of] in [method Node._ready].
 
 const SEED_BLOBS := 5
 ## Pigment density dropped in at the start, as a one-shot rather than a rate.
@@ -68,9 +72,27 @@ func _ready() -> void:
 	add_child(stage)
 
 
-## The [SharedLayers] hosting [param node], or null when it stands alone.
-## An ancestor walk rather than a group lookup on purpose: a group would find a
-## tank from a demo that is still waiting to be freed.
+## The [SharedLayers] hosting [param node], which every level needs. Reports
+## an error and returns null when there is none: a level scene opened on its
+## own instead of through a carousel.
+static func host_of(node: Node) -> SharedLayers:
+	var host := find(node)
+	if host == null:
+		push_error(
+			(
+				(
+					"%s needs a SharedLayers host: play it in a FluidCarousel "
+					+ "(features/levels/carousel/solo/ has one per level)"
+				)
+				% node.name
+			)
+		)
+	return host
+
+
+## The [SharedLayers] above [param node], or null. An ancestor walk rather than
+## a group lookup on purpose: a group would find a tank from a demo that is
+## still waiting to be freed.
 static func find(node: Node) -> SharedLayers:
 	var up := node.get_parent()
 	while up != null:
