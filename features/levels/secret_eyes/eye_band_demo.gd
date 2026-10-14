@@ -63,13 +63,6 @@ var _shared: SharedLayers
 var _motion: MotionInput
 var _readout: Label
 var _last_mouse: Vector2 = Vector2.ZERO
-var _palette: Array[Color] = [
-	Color(0.36, 0.70, 0.68),
-	Color(0.85, 0.45, 0.38),
-	Color(0.53, 0.44, 0.76),
-	Color(0.93, 0.74, 0.36),
-	Color(0.30, 0.55, 0.80),
-]
 
 var _contacts: EyeBand
 ## The band that sounds: [member _contacts] standalone, the carousel's shared
@@ -159,7 +152,7 @@ func _stir(delta: float) -> void:
 		return
 	if delta <= 0.0 or motion.length() < 0.5:
 		return
-	var color := _palette[int(Time.get_ticks_msec() / 900) % _palette.size()]
+	var color := ArtPalette.dye(int(Time.get_ticks_msec() / 900))
 	_simulation.add_velocity_impulse(mouse, motion / delta * STIR_GAIN, STIR_RADIUS, delta)
 	_simulation.add_paint(mouse, color, PAINT_RATE, STIR_RADIUS * 0.6, delta)
 
@@ -314,12 +307,12 @@ func _make_eye(index: int, extent: Vector2) -> FloatyEye:
 	eye.name = "Eye%d" % index
 	eye.position = Vector2(randf_range(0.15, 0.85), randf_range(0.15, 0.85)) * extent
 	eye.radius = randf_range(26.0, 62.0)
-	eye.iris_color = _palette[index % _palette.size()]
+	eye.iris_color = ArtPalette.dye(index)
 	# Bigger eyes shove more water and are harder for it to shove back.
 	eye.wake_radius = eye.radius * 2.2
 	eye.wake_strength = 5.0 + eye.radius * 0.07
 	eye.drag = 4.4 - eye.radius * 0.03
 	eye.paint_amount = 0.55
-	eye.paint_color = eye.iris_color.lerp(Color(0.9, 0.95, 1.0), 0.35)
+	eye.paint_color = eye.iris_color.lerp(ArtPalette.MOON, 0.35)
 	eye.paint_radius = eye.radius * 1.4
 	return eye

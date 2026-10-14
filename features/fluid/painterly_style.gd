@@ -8,14 +8,14 @@ extends Resource
 
 @export_group("Pigment")
 ## The unpainted ground. Everything is a wash over this.
-@export var paper_color: Color = Color(0.129, 0.156, 0.219)
+@export var paper_color: Color = ArtPalette.PAPER
 
 ## Colour the wash tends towards where pigment piles up thickest.
-@export var deep_color: Color = Color(0.043, 0.055, 0.098)
+@export var deep_color: Color = ArtPalette.DEEP
 
 ## Per-channel absorption. Unequal channels are what stops thick pigment from
-## going flatly grey — here blue survives longest, so depth reads cold.
-@export var absorption: Vector3 = Vector3(1.15, 1.45, 1.75)
+## going flatly grey — here red and blue survive longest, so depth reads violet.
+@export var absorption: Vector3 = ArtPalette.ABSORPTION
 
 ## Pigment present everywhere, even with no dye. Sets the resting depth.
 @export_range(0.0, 2.0, 0.01) var ambient_density: float = 0.28

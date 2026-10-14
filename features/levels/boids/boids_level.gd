@@ -97,7 +97,7 @@ const WAKE_RADIUS_MAX := 110.0
 ## enough that the flocks' paths show in the wash, not enough to bury the seed
 ## colours. Loners lay none — at 64 pale birds they bleached the whole sky.
 const WAKE_PAINT := 0.04
-const LONER_COLOR := Color(0.86, 0.87, 0.93, 0.42)
+const LONER_COLOR := ArtPalette.LONER
 
 ## Seconds added to a tap before it is read, to cancel the time between
 ## hearing a pulse and a press registering. 0 until measured on a device.
@@ -381,14 +381,14 @@ func _draw() -> void:
 	for bird in sim.birds:
 		_draw_bird(bird)
 	if _scatter_flash > 0.0:
-		draw_rect(rect, Color(1.0, 0.96, 0.9, _scatter_flash * 0.25))
+		draw_rect(rect, Color(ArtPalette.MOON, _scatter_flash * 0.25))
 
 
 func _draw_flock_halos() -> void:
 	var font := UiTheme.hud_font()
 	for flock in sim.flocks:
 		var rhythm := table.get_rhythm(flock.pulses)
-		var color := rhythm.color if rhythm != null else Color.WHITE
+		var color := rhythm.color if rhythm != null else ArtPalette.MOON
 		var reach := 20.0 + sqrt(float(flock.size())) * 12.0
 		var halo := color
 		halo.a = 0.05 + flock.flash * 0.1
@@ -415,14 +415,14 @@ func _draw_bird(bird: Bird) -> void:
 	var scale := 1.0
 	if bird.flock != null:
 		var rhythm := table.get_rhythm(bird.flock.pulses)
-		color = rhythm.color if rhythm != null else Color.WHITE
-		color = color.lerp(Color.WHITE, bird.glow * 0.6)
+		color = rhythm.color if rhythm != null else ArtPalette.MOON
+		color = color.lerp(ArtPalette.MOON, bird.glow * 0.6)
 		scale += bird.glow * (0.5 if flying else 0.3)
 		# The charge shows on the flocks: those about to be scattered tremble,
 		# the ones that will survive it glow.
 		if charge.charge > 0.0:
 			if bird.flock.pulses == charge.winner:
-				color = color.lerp(Color.WHITE, charge.charge * 0.3)
+				color = color.lerp(ArtPalette.MOON, charge.charge * 0.3)
 			else:
 				at += (
 					Vector2(_rng.randf_range(-1, 1), _rng.randf_range(-1, 1)) * charge.charge * 3.0
@@ -492,7 +492,7 @@ func _bird_color(bird: Bird) -> Color:
 	if bird.flock == null:
 		return Color(0.0, 0.0, 0.0, 0.0)
 	var rhythm := table.get_rhythm(bird.flock.pulses)
-	return rhythm.color if rhythm != null else Color.WHITE
+	return rhythm.color if rhythm != null else ArtPalette.MOON
 
 
 func _build_hud() -> void:
@@ -595,7 +595,7 @@ func _draw_dial() -> void:
 		)
 	elif charge.charge > 0.0:
 		var rhythm := table.get_rhythm(charge.winner)
-		var color := rhythm.color if rhythm != null else Color.WHITE
+		var color := rhythm.color if rhythm != null else ArtPalette.MOON
 		_dial.draw_arc(
 			centre, outer + 3.0, start, start + TAU * charge.charge, 64, color, 4.0, true
 		)

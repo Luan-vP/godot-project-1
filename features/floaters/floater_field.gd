@@ -29,7 +29,7 @@ const BOKEH_SHADER := preload("res://features/floaters/shaders/bokeh.gdshader")
 ## anything in particular — they are normalised against each other.
 @export var shape_weights: Vector3 = Vector3(3.0, 2.0, 1.0)
 
-@export var color: Color = Color(0.13, 0.14, 0.17, 0.5)
+@export var color: Color = ArtPalette.FLOATER
 
 ## Tank to populate. Left empty, the first tank in the scene is used.
 @export var simulation_path: NodePath

@@ -21,10 +21,10 @@ const BLINK_DURATION := 0.16
 @export var radius: float = 44.0
 
 @export_group("Look")
-@export var sclera_color: Color = Color(0.937, 0.918, 0.859)
-@export var iris_color: Color = Color(0.396, 0.643, 0.639)
-@export var pupil_color: Color = Color(0.078, 0.086, 0.129)
-@export var rim_color: Color = Color(0.235, 0.243, 0.353)
+@export var sclera_color: Color = ArtPalette.MOON
+@export var iris_color: Color = ArtPalette.dye(0)
+@export var pupil_color: Color = ArtPalette.PUPIL
+@export var rim_color: Color = ArtPalette.EYE_RIM
 
 @export_group("Behaviour")
 ## Distance at which the eye notices the cursor and follows it.

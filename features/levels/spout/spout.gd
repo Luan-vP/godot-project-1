@@ -24,8 +24,8 @@ signal aim_changed(aim: float)
 @export var reads_input: bool = true
 
 @export_group("Look")
-@export var body_color: Color = Color(0.2, 0.17, 0.16)
-@export var rim_color: Color = Color(0.93, 0.86, 0.72)
+@export var body_color: Color = ArtPalette.SPOUT_BODY
+@export var rim_color: Color = ArtPalette.SPOUT_RIM
 @export var barrel_width: float = 26.0
 
 ## 0 is straight down; positive swings the tip to the right.
