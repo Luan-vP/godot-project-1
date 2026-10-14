@@ -12,8 +12,8 @@ extends Control
 ## things that outlive them: a captured mouse, and music loops still playing on
 ## [code]AudioManager[/code].
 ##
-## This is [code]run/main_scene[/code]: the game opens on this list. At the
-## menu itself Backspace or Select, or the Quit button, leaves the game — on a
+## The game opens on [Splash] ([code]run/main_scene[/code]), which hands over
+## to this list. At the menu itself Backspace or Select, or the Quit button, leaves the game — on a
 ## Deck there is no keyboard and no window to close, so this is the only way
 ## out. (The Quit button is hidden on iOS, where an app does not quit itself.)
 ##
@@ -125,6 +125,11 @@ const DEMOS: Array[Dictionary] = [
 		"name": "Comfort",
 		"path": "res://features/ui/comfort_settings/comfort_settings_demo.tscn",
 		"blurb": "Floater overshoot and haptics strength.",
+	},
+	{
+		"name": "Splash",
+		"path": "res://features/splash/splash.tscn",
+		"blurb": "The studio logo, printed in the tank and stirred away. Any key or tap skips.",
 	},
 	{
 		"name": "Pull requests",

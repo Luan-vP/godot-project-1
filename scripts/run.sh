@@ -23,8 +23,9 @@ usage() {
 	cat <<'USAGE'
 Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
 
-  play       The demo menu every player sees (run/main_scene): pick a level,
-             Backspace comes back.
+  play       The game as every player sees it (run/main_scene): the splash,
+             then the demo menu. Backspace comes back.
+  splash     Just the splash: the logo printed in the tank and stirred away.
   menu       Click into any of the demos below; Backspace comes back.
   band       The eye tank as a band: each eye plays one part of a 70 bpm loop
              while it floats clear of the walls. WASD tilts, drag stirs.
@@ -75,7 +76,9 @@ USAGE
 # Keep in step with DemoMenu.DEMOS in features/ui/demo_menu/demo_menu.gd.
 scene_for() {
 	case "$1" in
-		play | menu | levels) echo "res://features/ui/demo_menu/demo_menu.tscn" ;;
+		play) echo "res://features/splash/splash.tscn" ;;
+		splash) echo "res://features/splash/splash.tscn" ;;
+		menu | levels) echo "res://features/ui/demo_menu/demo_menu.tscn" ;;
 		band | eye-band | eyes) echo "res://features/levels/carousel/solo/eye_band.tscn" ;;
 		spout-a | level3a) echo "res://features/levels/carousel/solo/spout_a.tscn" ;;
 		spout-b | level3b) echo "res://features/levels/carousel/solo/spout_b.tscn" ;;

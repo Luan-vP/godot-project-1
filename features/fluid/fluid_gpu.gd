@@ -328,6 +328,12 @@ func _run_step(frame: Dictionary) -> void:
 		# only thing in it, so they are the only thing that needs putting back.
 		_rd.texture_update(_obstacle, 0, _obstacle_walls)
 
+	# A printed picture replaces the pigment wholesale, before this step
+	# carries it, so it moves from the very first frame it is seen.
+	var stamp: PackedByteArray = frame.get("dye_stamp", PackedByteArray())
+	if _pigment_enabled and not stamp.is_empty():
+		_rd.texture_update(_dye[0], 0, stamp)
+
 	_rd.buffer_update(_velocity_splat_buffer, 0, MAX_SPLATS * SPLAT_BYTES, frame["velocity_splats"])
 	if _pigment_enabled:
 		_rd.buffer_update(_dye_splat_buffer, 0, MAX_SPLATS * SPLAT_BYTES, frame["dye_splats"])

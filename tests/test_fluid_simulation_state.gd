@@ -38,3 +38,30 @@ func test_a_reset_clears_the_field_mirror() -> void:
 	field.set_cell_velocity(0, 0, Vector2(9.0, 9.0))
 	_simulation.reset()
 	assert_almost_eq(field.get_cell_velocity(0, 0).length(), 0.0, EPSILON, "Cleared")
+
+
+func _configured_tank(pigment: bool) -> FluidSimulation:
+	var tank := FluidSimulation.new()
+	tank.config = FluidConfig.new()
+	tank.config.simulation_resolution = 32
+	tank.config.pigment_enabled = pigment
+	add_child_autofree(tank)
+	return tank
+
+
+func test_a_stamp_goes_with_the_next_step_only() -> void:
+	var tank := _configured_tank(true)
+	var dye := Image.create_empty(32, 32, false, Image.FORMAT_RGBAF)
+	dye.fill(Color(0.5, 0.4, 0.2, 1.0))
+	tank.stamp_dye(dye)
+	var frame: Dictionary = tank._frame(1.0 / 60.0)
+	# Four half floats a cell.
+	assert_eq((frame["dye_stamp"] as PackedByteArray).size(), 32 * 32 * 8, "Whole field")
+	tank._consume_queues()
+	assert_true((tank._frame(1.0 / 60.0)["dye_stamp"] as PackedByteArray).is_empty(), "Spent")
+
+
+func test_a_stamp_needs_pigment() -> void:
+	var tank := _configured_tank(false)
+	tank.stamp_dye(Image.create_empty(32, 32, false, Image.FORMAT_RGBAH))
+	assert_true((tank._frame(1.0 / 60.0)["dye_stamp"] as PackedByteArray).is_empty())
