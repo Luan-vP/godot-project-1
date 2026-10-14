@@ -44,8 +44,8 @@ motion.tilt_changed.connect(_on_tilt)   # Vector2, length 1 = fully tilted
 motion.jogged.connect(_on_jog)          # Vector2, once per shake
 ```
 
-`MotionTiltDriver` joins it to a `PanoramaLookCamera`, which is how tilting a
-device tilts a level — see [the panorama level's README](../../features/levels/panorama/README.md#tilting-the-device-tilts-the-scene).
+`FluidMotionDriver` joins it to a fluid tank, which is how tilting a device
+tilts the eye tank — see [the fluid README](../../features/fluid/README.md).
 
 Consumers find it through the `motion_input` group. It is a plain node rather
 than an autoload so a test — or a second local player — can own its own;
@@ -155,8 +155,8 @@ orientation-agnostic by construction, which should absorb surprises there,
 but the sign of a roll is not something a test can tell you.
 
 `scripts/run.sh motion` shows the live source, the raw gravity axes, the tilt,
-and a scene leaning with it. Tilt right; if the horizon rolls the wrong way, a
-span on `MotionTiltDriver` goes negative. Any level with tilt also carries
+and a horizon leaning with it. Tilt right; if the horizon rolls the wrong way,
+the axis convention is flipped for that device. Any level with tilt also carries
 `MotionDebugOverlay` (F3, or the gamepad's Y button, hides it), which is the
 same readout on top of real gameplay.
 

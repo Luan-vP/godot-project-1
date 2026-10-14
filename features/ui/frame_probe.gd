@@ -13,7 +13,7 @@ extends Node
 ## Started by [DemoMenu] from the command line:
 ## [codeblock lang=text]
 ## --probe            every demo in the menu
-## --probe=eyes,vitreous
+## --probe=eye_band,waterboatmen
 ## [/codeblock]
 ## Results are printed and appended to [code]user://probe/probe.log[/code],
 ## with a PNG per demo beside it. On an iPhone that folder is the app's

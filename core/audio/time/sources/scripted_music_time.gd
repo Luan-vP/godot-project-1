@@ -4,7 +4,7 @@ extends MusicTimeSource
 ##
 ## Nothing that reads a real clock is deterministic, so this is what lets bar
 ## changes and step events be checked exactly, the same role
-## [ScriptedLookSource] plays for the camera. A test drives beats directly
+## [ScriptedMotionSource] plays for tilt. A test drives beats directly
 ## with [method advance] or [method set_beats] — standing in for
 ## [WallClockMusicTime] integrating wall time against whatever tempo is in
 ## force, without needing a real clock or a real tempo to do it.

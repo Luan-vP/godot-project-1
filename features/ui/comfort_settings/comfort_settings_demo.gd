@@ -1,12 +1,8 @@
 extends Control
 ## Manual proof that [ComfortSettings] works and is reachable in-game: a
 ## slider per comfort option, bound straight to its setter the same way
-## `audio_demo.gd`'s bus sliders are bound to [AudioManager]. Open a panorama
-## level afterwards (Backspace, then Level 1) to feel a
-## change take effect — comfort settings are read when a level builds its
-## medium, not live while one is already running.
-
-const _SENSITIVITY_RANGE := Vector2(0.1, 5.0)
+## `audio_demo.gd`'s bus sliders are bound to [AudioManager]. Haptics strength
+## applies to the next pulse; feel it in Spout B, which ticks once per ball.
 
 
 func _ready() -> void:
@@ -32,29 +28,11 @@ func _ready() -> void:
 
 	root.add_child(
 		_build_row(
-			"Distortion strength",
+			"Haptics strength",
 			0.0,
 			1.0,
-			ComfortSettings.distortion_multiplier,
-			ComfortSettings.set_distortion_multiplier
-		)
-	)
-	root.add_child(
-		_build_row(
-			"Look sensitivity",
-			_SENSITIVITY_RANGE.x,
-			_SENSITIVITY_RANGE.y,
-			ComfortSettings.look_sensitivity_multiplier,
-			ComfortSettings.set_look_sensitivity_multiplier
-		)
-	)
-	root.add_child(
-		_build_row(
-			"Reduce floater overshoot",
-			0.0,
-			1.0,
-			ComfortSettings.overshoot_reduction,
-			ComfortSettings.set_overshoot_reduction
+			ComfortSettings.haptics_strength,
+			ComfortSettings.set_haptics_strength
 		)
 	)
 

@@ -9,28 +9,20 @@ A 2D game about floaty eye thingies, in a painterly style. Godot 4.4.
   See its [README](features/fluid/README.md).
 - `features/floaters/` — the eye floaters themselves: specks that drift and
   sink on the fluid. See its [README](features/floaters/README.md).
-- `features/levels/secret_eyes/` — a secret level built on the fluid: a tank
-  full of floaty eyes. See its [README](features/levels/secret_eyes/README.md).
-- `features/levels/vitreous/` — out-of-focus eye floaters drifting in a pale,
-  gel-like vitreous. See its [README](features/levels/vitreous/README.md).
+- `features/levels/secret_eyes/` — the eye band: a tank full of floaty eyes,
+  each playing a part while it stays off the walls. See its [README](features/levels/secret_eyes/README.md).
 - `features/levels/spout/` — level 3: aim a spout over a field of pins that
   play a scale, the eye band behind it. Two versions: A pours the eye tank's
   fluid, B fires balls. See its [README](features/levels/spout/README.md).
 - `features/levels/boids/` — flocks of waterboatmen that row and sing polyrhythms, played
   with a snare. See its [README](features/levels/boids/README.md).
-- `features/levels/panorama/` — the main level's core mechanic: a camera at
-  the centre of a look-around panoramic background. See its
-  [README](features/levels/panorama/README.md).
-- `features/player/` — `PanoramaLookCamera`, the camera the panorama level
-  looks around with.
+- `features/levels/carousel/` — the main way to play: the levels in turn,
+  sliding over one shared tank and one band. See its
+  [README](features/levels/carousel/README.md).
 - `core/motion/` — device tilt and jog behind a port, so the controls can be
   developed on a desktop and tested in CI. Reads the Steam Deck's IMU, and a
   phone's sensors, and falls back to the arrow keys. See its
   [README](core/motion/README.md).
-- `core/look/` — camera look input (mouse, gamepad) behind a port, the same
-  shape as `core/motion`, including eye tracking on devices with the gaze
-  plugin. See its [README](core/look/README.md) and
-  [gaze README](core/look/gaze/README.md).
 - `core/haptics/` — short controller pulses behind a port: Steam Input on the
   Deck, plain gamepad rumble elsewhere, rate-limited. See its
   [README](core/haptics/README.md).
@@ -53,24 +45,19 @@ the corner takes its place.
 
 ```sh
 scripts/run.sh             # list the levels and demos, with their controls
-scripts/run.sh play        # the level select every player sees
-scripts/run.sh menu        # the clickable demo menu
-scripts/run.sh vitreous    # floaters in the vitreous gel
-scripts/run.sh eyes        # the secret eye tank
+scripts/run.sh play        # the demo menu every player sees
+scripts/run.sh menu        # the same
+scripts/run.sh carousel    # the levels in turn over one tank and one band
 scripts/run.sh band        # the eye tank as a band: eyes off the walls play parts
 scripts/run.sh spout-a     # level 3, A: pour the eye tank's fluid over the pins
 scripts/run.sh spout-b     # level 3, B: RT fires billiard balls at the pins
 scripts/run.sh spout       # level 3's shell: spout, pins, band (Space plucks)
 scripts/run.sh birds       # flocks singing 3-against-4, played with a snare (B)
-scripts/run.sh panorama    # look-around camera (no panorama image yet)
-scripts/run.sh gaze        # look around to swish the floaters
-scripts/run.sh refraction  # the clear medium bending a checkerboard
-scripts/run.sh eye-gaze    # eye tracking readout (the pointer stands in on desktop)
 scripts/run.sh synth       # play the synth voices from the keyboard
 scripts/run.sh groove      # synthwave loop: drums on the step grid, bass and pads
 scripts/run.sh audio       # buses, loop layers, the effect fader
 scripts/run.sh motion      # tilt readout: the live source, its axes, the lean
-scripts/run.sh comfort     # distortion, look sensitivity, floater overshoot
+scripts/run.sh comfort     # haptics strength
 scripts/run.sh arrangement # scoring drives the layer stack (#34)
 ```
 
@@ -83,7 +70,7 @@ recompiles the fluid's compute shaders whenever their sources are newer than
 the compiled copies — Godot misses edits to the shared
 `fluid_params.glslinc` on its own, and the fluid then silently stops moving.
 `--fresh` forces that recompile; anything after `--` goes to Godot, e.g.
-`scripts/run.sh eyes -- --resolution 1280x720`.
+`scripts/run.sh band -- --resolution 1280x720`.
 
 ## Building on the Steam Deck
 
@@ -102,7 +89,7 @@ scripts/deck.sh build   # push HEAD to the Deck, import, export to ~/Games/godot
 scripts/deck.sh run     # launch it on the Deck's screen (stop / logs / ssh too)
 ```
 
-Tilting the Deck tilts a panorama level: motion is read through Steam Input,
+Tilting the Deck tilts the eye tank: motion is read through Steam Input,
 sensor-fused and in known units for every controller Steam supports, and the
 right stick click recentres whatever pose you are holding. That needs the
 Steam client running and the game launched *from* Steam — a build started
@@ -177,7 +164,7 @@ that has the picker regardless of whether the PR being merged does.
 ```sh
 scripts/build-ios.sh                   # export, build, install and launch on the connected iPhone
 scripts/build-ios.sh --device <id>     # a specific one (xcrun devicectl list devices)
-scripts/build-ios.sh -- --open=eyes    # straight into a demo
+scripts/build-ios.sh -- --open=eye_band  # straight into a demo
 scripts/build-ios.sh -- --probe        # measure every demo unattended, then quit
 scripts/build-ios.sh --export-only     # just the Xcode project, in builds/ios
 scripts/build-ios.sh --simulator       # layout only; see below
@@ -214,13 +201,11 @@ so the desktop window is untouched:
 - **Safe area.** `SafeArea` keeps the menu and demo labels clear of the
   Dynamic Island and the home indicator.
 - **Touch.** Touches arrive as the left mouse button, so tapping the menu,
-  dragging to stir, and dragging to look in the panorama levels need no
-  code of their own. The corner `⌫ menu` is a button: it is the only way
+  and dragging to stir need no code of their own. The corner `⌫ menu` is a button: it is the only way
   back without a keyboard. Tilt and jog come from the real sensors —
   `MotionInput` picks them — and the eye tank's corner readout says so.
 
-Keyboard-only controls go missing: the eye tank's `R`/`C`/`B`, the vitreous
-tank's `+`/`-`/`F`/`R`, refraction strength, and all of **Synth** and
+Keyboard-only controls go missing: the eye tank's `R`/`C`/`B`, and all of **Synth** and
 **Groove**, which cannot be played or started at all without a keyboard.
 **Audio** is all buttons and sliders and works.
 

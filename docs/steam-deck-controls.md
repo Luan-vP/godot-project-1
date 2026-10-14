@@ -62,7 +62,6 @@ is the quickest way to check a row on real hardware.
 | Stir (tank levels) | — | R2 → left click (drag with the right trackpad) | ✅ |
 | Jog (tank levels) | — | A → Return, Y → Space (`ui_accept`) | ✅ |
 | Tilt (tank levels) | — | WASD on a keyboard only | ⚠️ Nothing on the Deck sends WASD |
-| Look (panorama) | Right stick | Right trackpad → mouse | ✅ |
 | Key shift (eye band) | L1/R1, L2/R2 | L2/R2 → clicks; L1/R1 unconfirmed | ❌ Not reachable; R2's click stirs |
 | Refresh (PR picker) | Y | Y → Space | ⚠️ Space also presses the focused PR's button |
 | Aim the spout (level 3) | Either stick | Touchscreen; right trackpad + R2 (pointer + click) | ✅ Touch works both ways |

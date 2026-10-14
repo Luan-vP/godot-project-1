@@ -105,7 +105,7 @@ func test_paint_accumulates_instead_of_plateauing() -> void:
 	)
 
 
-## A clear-medium tank (e.g. one rendered with FluidRefractionRenderer) never
+## A clear-medium tank (one rendered from its velocity alone) never
 ## reads the dye field, so [member FluidConfig.pigment_enabled] lets it skip
 ## the dye texture pair, the dye dispatch and the copy entirely. This checks
 ## the tank still builds and solves velocity normally with it off, and that

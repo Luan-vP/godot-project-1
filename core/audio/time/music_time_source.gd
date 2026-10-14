@@ -7,7 +7,7 @@ extends RefCounted
 ## nothing else. So the timing underneath can be replaced without touching any
 ## of it: the current adapter is a wall clock, and a sample-accurate one
 ## driven from the audio thread would be a new adapter, not a rewrite. The same
-## shape as [MotionSource] and [LookSource].
+## shape as [MotionSource].
 ##
 ## Beats of musical time since [method start]: they keep climbing across loop
 ## repeats and tempo changes alike, accumulating against whatever tempo was in

@@ -29,8 +29,8 @@ extends Control
 ##
 ## Two launch options exist for a device nobody is holding, where the only
 ## way in is the command line (see "Building for iPhone" in the README):
-## [code]--open=eyes[/code] goes straight into a demo, and
-## [code]--probe[/code] or [code]--probe=eyes,vitreous[/code] hands the menu to
+## [code]--open=eye_band[/code] goes straight into a demo, and
+## [code]--probe[/code] or [code]--probe=eye_band,spout_a_fluid[/code] hands the menu to
 ## a [FrameProbe], which quits the app when it is done.
 
 ## Emitted when the player asks to leave the game from the menu.
@@ -46,20 +46,6 @@ const PR_PICKER_PATH := "res://features/ui/pr_picker/pr_picker.tscn"
 
 ## Every level and demo, in the order shown. Keep in step with scripts/run.sh.
 const DEMOS: Array[Dictionary] = [
-	{
-		"name": "Level 1",
-		"path": "res://features/levels/panorama/level_one.tscn",
-		"blurb":
-		(
-			"Pure exploration. No score, no timer, no way to fail — just look. "
-			+ "Mouse/stick to look, Esc frees cursor."
-		),
-	},
-	{
-		"name": "Eyes",
-		"path": "res://features/levels/secret_eyes/fluid_demo.tscn",
-		"blurb": "Secret level: the eye tank. Drag to stir and paint, WASD tilts, Space jogs.",
-	},
 	{
 		"name": "Eye band",
 		"path": "res://features/levels/secret_eyes/eye_band_demo.tscn",
@@ -113,31 +99,6 @@ const DEMOS: Array[Dictionary] = [
 		"Eye band, Spout A and Birds in turn over one tank and one band. Cycles on its own.",
 	},
 	{
-		"name": "Vitreous",
-		"path": "res://features/levels/vitreous/vitreous_tank.tscn",
-		"blurb": "Out-of-focus floaters in a coasting gel. Drag to push, +/- floaters.",
-	},
-	{
-		"name": "Gaze",
-		"path": "res://features/levels/gaze/gaze_demo.tscn",
-		"blurb": "Look around to swish the floaters. 1/2 hold and 3/4 flick sensitivity.",
-	},
-	{
-		"name": "Refraction",
-		"path": "res://features/fluid/refraction_demo.tscn",
-		"blurb": "Clear medium over a checkerboard. Drag to stir, +/- tune strength.",
-	},
-	{
-		"name": "Canny Edges",
-		"path": "res://features/edges/canny_edge_debug.tscn",
-		"blurb": "Traced edges over a synthetic panorama. Up/down blur, [/] and +/- thresholds.",
-	},
-	{
-		"name": "Eye Gaze",
-		"path": "res://core/look/gaze/gaze_debug_demo.tscn",
-		"blurb": "Eye tracking readout: state, gaze, the turn it makes. Calibrate, then look.",
-	},
-	{
 		"name": "Synth",
 		"path": "res://core/audio/synth_demo.tscn",
 		"blurb": "Synth voices. A-K hold notes, Up/Down glide, R plays a phrase.",
@@ -155,13 +116,12 @@ const DEMOS: Array[Dictionary] = [
 	{
 		"name": "Motion",
 		"path": "res://core/motion/motion_demo.tscn",
-		"blurb": "Device tilt: which source is live, what it reports, the scene leaning with it.",
+		"blurb": "Device tilt: which source is live, what it reports, jogs and haptics.",
 	},
 	{
 		"name": "Comfort",
 		"path": "res://features/ui/comfort_settings/comfort_settings_demo.tscn",
-		"blurb":
-		"Distortion, look sensitivity, floater overshoot — adjust, then open a panorama level.",
+		"blurb": "Floater overshoot and haptics strength.",
 	},
 	{
 		"name": "Arrangement",

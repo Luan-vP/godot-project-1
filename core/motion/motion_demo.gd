@@ -1,6 +1,6 @@
 extends Control
-## Tilt readout: which source is live, what it reports, and the scene leaning
-## the way a level's would.
+## Tilt readout: which source is live, what it reports, and a horizon leaning
+## with it.
 ##
 ## The bring-up tool for a new device. Nothing in [code]core/motion[/code] can
 ## say what a device's axes mean — the pipeline is orientation-agnostic by
@@ -16,6 +16,10 @@ const DIAL_RADIUS := 90.0
 
 ## Length of the drawn horizon, in pixels.
 const HORIZON_HALF_WIDTH := 220.0
+
+## How far the horizon rolls and pitches at full tilt, in degrees.
+const ROLL_DEGREES := 12.0
+const PITCH_DEGREES := 6.0
 
 const INK := Color(0.20, 0.22, 0.26, 0.85)
 const FAINT := Color(0.20, 0.22, 0.26, 0.30)
@@ -69,20 +73,17 @@ func _process(_delta: float) -> void:
 	queue_redraw()
 
 
-## What a panorama level would be doing with this tilt, borrowed from the
-## driver that does it rather than copied: the demo is only worth anything if
-## it shows the mapping levels actually use.
+## How far the drawn horizon leans for the current tilt, in radians: roll, pitch.
 func _scene_offset() -> Vector2:
-	return MotionTiltDriver.offset_for_spans(
-		_motion.tilt, MotionTiltDriver.DEFAULT_ROLL_DEGREES, MotionTiltDriver.DEFAULT_PITCH_DEGREES
-	)
+	var tilt := _motion.tilt
+	return Vector2(deg_to_rad(-tilt.x * ROLL_DEGREES), deg_to_rad(-tilt.y * PITCH_DEGREES))
 
 
 func _draw() -> void:
 	var offset := _scene_offset()
 	var centre := size * 0.5
 
-	# The horizon, leaning as a level's would. Pitch moves it up the view the
+	# The horizon, leaning with the tilt. Pitch moves it up the view the
 	# same way the camera's would, at a pixels-per-radian guess that only has
 	# to make the movement visible.
 	draw_set_transform(centre + Vector2(0.0, offset.y * DIAL_RADIUS * 4.0), offset.x, Vector2.ONE)

@@ -18,22 +18,9 @@ wakes that push each other around. Nothing in here knows what an eye is.
 | `fluid_config.gd` | `FluidConfig` — how the water moves. |
 | `painterly_style.gd` | `PainterlyStyle` — how it looks. |
 | `fluid_gpu.gd` | `FluidGPU` — the device resources and the compute dispatch. |
-| `fluid_refraction_renderer.gd` | `FluidRefractionRenderer` — bends the background behind a clear tank. |
-| `refraction_style.gd` | `RefractionStyle` — how strongly it bends. |
 
-`FluidConfig` and `PainterlyStyle`/`RefractionStyle` are separate resources on
-purpose: retuning the look should never be able to change the physics.
-
-Two renderers exist because the tank looks different depending on what the
-medium is for. `FluidRenderer` paints an opaque wash of pigment — right for a
-tank that is meant to be seen, like the secret eye level. `FluidRefractionRenderer`
-paints nothing; it only bends whatever is already behind it, using
-`hint_screen_texture` rather than a `SubViewport`. That is right for a clear
-medium like the main level's vitreous humour, where the fluid itself should
-stay all but invisible and only its motion should read, as a ripple passing
-across the background. Pick one per tank, not both — they read the same
-velocity field but neither needs the other's texture, and `FluidRefractionRenderer`
-never touches the dye field at all.
+`FluidConfig` and `PainterlyStyle` are separate resources on purpose:
+retuning the look should never be able to change the physics.
 
 ## Using it
 
@@ -157,9 +144,7 @@ Two things are deliberately **not** scaled by the rendered frame's delta:
 ## Being pushed from outside
 
 Two entry points exist for whole-tank forces. `FluidMotionDriver` uses them for
-device tilt and jog; `GazeFluidDriver` uses the same two for a look camera's
-angular velocity, so a flick of the view sweeps the floaters and a held turn
-leans the current — see its class doc for the mapping:
+device tilt and jog:
 
 - `set_current_bias(acceleration)` leans the ambient drift, continuously. It is
   a bias, not gravity — the tank leans, it does not pour, so what floats in it
@@ -176,15 +161,7 @@ the far side — the gel in front of a turning eye. `FluidConfig.wrap_edges`
 joins each edge to the opposite one for that: no wall ring in the obstacle
 mask, neighbour reads and advection wrap round, splats reach across the seam,
 and the CPU mirror samples the same way. A uniform push then keeps flowing
-until something damps it — `velocity_dissipation`, or the settling in
-`GazeFluidDriver`, which stands in for the eye's wall dragging the gel back
-to rest.
-
-Measured in the gaze demo with a 3 rad/s turn held for three seconds: in the
-walled gel the tank's mean drift swung between −860 and +400 px/s while the
-turn was held, sloshing about every 0.8 s, and never settled to a steady
-drift. With `wrap_edges` it swept to −770, levelled out at a steady −452,
-kicked back to +318 when the turn stopped, and was at rest a second later.
+until something damps it, such as `velocity_dissipation`.
 
 ## Emptying the tank
 
@@ -238,34 +215,6 @@ values let it coast through eddies under its own momentum.
 
 Cost is `4 * (STROKE_RADIUS + 1)^2` taps per pixel — 36 at the default radius
 of 2. If it needs to be cheaper, that constant is the dial.
-
-## The refraction pass
-
-`refraction.gdshader` reads only the velocity field, not the dye. Offsetting
-the sampled UV by the velocity vector directly was tried first and rejected —
-it reads as a smear, because a uniform current then drags every pixel behind
-it by the same amount, current or no current. What actually reads as
-refraction is the *gradient* of local speed: flat, so no offset, wherever the
-flow is uniform, including a tank entirely at rest, and only curved at the rim
-of a swish, where speed changes fastest across the screen. That gradient
-stands in for a normal map's height field and bends the `hint_screen_texture`
-sample instead of dragging it.
-
-The gradient is taken per simulation cell and divided by `speed_reference`.
-Taking it per UV instead multiplies it by the grid resolution, and then the
-ambient current's small eddies alone saturate the bend and a tank at rest
-reads as static. It is then soft-saturated (`g / (1 + |g|)`) before it is
-scaled by `strength`, so a splat's leading edge cannot spike the distortion
-past the configured maximum however hard the tank is shoved, and the final
-sample UV is clamped to `[0, 1]` rather
-than left to whatever `hint_screen_texture` does at the edge, so a sample
-pushed past the border holds the edge pixel instead of tiling or seaming.
-`RefractionStyle.strength` is tunable down to `0.0`, which turns the bend off
-without touching the solve.
-
-`refraction_demo.tscn` is a manual test bed: a tiled checkerboard behind the
-tank so a bend in straight lines is obvious, drag-to-stir, and `+`/`-` to tune
-`strength` live down to zero.
 
 ## Cost
 
@@ -338,8 +287,7 @@ it (negative means it reversed):
 
 So a thick fluid that coasts wants converged pressure, free-slip walls, and
 only a little viscosity — with the broad, heavy response to input coming from
-a wider, softer stir rather than from the fluid itself. See the vitreous level
-for numbers.
+a wider, softer stir rather than from the fluid itself.
 
 ## Obstacles
 
@@ -353,7 +301,7 @@ two shaders.
 
 ## Known gaps
 
-- The secret eye level (`features/levels/secret_eyes/`) uses this tank with
+- The eye band (`features/levels/secret_eyes/`) uses this tank with
   placeholder art (`eye.gdshader`, `floaty_eye.gd`) so it has something
   visibly reacting in it. The parts worth keeping are the squash-along-motion
   and the gaze; both read straight off the fluid.
