@@ -106,6 +106,7 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	if not _started:
 		return
+	AudioManager.get_level_meter().set_note("song", "")
 	AudioManager.stop_loops()
 	for synth in _synths.values():
 		synth.release_all()
@@ -143,6 +144,7 @@ func start(song: Song = null, rng: RandomNumberGenerator = null) -> void:
 	_clock = StepClock.new()
 	_clock.step.connect(_on_step)
 	add_child(_clock)
+	AudioManager.get_level_meter().set_note("song", _song.title)
 	song_started.emit(_song.title)
 
 

@@ -35,6 +35,11 @@ extends Node
 ## instances for a caller to drive directly — typically through a
 ## [ParameterFader], which smooths a per-frame value into an effect's
 ## property instead of assigning it straight and producing zipper noise.
+##
+## The committed layout also puts a capture and then a limiter on Master, so
+## nothing the game plays can clip the output. A [LevelMeter] child reads the
+## capture through [method drain_master_peak] and logs every time the mix went
+## over full scale (see [method get_level_meter]).
 
 ## Emitted whenever a bus's volume changes, including on load. Carries the
 ## linear fraction, not decibels, so a slider can be driven directly.
@@ -92,6 +97,10 @@ var _time_source: MusicTimeSource = WallClockMusicTime.new()
 ## [method get_loop_playback_rate].
 var _loop_render_tempo: float = 0.0
 
+## First on Master, before its limiter; see [method drain_master_peak].
+var _master_capture: AudioEffectCapture
+var _level_meter: LevelMeter
+
 
 func _ready() -> void:
 	_music_player = AudioStreamPlayer.new()
@@ -114,6 +123,11 @@ func _ready() -> void:
 	_loop_scheduler = LoopLayerScheduler.new(_loop_clock)
 
 	_load_settings()
+
+	_master_capture = _find_master_capture()
+	_level_meter = LevelMeter.new()
+	_level_meter.name = "LevelMeter"
+	add_child(_level_meter)
 
 
 func _process(_delta: float) -> void:
@@ -452,6 +466,39 @@ func _set_focus_muted(losing_focus: bool) -> void:
 			return
 		AudioServer.set_bus_mute(index, _master_mute_before_focus_loss)
 		_focus_muted = false
+
+
+## The loudest sample, linear (1.0 is 0 dBFS), of everything mixed into the
+## Master bus since the last call, before its limiter: every sample, not a
+## once-a-frame reading. 0.0 when nothing was mixed, or there is no capture.
+func drain_master_peak() -> float:
+	if _master_capture == null:
+		return 0.0
+	var frames := _master_capture.get_frames_available()
+	if frames <= 0:
+		return 0.0
+	var peak := 0.0
+	for frame in _master_capture.get_buffer(frames):
+		peak = maxf(peak, maxf(absf(frame.x), absf(frame.y)))
+	return peak
+
+
+## The [LevelMeter] watching the mix for overs, for a HUD to read or a level
+## to add a note to.
+func get_level_meter() -> LevelMeter:
+	return _level_meter
+
+
+func _find_master_capture() -> AudioEffectCapture:
+	var index := AudioServer.get_bus_index(MASTER_BUS)
+	if index == -1:
+		return null
+	for i in AudioServer.get_bus_effect_count(index):
+		var effect := AudioServer.get_bus_effect(index, i)
+		if effect is AudioEffectCapture:
+			return effect
+	push_warning("AudioManager: no capture on Master; overs will not be logged")
+	return null
 
 
 func _volume_key(bus_name: String) -> String:

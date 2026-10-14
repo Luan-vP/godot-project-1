@@ -13,6 +13,40 @@ and loaded through the `audio/buses/default_bus_layout` project setting.
 Nothing creates buses in code — if a fourth bus is ever needed, add it to
 that resource, not at runtime.
 
+### Level: the limiter and the meter
+
+Master carries two effects, also in the layout: an `AudioEffectCapture`, then
+an `AudioEffectHardLimiter` (ceiling -0.3 dBFS). The limiter means nothing the
+game plays can clip the output, however many layers stack up. It is a safety
+net, not a mix: a part that keeps hitting it still sounds squashed, so the
+mix still needs headroom.
+
+The capture is what tells you whether it has. [`LevelMeter`](level_meter.gd),
+a child of `AudioManager`, reads every sample that went into the limiter each
+frame (`AudioManager.drain_master_peak()`), and [`ClipWatch`](clip_watch.gd)
+groups anything at or past 0 dBFS into overs. Each over is logged once, with
+whatever context has been noted (`get_level_meter().set_note(key, value)`: the
+demo menu notes the demo, the carousel the level, the `Band` the song):
+
+```text
+[level] OVER +1.4 dBFS for 0.12 s at bar 37 · demo=fluid_carousel · level=BoidsLevel · song=Glass Tide
+```
+
+Changing the demo or the level also logs the stretch that just ended, overs or
+not, so every level gets a headroom figure:
+
+```text
+[level] peak -0.5 dBFS, 0 overs · demo=fluid_carousel · level=BoidsLevel · song=Slow Orbit
+```
+
+On the Deck these are in `scripts/deck.sh logs NAME`. To watch it live, F8
+toggles a meter in the corner ([`LevelMeterOverlay`](../../features/ui/level_meter_overlay.gd));
+`--meter` starts with it showing, e.g. `scripts/deck.sh run NAME --meter`.
+
+Bus peaks from `AudioServer.get_bus_peak_volume_*` are only the latest mix
+block when read, so a once-a-frame reading misses most of them and reads
+several dB low. That is why the meter reads the capture instead.
+
 ## `AudioManager`
 
 The only script allowed to call [`AudioServer`] directly. Everything else

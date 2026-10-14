@@ -32,6 +32,9 @@ extends Control
 ## [code]--open=eye_band[/code] goes straight into a demo, and
 ## [code]--probe[/code] or [code]--probe=eye_band,spout_a_fluid[/code] hands the menu to
 ## a [FrameProbe], which quits the app when it is done.
+##
+## [code]--meter[/code] opens with the [LevelMeterOverlay] showing; F8 toggles
+## it at any time.
 
 ## Emitted when the player asks to leave the game from the menu.
 signal quit_requested
@@ -169,6 +172,10 @@ func _ready() -> void:
 	_build()
 	_overlay = _build_overlay()
 	add_child(_overlay)
+	var meter := LevelMeterOverlay.new()
+	meter.name = "LevelMeterOverlay"
+	meter.visible = _command_line().has("--meter")
+	add_child(meter)
 	_fit_to_screen()
 	get_viewport().size_changed.connect(_fit_to_screen)
 	_focus_first_card()
@@ -198,6 +205,7 @@ func open_demo(path: String) -> void:
 	hide()
 	_overlay.visible = true
 	var tree := get_tree()
+	AudioManager.get_level_meter().set_note("demo", path.get_file().get_basename())
 	tree.root.add_child(_demo)
 	tree.current_scene = _demo
 	demo_opened.emit(path)
@@ -211,6 +219,7 @@ func close_demo() -> void:
 	tree.root.remove_child(_demo)
 	_demo.queue_free()
 	_demo = null
+	AudioManager.get_level_meter().set_note("demo", "")
 	tree.current_scene = self
 	# The two things a demo leaves behind: a captured cursor, and loops.
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
