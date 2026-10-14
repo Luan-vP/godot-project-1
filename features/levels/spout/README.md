@@ -26,7 +26,7 @@ of either: Space plucks the pin you are aiming at.
 | Next scale (temporary) | Y | A (sends Enter), or the `scale ▸` button | Enter |
 | B: fire | RT, depth = rate | Touch (further from the spout = faster), Y (sends Space) = full | Space = full, 1–5 = depths, or hold the mouse button |
 | Tempo | D-pad | D-pad (sends arrows) | Arrows |
-| Back to the menu | View | View (sends Tab), or the `⌫ menu` button | Backspace |
+| Back to the menu | View | View (sends Tab), or the `‹ menu` button | Backspace |
 
 Either stick aims, whichever is pushed further, so the Deck can be held either
 way round. A stick is a rate control — push it and the nozzle keeps swinging

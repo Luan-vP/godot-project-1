@@ -138,8 +138,8 @@ const DEMOS: Array[Dictionary] = [
 const TWO_COLUMN_MIN_WIDTH := 720.0
 
 ## Space kept between the safe area and the content.
-const MARGIN := 48.0
-const NARROW_MARGIN := 24.0
+const MARGIN := UiTokens.MARGIN
+const NARROW_MARGIN := UiTokens.MARGIN_NARROW
 
 ## A tap target, in canvas units. Apple's 44 pt minimum is about 55 units at
 ## the phone's canvas scale.
@@ -147,10 +147,6 @@ const BACK_BUTTON_SIZE := Vector2(112.0, 56.0)
 
 ## Named so tests can tell it from the cards.
 const QUIT_BUTTON_NAME := "Quit"
-
-const BACKGROUND := Color(0.08, 0.085, 0.1)
-const TEXT := Color(0.86, 0.87, 0.9)
-const MUTED := Color(0.56, 0.58, 0.63)
 
 ## Whether [method request_quit] actually ends the game. Tests turn this off
 ## so the runner they live in survives.
@@ -161,6 +157,7 @@ var _overlay: CanvasLayer
 var _back_button: Button
 var _margin: MarginContainer
 var _grid: GridContainer
+var _scroll: ScrollContainer
 var _first_button: Button
 var _from_picker := false
 
@@ -306,9 +303,18 @@ static func columns_for_width(width: float) -> int:
 
 ## Keyboard and gamepad players need a focused card to start from. On a touch
 ## screen the focus ring just reads as a card stuck half-pressed.
+##
+## Following focus scrolls to the first card before the cards have their final
+## heights, so the list is put back at the top once they do.
 func _focus_first_card() -> void:
 	if not DisplayServer.is_touchscreen_available():
 		_first_button.grab_focus.call_deferred()
+	_scroll_to_top.call_deferred()
+
+
+func _scroll_to_top() -> void:
+	await get_tree().process_frame
+	_scroll.scroll_vertical = 0
 
 
 ## Lay the menu out for the canvas it is actually on: margins that clear the
@@ -351,77 +357,67 @@ static func _is_deck_view(event: InputEvent) -> bool:
 
 
 func _build() -> void:
-	var background := ColorRect.new()
-	background.color = BACKGROUND
-	background.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(background)
+	UiTheme.apply(self)
+	add_child(ArcaneBackdrop.new())
 
 	_margin = MarginContainer.new()
 	_margin.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(_margin)
 
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 18)
+	column.add_theme_constant_override("separation", UiTokens.GAP)
 	_margin.add_child(column)
 
-	column.add_child(_label("Demos", 40, TEXT))
 	var hint_text := (
 		"Pick one. Backspace, Select (Tab from a Deck in Desktop Mode) or the "
 		+ "menu button comes back here, and Backspace or Select quits from here."
 	)
 	if _from_picker:
 		hint_text += " Here, they go back to the pull requests."
-	var hint := _label(hint_text, 16, MUTED)
-	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	column.add_child(hint)
+	column.add_child(UiTheme.header("INDEX OF WORKINGS", "Demos", hint_text))
 
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	column.add_child(scroll)
+	# Follows focus so a pad can reach the cards below the fold.
+	_scroll = ScrollContainer.new()
+	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.follow_focus = true
+	column.add_child(_scroll)
+
+	# A gutter so the scroll bar does not sit on the right-hand cards.
+	var gutter := MarginContainer.new()
+	gutter.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	gutter.add_theme_constant_override("margin_right", UiTokens.GAP)
+	_scroll.add_child(gutter)
 
 	_grid = GridContainer.new()
 	_grid.name = "Cards"
 	_grid.columns = 2
 	_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_grid.add_theme_constant_override("h_separation", 16)
-	_grid.add_theme_constant_override("v_separation", 16)
-	scroll.add_child(_grid)
+	_grid.add_theme_constant_override("h_separation", UiTokens.GAP)
+	_grid.add_theme_constant_override("v_separation", UiTokens.GAP)
+	gutter.add_child(_grid)
 
 	if not OS.has_feature("ios"):
 		var quit := Button.new()
 		quit.name = QUIT_BUTTON_NAME
 		quit.text = "Quit"
-		quit.custom_minimum_size = Vector2(0.0, 56.0)
+		quit.custom_minimum_size = Vector2(0.0, UiTokens.BUTTON_HEIGHT)
 		quit.pressed.connect(request_quit)
 		column.add_child(quit)
 
-	for demo in DEMOS:
-		var button := _card(demo)
+	for i in DEMOS.size():
+		var button := _card(DEMOS[i], i + 1)
 		_grid.add_child(button)
 		if _first_button == null:
 			_first_button = button
 
 
-func _card(demo: Dictionary) -> Button:
-	var button := Button.new()
-	button.name = demo["name"]
-	button.custom_minimum_size = Vector2(0.0, 96.0)
-	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+func _card(demo: Dictionary, number: int) -> Button:
+	var button := ArcaneCard.make(
+		demo["name"], demo["name"], demo["blurb"], ArcaneCard.index_for(number)
+	)
 	button.tooltip_text = demo["path"]
 	button.pressed.connect(open_demo.bind(demo["path"]))
-
-	var text := VBoxContainer.new()
-	text.set_anchors_preset(Control.PRESET_FULL_RECT)
-	text.offset_left = 16.0
-	text.offset_right = -16.0
-	text.alignment = BoxContainer.ALIGNMENT_CENTER
-	text.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	text.add_child(_label(demo["name"], 22, TEXT))
-	var blurb := _label(demo["blurb"], 14, MUTED)
-	blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	text.add_child(blurb)
-	button.add_child(text)
 	return button
 
 
@@ -436,28 +432,16 @@ func _build_overlay() -> CanvasLayer:
 	layer.visible = false
 	_back_button = Button.new()
 	_back_button.name = "BackToMenu"
-	_back_button.text = "⌫ menu"
-	_back_button.flat = true
+	_back_button.text = "‹ menu"
+	# A CanvasLayer is not a Control, so the menu's theme does not reach here.
+	UiTheme.apply(_back_button)
+	_back_button.theme_type_variation = UiTheme.GHOST
 	_back_button.focus_mode = Control.FOCUS_NONE
 	_back_button.alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_back_button.custom_minimum_size = BACK_BUTTON_SIZE
-	_back_button.add_theme_font_size_override("font_size", 15)
-	var muted := Color(0.5, 0.52, 0.56, 0.7)
-	for state in ["font_color", "font_hover_color", "font_focus_color"]:
-		_back_button.add_theme_color_override(state, muted)
-	_back_button.add_theme_color_override("font_pressed_color", TEXT)
 	_back_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	_back_button.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_back_button.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_back_button.pressed.connect(close_demo)
 	layer.add_child(_back_button)
 	return layer
-
-
-static func _label(text: String, size: int, color: Color) -> Label:
-	var label := Label.new()
-	label.text = text
-	label.add_theme_font_size_override("font_size", size)
-	label.add_theme_color_override("font_color", color)
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return label
