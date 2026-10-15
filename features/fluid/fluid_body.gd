@@ -37,7 +37,7 @@ extends Node2D
 ## Pigment laid into the water, in density/second. Zero paints nothing.
 @export var paint_amount: float = 0.0
 
-@export var paint_color: Color = ArtPalette.dye(0)
+@export var paint_color: Color = ArtPalette.BODY_PAINT
 
 @export var paint_radius: float = 70.0
 

@@ -12,7 +12,7 @@ const RADIUS := 8.0
 
 var pins: PinField
 var age := 0.0
-var color := ArtPalette.MOON
+var color := ArtPalette.BALLS[0]
 ## Velocity at the end of the previous physics step: by the time
 ## [signal RigidBody2D.body_entered] fires the bounce has already happened, so
 ## the speed it hit at has to come from before it.
@@ -57,6 +57,6 @@ static func closing_speed(velocity: Vector2, at: Vector2, centre: Vector2) -> fl
 
 
 func _draw() -> void:
-	draw_circle(Vector2(1.5, 2.0), RADIUS, Color(ArtPalette.DEEP, 0.3))
+	draw_circle(Vector2(1.5, 2.0), RADIUS, Color(ArtPalette.SHADOW, 0.18))
 	draw_circle(Vector2.ZERO, RADIUS, color)
-	draw_circle(Vector2(-2.6, -2.6), RADIUS * 0.32, Color(ArtPalette.MOON, 0.55))
+	draw_circle(Vector2(-2.6, -2.6), RADIUS * 0.32, Color(ArtPalette.LIGHT, 0.55))

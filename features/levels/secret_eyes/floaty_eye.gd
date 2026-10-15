@@ -21,7 +21,7 @@ const BLINK_DURATION := 0.16
 @export var radius: float = 44.0
 
 @export_group("Look")
-@export var sclera_color: Color = ArtPalette.MOON
+@export var sclera_color: Color = ArtPalette.SCLERA
 @export var iris_color: Color = ArtPalette.dye(0)
 @export var pupil_color: Color = ArtPalette.PUPIL
 @export var rim_color: Color = ArtPalette.EYE_RIM

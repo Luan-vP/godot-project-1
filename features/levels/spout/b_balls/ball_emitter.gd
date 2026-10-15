@@ -32,7 +32,7 @@ const QUIET_SPEED := 45.0
 const BALL_LAYER := 1 << 3
 const WALL_LAYER := 1 << 4
 
-## Billiard colours, moon-white cue ball first.
+## Billiard colours, ivory cue ball first.
 const COLORS: Array[Color] = ArtPalette.BALLS
 
 ## Whether to read the pad and keyboard; off for tests.

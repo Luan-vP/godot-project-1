@@ -30,19 +30,23 @@ func test_every_pour_uses_the_same_dyes() -> void:
 	assert_eq(ArtPalette.dye(ArtPalette.DYES.size()), ArtPalette.DYES[0], "Wraps")
 
 
-func test_the_wheel_passes_through_each_colour_and_wraps() -> void:
-	for i in ArtPalette.WHEEL.size():
-		var t := float(i) / ArtPalette.WHEEL.size()
-		assert_eq(ArtPalette.wheel(t), ArtPalette.WHEEL[i], "Colour %d" % i)
-	assert_eq(ArtPalette.wheel(1.0), ArtPalette.wheel(0.0), "Wraps")
-
-
-func test_pins_take_twelve_distinct_colours_from_the_wheel() -> void:
+func test_pins_take_twelve_distinct_colours() -> void:
 	var seen := {}
 	for note in 12:
 		seen[PinField.note_color(note).to_html()] = true
 	assert_eq(seen.size(), 12, "One per pitch class")
 	assert_eq(PinField.note_color(0), PinField.note_color(12), "Octaves match")
+
+
+func test_the_art_does_not_lean_on_the_ui_tokens() -> void:
+	# So the menus can be restyled without the water changing with them.
+	var source := FileAccess.get_file_as_string("res://features/ui/design/art_palette.gd")
+	assert_false(source.contains("UiTokens."), "ArtPalette stands on its own")
+
+
+func test_the_paper_is_a_light_slate_not_a_void() -> void:
+	assert_gt(ArtPalette.PAPER.get_luminance(), 0.12, "Light enough for a wash to read")
+	assert_gt(ArtPalette.PAPER.b, ArtPalette.PAPER.r, "Blue-slate")
 
 
 func test_the_tank_paints_on_the_palettes_paper() -> void:

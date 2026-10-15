@@ -313,6 +313,6 @@ func _make_eye(index: int, extent: Vector2) -> FloatyEye:
 	eye.wake_strength = 5.0 + eye.radius * 0.07
 	eye.drag = 4.4 - eye.radius * 0.03
 	eye.paint_amount = 0.55
-	eye.paint_color = eye.iris_color.lerp(ArtPalette.MOON, 0.35)
+	eye.paint_color = eye.iris_color.lerp(ArtPalette.WASH, 0.35)
 	eye.paint_radius = eye.radius * 1.4
 	return eye
