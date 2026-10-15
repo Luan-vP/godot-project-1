@@ -14,7 +14,7 @@ extends FluidBody
 
 var active := false
 var age := 0.0
-var color := ArtPalette.AZURE
+var color := ArtPalette.DROPLET
 
 
 func _init() -> void:

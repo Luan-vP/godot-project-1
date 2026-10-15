@@ -14,7 +14,7 @@ extends Resource
 @export var deep_color: Color = ArtPalette.DEEP
 
 ## Per-channel absorption. Unequal channels are what stops thick pigment from
-## going flatly grey — here red and blue survive longest, so depth reads violet.
+## going flatly grey — here blue survives longest, so depth reads cool.
 @export var absorption: Vector3 = ArtPalette.ABSORPTION
 
 ## Pigment present everywhere, even with no dye. Sets the resting depth.

@@ -230,12 +230,11 @@ static func note_name(note: int) -> String:
 	return "%s%d" % [NOTE_NAMES[posmod(note, 12)], floori(note / 12.0) - 1]
 
 
-## A pin's colour by pitch class, round [method ArtPalette.wheel], so the same
-## note reads the same anywhere on the field and a new scale visibly changes the
+## A pin's colour by pitch class ([method ArtPalette.pin]), so the same note
+## reads the same anywhere on the field and a new scale visibly changes the
 ## colours as it scrolls in.
 static func note_color(note: int, brightness: float = 1.0) -> Color:
-	var colour := ArtPalette.wheel(posmod(note, 12) / 12.0)
-	return colour.darkened(clampf(0.45 - 0.4 * brightness, 0.0, 1.0))
+	return ArtPalette.pin(note, brightness)
 
 
 func _play(note: int, velocity: float) -> void:
@@ -285,20 +284,20 @@ func _draw() -> void:
 		var column := _columns[i]
 		var at := _positions[i]
 		var note := note_for(i)
-		var color := note_color(note) if note >= 0 else Color(ArtPalette.MOON, 0.8)
+		var color := note_color(note) if note >= 0 else ArtPalette.PIN_BLANK
 		var flash := _flash[i]
 		var pop := 1.0 + 0.45 * _flip[column]
 		if flash > 0.0:
 			draw_circle(at, pin_radius * (1.6 + 1.4 * flash), Color(color, 0.22 * flash))
-		draw_circle(at, pin_radius * pop, color.lerp(ArtPalette.MOON, flash * 0.6))
-		var outline := Color(ArtPalette.MOON, 0.45)
+		draw_circle(at, pin_radius * pop, color.lerp(ArtPalette.LIGHT, flash * 0.6))
+		var outline := Color(ArtPalette.LIGHT, 0.45)
 		draw_arc(at, pin_radius * pop, 0.0, TAU, 24, outline, 1.5, true)
 		if _scale != null and _scale.pending_for(column) >= 0:
 			var waiting := note_color(_scale.pending_for(column))
 			var ring := pin_radius + 4.0 + 2.0 * shimmer
 			draw_arc(at, ring, 0.0, TAU, 24, Color(waiting, 0.5 + 0.4 * shimmer), 2.0, true)
 		if column == scrolling_at:
-			draw_arc(at, pin_radius + 9.0, 0.0, TAU, 24, Color(ArtPalette.MOON, 0.5), 1.5, true)
+			draw_arc(at, pin_radius + 9.0, 0.0, TAU, 24, Color(ArtPalette.LIGHT, 0.5), 1.5, true)
 	if show_note_names and _scale != null:
 		var bottom := area.end.y + pin_radius + 22.0
 		var gap := area.size.x / maxf(1.0, pins_per_row - 1) * 0.5
