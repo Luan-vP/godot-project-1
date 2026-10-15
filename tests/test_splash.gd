@@ -74,3 +74,11 @@ func test_a_full_probe_leaves_the_splash_out() -> void:
 		assert_ne(demo["name"], "Splash", "Not probed")
 	var named := DemoMenu.launch_options(PackedStringArray(["--probe=splash"]))
 	assert_eq((named["probe"] as Array).size(), 1, "Unless asked for by name")
+
+
+func test_the_lockup_sits_in_the_middle_and_fits() -> void:
+	for screen in [Vector2(1280, 800), Vector2(540, 960), Vector2(1920, 1080)]:
+		var rect := Splash.logo_rect_for(screen)
+		assert_almost_eq(rect.get_center().x, screen.x * 0.5, 0.5, "Centred across %s" % screen)
+		assert_almost_eq(rect.get_center().y, screen.y * 0.5, 0.5, "Centred down %s" % screen)
+		assert_true(Rect2(Vector2.ZERO, screen).encloses(rect), "On screen at %s" % screen)

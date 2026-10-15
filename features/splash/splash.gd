@@ -16,6 +16,8 @@ extends Control
 signal finished
 
 const MENU_PATH := "res://features/ui/demo_menu/demo_menu.tscn"
+## The full lockup: the shell, GOLDEN RULE and ENGINEERING, in the brand's
+## gold with the black lettering turned white for a black screen.
 const LOGO := preload("res://features/splash/logo.png")
 
 ## The timeline, in seconds: black, fade in, held, fade out, black.
@@ -25,8 +27,10 @@ const HOLD := 1.8
 const FADE_OUT := 0.9
 const LEAD_OUT := 0.25
 
-## The logo's width, as a share of the screen's shorter side.
-const LOGO_SCALE := 0.42
+## The lockup's width, as a share of the screen's width, and the most of the
+## screen's height it may take.
+const LOGO_SCALE := 0.62
+const LOGO_MAX_HEIGHT := 0.6
 
 ## E-flat major 9, voiced warm and low, as MIDI notes: the root alone in the
 ## bass (Eb2), then the fifth, third, major seventh and ninth over it (Bb2, G3,
@@ -153,11 +157,18 @@ func _menu() -> DemoMenu:
 
 
 func _fit_logo() -> void:
-	var screen := get_viewport_rect().size
-	var width := minf(screen.x, screen.y) * LOGO_SCALE
-	var height := width * LOGO.get_height() / LOGO.get_width()
-	_logo.size = Vector2(width, height)
-	_logo.position = (screen - _logo.size) * 0.5
+	var rect := logo_rect_for(get_viewport_rect().size)
+	_logo.size = rect.size
+	_logo.position = rect.position
+
+
+## Where the lockup sits on a [param screen]-sized screen: centred, a share of
+## the width, but never taller than a share of the height.
+static func logo_rect_for(screen: Vector2) -> Rect2:
+	var aspect := float(LOGO.get_height()) / LOGO.get_width()
+	var width := minf(screen.x * LOGO_SCALE, screen.y * LOGO_MAX_HEIGHT / aspect)
+	var size := Vector2(width, width * aspect)
+	return Rect2((screen - size) * 0.5, size)
 
 
 func _build_synths() -> void:
