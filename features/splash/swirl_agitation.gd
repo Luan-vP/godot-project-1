@@ -14,7 +14,7 @@ extends SplashAgitation
 @export var reach: float = 0.2
 ## The push along the outer ring at the swell's peak, in pixels/second^2;
 ## inner rings push in proportion to their radius.
-@export var strength: float = 250.0
+@export var strength: float = 140.0
 ## Turns the ring makes over the whole swirl, so the pushes do not stay put.
 @export var turns: float = 0.35
 ## Clockwise when true, as a hand stirring a cup from above usually would.
