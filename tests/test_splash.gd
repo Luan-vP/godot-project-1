@@ -1,7 +1,7 @@
 extends GutTest
 ## Covers the fluid splash: its timeline, when it steps aside for a job, the
-## logo printed as pigment, the swipe, and closing back to the menu when the
-## menu opened it.
+## logo printed as pigment, the swipe and the swirl, and closing back to the
+## menu when the menu opened it.
 
 const MENU_SCENE := preload("res://features/ui/demo_menu/demo_menu.tscn")
 const SPLASH_PATH := "res://features/splash/splash.tscn"
@@ -70,6 +70,50 @@ func test_the_swipe_crosses_the_logo_left_to_right() -> void:
 		last = x
 
 
+func test_the_chord_is_ebmaj9_and_stays_low() -> void:
+	var notes: Array[int] = [Splash.CHORD_BASS]
+	notes.append_array(Splash.CHORD_VOICES)
+	var classes := {}
+	for note in notes:
+		classes[note % 12] = true
+	# Eb, G, Bb, D, F: root, third, fifth, major seventh, ninth.
+	for pitch_class in [3, 7, 10, 2, 5]:
+		assert_true(classes.has(pitch_class), "Has pitch class %d" % pitch_class)
+	for note in notes:
+		assert_lte(note, 65, "Nothing above F4")
+
+
+func test_the_splash_swirls() -> void:
+	assert_true(Splash.new().agitation is SwirlAgitation)
+
+
+func test_the_swirl_swells_and_eases_off() -> void:
+	var swirl := SwirlAgitation.new()
+	assert_almost_eq(swirl.swell(0.0), 0.0, 0.001, "Gentle start")
+	assert_almost_eq(swirl.swell(swirl.seconds * 0.5), 1.0, 0.001, "Peak midway")
+	assert_almost_eq(swirl.swell(swirl.seconds), 0.0, 0.001, "Gentle end")
+
+
+func test_the_swirl_pushes_round_the_centre_harder_further_out() -> void:
+	var swirl := SwirlAgitation.new()
+	var tank := PushRecorder.new()
+	autofree(tank)
+	var logo := Rect2(400, 200, 480, 420)
+	swirl.stir(tank, swirl.seconds * 0.5, 1.0 / 60.0, logo)
+	assert_eq(tank.pushes.size(), swirl.points * swirl.rings.size(), "Every point of every ring")
+	var inner := INF
+	var outer := 0.0
+	for push in tank.pushes:
+		var radial: Vector2 = push[0] - logo.get_center()
+		var along: Vector2 = push[1]
+		assert_almost_eq(radial.normalized().dot(along.normalized()), 0.0, 0.001, "Along the ring")
+		if radial.length() < logo.size.y * 0.25:
+			inner = minf(inner, along.length())
+		else:
+			outer = maxf(outer, along.length())
+	assert_lt(inner, outer, "Harder further out")
+
+
 func test_opened_from_the_menu_it_closes_back_to_it() -> void:
 	var menu: DemoMenu = MENU_SCENE.instantiate()
 	menu.quits_tree = false
@@ -92,3 +136,15 @@ func test_a_full_probe_leaves_the_splash_out() -> void:
 		assert_ne(demo["name"], "Splash", "Not probed")
 	var named := DemoMenu.launch_options(PackedStringArray(["--probe=splash"]))
 	assert_eq((named["probe"] as Array).size(), 1, "Unless asked for by name")
+
+
+## Records the pushes it is given instead of running a solve.
+class PushRecorder:
+	extends FluidSimulation
+
+	var pushes: Array = []
+
+	func add_velocity_impulse(
+		world_position: Vector2, world_acceleration: Vector2, _radius: float, _duration: float
+	) -> void:
+		pushes.append([world_position, world_acceleration])
