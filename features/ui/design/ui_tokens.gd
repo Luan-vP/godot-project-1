@@ -4,9 +4,11 @@ extends RefCounted
 ## look is made of. Change a value here and [UiTheme] carries it to every menu,
 ## card, button and backdrop; nothing under features/ui hard-codes its own.
 ##
-## The look is arcane-digital: a near-black violet void, hairline borders the
-## colour of a dim screen, a teal "rune" glow for whatever is selected, and a
-## violet "sigil" for ornament. Titles are set in Cinzel, an inscription face;
+## The look is rainbow arcane-digital: a near-black violet void, hairline
+## borders the colour of a dim screen, a teal "rune" glow for whatever is
+## selected, a violet "sigil" for ornament, and the [constant SPECTRUM] running
+## through the sigils, the rules and the cards so the menus carry the same five
+## hues as the tank. Titles are set in Cinzel, an inscription face;
 ## everything else in Share Tech Mono, a terminal face.
 
 # --- Colour ---------------------------------------------------------------
@@ -28,6 +30,17 @@ const SIGIL := Color("9d7bff")
 const EMBER := Color("ffb35c")
 ## Gone wrong: a clip, a part about to be cut.
 const ALERT := Color("ff5c7a")
+
+## The rainbow: the tank's five pigments (teal, coral, violet, gold, blue),
+## lifted to glow on the void. Cards take one each in turn, and sigils and
+## rules run through them.
+const SPECTRUM: Array[Color] = [
+	Color(0.45, 0.88, 0.83),
+	Color(0.98, 0.56, 0.48),
+	Color(0.69, 0.58, 0.97),
+	Color(0.99, 0.82, 0.45),
+	Color(0.43, 0.67, 0.98),
+]
 
 const TEXT := Color("e8e4ff")
 const MUTED := Color("8d89b3")
@@ -88,3 +101,16 @@ const BUTTON_HEIGHT := 56.0
 const SIGIL_RPM := 0.6
 ## Seconds per sweep of the scan line down the backdrop.
 const SCAN_SECONDS := 9.0
+
+
+## The [constant SPECTRUM] colour for slot [param index], wrapping.
+static func hue(index: int) -> Color:
+	return SPECTRUM[posmod(index, SPECTRUM.size())]
+
+
+## A colour [param t] of the way round the [constant SPECTRUM], blending
+## between neighbours and wrapping at 1.
+static func spectrum(t: float) -> Color:
+	var at := fposmod(t, 1.0) * SPECTRUM.size()
+	var from := int(at)
+	return SPECTRUM[from].lerp(SPECTRUM[(from + 1) % SPECTRUM.size()], at - from)

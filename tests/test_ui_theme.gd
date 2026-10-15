@@ -162,3 +162,35 @@ func test_hud_scripts_leave_text_colour_and_type_to_the_theme() -> void:
 		assert_false(source.contains("font_size_override"), "%s sets no font sizes" % path)
 		assert_false(source.contains("theme_color_override"), "%s sets no text colours" % path)
 		assert_false(source.contains("ThemeDB.fallback_font"), "%s draws in the HUD face" % path)
+
+
+func test_the_spectrum_wraps_and_blends() -> void:
+	assert_eq(UiTokens.SPECTRUM.size(), 5, "The tank's five hues")
+	assert_eq(UiTokens.hue(UiTokens.SPECTRUM.size()), UiTokens.hue(0), "Wraps")
+	for i in UiTokens.SPECTRUM.size():
+		var t := float(i) / UiTokens.SPECTRUM.size()
+		assert_eq(UiTokens.spectrum(t), UiTokens.SPECTRUM[i], "Passes through %d" % i)
+	assert_eq(UiTokens.spectrum(1.0), UiTokens.spectrum(0.0), "Round again")
+
+
+func test_the_menu_cards_run_round_the_spectrum() -> void:
+	var menu: Control = load("res://features/ui/demo_menu/demo_menu.tscn").instantiate()
+	add_child_autofree(menu)
+	var cards := menu.find_child("Cards", true, false)
+	var last := Color(0, 0, 0, 0)
+	for i in cards.get_child_count():
+		var ornament := cards.get_child(i).get_node("Ornament") as ArcaneCard
+		assert_eq(ornament.hue, UiTokens.hue(i), "Card %d" % i)
+		assert_ne(ornament.hue, last, "Each its own hue next to the last")
+		last = ornament.hue
+
+
+func test_the_colours_the_art_leans_on_are_unchanged() -> void:
+	# The art palette may still be built on these; restyling the menus must
+	# not repaint the tank.
+	assert_eq(UiTokens.RUNE, Color("5ef2d6"))
+	assert_eq(UiTokens.SIGIL, Color("9d7bff"))
+	assert_eq(UiTokens.EMBER, Color("ffb35c"))
+	assert_eq(UiTokens.ALERT, Color("ff5c7a"))
+	assert_eq(UiTokens.VOID, Color("07060d"))
+	assert_eq(UiTokens.LINE, Color("2c2950"))

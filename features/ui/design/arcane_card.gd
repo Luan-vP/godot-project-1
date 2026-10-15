@@ -4,10 +4,16 @@ extends Control
 ##
 ## [method make] returns a plain [Button] in the [constant UiTheme.CARD] role
 ## carrying a name, a line of description and an index, with one of these
-## drawn over it: corner brackets in the sigil colour that turn rune-bright,
-## and a lit edge, while the card is hovered or focused.
+## drawn over it in the card's own [member hue]: dim corner brackets at rest,
+## and bright brackets, a frame and a lit edge while the card is hovered or
+## focused. Give each card in a list the next hue round
+## [constant UiTokens.SPECTRUM] ([method UiTokens.hue]) and the list reads as a
+## rainbow.
 
 const GLOW_WIDTH := 3.0
+
+## The card's colour. Transparent means the rune teal.
+var hue := Color(0, 0, 0, 0)
 
 
 ## A card [Button] named [param node_name], showing [param title] over
@@ -18,7 +24,8 @@ static func make(
 	title: String,
 	blurb: String,
 	index: String,
-	height: float = UiTokens.CARD_HEIGHT
+	height: float = UiTokens.CARD_HEIGHT,
+	colour: Color = UiTokens.RUNE
 ) -> Button:
 	var button := Button.new()
 	button.name = node_name
@@ -51,6 +58,8 @@ static func make(
 	if not index.is_empty():
 		var index_label := UiTheme.label(index, UiTheme.CARD_INDEX)
 		index_label.name = "Index"
+		# The role is a soft white; the card's hue tints it.
+		index_label.self_modulate = Color(colour, 1.0)
 		head.add_child(index_label)
 
 	if not blurb.is_empty():
@@ -61,6 +70,7 @@ static func make(
 
 	var ornament := ArcaneCard.new()
 	ornament.name = "Ornament"
+	ornament.hue = colour
 	button.add_child(ornament)
 	return button
 
@@ -90,7 +100,8 @@ func _ready() -> void:
 func _draw() -> void:
 	var card := get_parent() as BaseButton
 	var lit := card != null and (card.has_focus() or card.is_hovered())
-	var colour := UiTokens.RUNE if lit else Color(UiTokens.SIGIL, 0.45)
+	var own := hue if hue.a > 0.0 else UiTokens.RUNE
+	var colour := own if lit else Color(own, 0.85)
 	var arm := UiTokens.BRACKET
 	var inset := 3.0
 	var corners := [
@@ -103,7 +114,13 @@ func _draw() -> void:
 		var at: Vector2 = corner[0]
 		draw_line(at, at + corner[1] * arm, colour, 1.0)
 		draw_line(at, at + corner[2] * arm, colour, 1.0)
-	if lit:
+	if not lit:
+		# At rest the plate's hairline takes the card's hue too.
+		draw_rect(Rect2(Vector2.ONE * 0.5, size - Vector2.ONE), Color(own, 0.32), false, 1.0)
+	else:
+		var width := UiTokens.BORDER_FOCUS if card.has_focus() else UiTokens.BORDER
+		var frame := Rect2(Vector2.ONE * width * 0.5, size - Vector2.ONE * width)
+		draw_rect(frame, Color(own, 1.0 if card.has_focus() else 0.6), false, width)
 		var edge := Rect2(0.0, size.y * 0.2, GLOW_WIDTH, size.y * 0.6)
-		draw_rect(edge, UiTokens.RUNE)
-		draw_rect(edge.grow_individual(0, 0, 6.0, 0), Color(UiTokens.RUNE, 0.15))
+		draw_rect(edge, own)
+		draw_rect(edge.grow_individual(0, 0, 6.0, 0), Color(own, 0.15))

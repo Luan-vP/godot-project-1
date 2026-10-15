@@ -3,7 +3,8 @@ extends Control
 ## The menus' ground: a violet void, a lattice of faint points, a great sigil
 ## turning slowly off to one side, and a scan line sweeping down the screen.
 ##
-## Everything is drawn, nothing loaded, and all of it in [UiTokens] colours.
+## Everything is drawn, nothing loaded, and all of it in [UiTokens] colours:
+## the sigil's rings run round the [constant UiTokens.SPECTRUM].
 ## It only animates while it is visible, so a menu hidden behind a running
 ## demo costs nothing.
 
@@ -72,16 +73,17 @@ func _draw_sigil() -> void:
 	var turn := _time * UiTokens.SIGIL_RPM / 60.0 * TAU
 	var faint := _with_alpha(UiTokens.SIGIL, 0.14)
 	var fainter := _with_alpha(UiTokens.SIGIL, 0.08)
-	var glint := _with_alpha(UiTokens.RUNE, 0.16)
 
 	draw_arc(centre, radius, 0.0, TAU, 160, faint, 1.0, true)
 	draw_arc(centre, radius * 0.94, 0.0, TAU, 160, fainter, 1.0, true)
+	# The tick ring runs once round the spectrum.
 	for i in TICKS:
 		var angle := turn + TAU * i / TICKS
 		var long := i % LONG_TICK_EVERY == 0
 		var inner := radius * (0.9 if long else 0.94)
 		var direction := Vector2.from_angle(angle)
-		draw_line(centre + direction * inner, centre + direction * radius, faint, 1.0, true)
+		var tick := _with_alpha(UiTokens.spectrum(float(i) / TICKS), 0.5 if long else 0.32)
+		draw_line(centre + direction * inner, centre + direction * radius, tick, 1.0, true)
 
 	# The code ring, turning the other way: dashes of varying length.
 	var code_radius := radius * 0.78
@@ -89,7 +91,8 @@ func _draw_sigil() -> void:
 		var length: int = CODE_PATTERN[i % CODE_PATTERN.size()]
 		var start := -turn * 1.6 + TAU * i / CODE_MARKS
 		var sweep := TAU / CODE_MARKS * 0.22 * length
-		draw_arc(centre, code_radius, start, start + sweep, 6, glint, 2.0, true)
+		var dash := _with_alpha(UiTokens.spectrum(float(i) / CODE_MARKS + 0.5), 0.42)
+		draw_arc(centre, code_radius, start, start + sweep, 6, dash, 2.0, true)
 
 	# Two triangles make a hexagram, inside a ring, turning slowly.
 	var star_radius := radius * 0.6
@@ -106,7 +109,7 @@ func _draw_sigil() -> void:
 	# A bright node where each point of the star meets the ring.
 	for k in 6:
 		var at := centre + Vector2.from_angle(turn * 0.5 + TAU * k / 6.0) * star_radius
-		_draw_diamond(at, 4.0, _with_alpha(UiTokens.RUNE, 0.3))
+		_draw_diamond(at, 4.0, _with_alpha(UiTokens.hue(k), 0.85))
 
 
 func _draw_scan() -> void:
