@@ -51,6 +51,7 @@ var _elapsed: float = 0.0
 var _current_bias: Vector2 = Vector2.ZERO
 var _pending_nudge: Vector2 = Vector2.ZERO
 var _clear_requested: bool = false
+var _dye_stamp := PackedByteArray()
 var _frames_to_readback: int = 1
 var _configured: bool = false
 
@@ -163,6 +164,25 @@ func add_paint(
 	)
 
 
+## Replace the whole pigment field with [param dye] on the next step: a way to
+## print a picture into the tank, which then moves with the water like any
+## other pigment. [param dye] is premultiplied like the field ([code].rgb[/code]
+## is pigment * density, [code].a[/code] is density) and exactly
+## [method FluidConfig.simulation_size] across; anything else is refused.
+## One-shot, like the splats; a no-op without pigment.
+func stamp_dye(dye: Image) -> void:
+	if not _configured or not config.pigment_enabled or dye == null:
+		return
+	if dye.get_size() != config.simulation_size():
+		push_error(
+			"stamp_dye wants a %s image, got %s" % [config.simulation_size(), dye.get_size()]
+		)
+		return
+	var copy := dye.duplicate() as Image
+	copy.convert(Image.FORMAT_RGBAH)
+	_dye_stamp = copy.get_data()
+
+
 ## Lean the whole current one way, in pixels/second^2, until changed. This is
 ## a bias on the ambient drift rather than gravity: the tank leans, it does not
 ## pour, so what floats in it stays floating.
@@ -227,6 +247,7 @@ func _frame(step: float) -> Dictionary:
 		"dye_splats": _pack_splats(_dye_slots, _dye_paints),
 		"dye_splat_count": _dye_slots.size(),
 		"clear": _clear_requested,
+		"dye_stamp": _dye_stamp,
 		"readback": wants_readback,
 	}
 
@@ -236,6 +257,7 @@ func _frame(step: float) -> Dictionary:
 func _consume_queues() -> void:
 	_pending_nudge = Vector2.ZERO
 	_clear_requested = false
+	_dye_stamp = PackedByteArray()
 	_velocity_slots.clear()
 	_velocity_shapes.clear()
 	_velocity_weights.clear()
