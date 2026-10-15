@@ -70,6 +70,19 @@ func test_the_swipe_crosses_the_logo_left_to_right() -> void:
 		last = x
 
 
+func test_the_chord_is_ebmaj9_and_stays_low() -> void:
+	var notes: Array[int] = [Splash.CHORD_BASS]
+	notes.append_array(Splash.CHORD_VOICES)
+	var classes := {}
+	for note in notes:
+		classes[note % 12] = true
+	# Eb, G, Bb, D, F: root, third, fifth, major seventh, ninth.
+	for pitch_class in [3, 7, 10, 2, 5]:
+		assert_true(classes.has(pitch_class), "Has pitch class %d" % pitch_class)
+	for note in notes:
+		assert_lte(note, 65, "Nothing above F4")
+
+
 func test_the_splash_swirls() -> void:
 	assert_true(Splash.new().agitation is SwirlAgitation)
 

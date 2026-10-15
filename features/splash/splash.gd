@@ -1,6 +1,7 @@
 class_name Splash
 extends Control
-## The studio logo printed into a fluid tank: it appears still, then time
+## The studio logo printed into a fluid tank: it appears still, on a jazzy
+## chord, then time
 ## starts, the water is swirled slowly ([member agitation]) and the logo winds
 ## into a spiral and dissolves, and the demo menu takes over.
 ##
@@ -53,6 +54,16 @@ const DRIFT := 10.0
 ## resolution a hand-sized push with their curl runs away.
 const VORTICITY := 10.0
 
+## E-flat major 9, voiced warm and low, as MIDI notes: the root alone in the
+## bass (Eb2), then the fifth, third, major seventh and ninth over it (Bb2, G3,
+## D4, F4). Nothing above F4, so it is a chord, not a chime.
+const CHORD_BASS := 39
+const CHORD_VOICES: Array[int] = [46, 55, 62, 65]
+## Seconds between each voice of the strum, low to high.
+const STRUM := 0.045
+## How long the keys are held before they are let go to ring out.
+const CHORD_HOLD := 1.2
+
 ## Command-line arguments (after [code]--[/code]) that mean a job, not a
 ## player, started the game. The menu handles each of them.
 const JOB_ARGS: Array[String] = ["--prs", "--from-picker", "--no-splash", "--probe"]
@@ -64,6 +75,8 @@ const JOB_PREFIXES: Array[String] = ["--open=", "--probe="]
 var fluid: FluidSimulation
 var _config: FluidConfig
 var _curtain: ColorRect
+var _keys: Synth
+var _pad: Synth
 var _logo_rect: Rect2
 var _time := 0.0
 var _flowing := false
@@ -91,12 +104,16 @@ func _ready() -> void:
 	_curtain.color = Color.BLACK
 	_curtain.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(_curtain)
+	_build_synths()
 
 
 func _process(delta: float) -> void:
 	if _done:
 		return
+	var was := _time
 	_time += delta
+	if was < LEAD_IN and _time >= LEAD_IN:
+		_play_chord()
 	if _curtain != null:
 		_curtain.color.a = 1.0 - visibility_at(_time, agitation.seconds)
 	var stir_from := LEAD_IN + REVEAL + HOLD
@@ -236,6 +253,59 @@ func _build_tank(screen: Vector2) -> void:
 	renderer.style = style
 	add_child(renderer)
 	renderer.simulation_path = renderer.get_path_to(fluid)
+
+
+func _build_synths() -> void:
+	# Electric-piano keys: a sine struck fast and left to ring.
+	var keys := SynthPatch.new()
+	keys.waveform = SynthWavetable.Waveform.SINE
+	keys.attack_seconds = 0.008
+	keys.release_seconds = 2.2
+	keys.level = 0.08
+	_keys = Synth.new()
+	_keys.name = "Keys"
+	_keys.patch = keys
+	_keys.polyphony = 8
+	add_child(_keys)
+
+	# A soft square underneath, swelling in, for warmth.
+	var pad := SynthPatch.new()
+	pad.waveform = SynthWavetable.Waveform.SQUARE
+	pad.attack_seconds = 0.35
+	pad.release_seconds = 1.6
+	pad.level = 0.025
+	_pad = Synth.new()
+	_pad.name = "Pad"
+	_pad.patch = pad
+	_pad.polyphony = 8
+	add_child(_pad)
+
+
+func _play_chord() -> void:
+	if _keys == null:
+		return
+	var notes: Array[int] = [CHORD_BASS]
+	notes.append_array(CHORD_VOICES)
+	for i in notes.size():
+		var hz := Band.midi_to_hz(notes[i])
+		if i == 0:
+			_strike(hz)
+		else:
+			get_tree().create_timer(STRUM * i).timeout.connect(_strike.bind(hz))
+	get_tree().create_timer(CHORD_HOLD).timeout.connect(_let_go)
+
+
+func _strike(hz: float) -> void:
+	if _done or _keys == null:
+		return
+	_keys.note_on(hz, 0.9)
+	_pad.note_on(hz, 0.7)
+
+
+func _let_go() -> void:
+	if is_instance_valid(_keys):
+		_keys.release_all()
+		_pad.release_all()
 
 
 func _start_time() -> void:
