@@ -423,7 +423,12 @@ func _build() -> void:
 
 func _card(demo: Dictionary, number: int) -> Button:
 	var button := ArcaneCard.make(
-		demo["name"], demo["name"], demo["blurb"], ArcaneCard.index_for(number)
+		demo["name"],
+		demo["name"],
+		demo["blurb"],
+		ArcaneCard.index_for(number),
+		UiTokens.CARD_HEIGHT,
+		UiTokens.hue(number - 1)
 	)
 	button.tooltip_text = demo["path"]
 	button.pressed.connect(open_demo.bind(demo["path"]))

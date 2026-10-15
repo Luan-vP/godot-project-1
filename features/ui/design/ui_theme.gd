@@ -115,8 +115,8 @@ static func header(kicker: String, title: String, hint: String = "") -> VBoxCont
 	return stack
 
 
-## A divider: a sigil-coloured hairline that fades out to the right, with a
-## small rune diamond at its start.
+## A divider: a hairline running through the spectrum and fading out to the
+## right, with a small rune diamond at its start.
 static func rule() -> Control:
 	var line := Control.new()
 	line.name = "Rule"
@@ -126,11 +126,15 @@ static func rule() -> Control:
 		func() -> void:
 			var y := line.size.y * 0.5
 			var width := line.size.x
-			var points := PackedVector2Array([Vector2(14.0, y), Vector2(width, y)])
-			var colours := PackedColorArray(
-				[Color(UiTokens.SIGIL, 0.7), Color(UiTokens.SIGIL, 0.0)]
-			)
-			line.draw_polyline_colors(points, colours, 1.0)
+			# Through the spectrum, fading out to the right.
+			var points := PackedVector2Array()
+			var colours := PackedColorArray()
+			var steps := 24
+			for i in steps + 1:
+				var t := float(i) / steps
+				points.append(Vector2(lerpf(14.0, width, t), y))
+				colours.append(Color(UiTokens.spectrum(t * 0.999), 1.0 - t * 0.85))
+			line.draw_polyline_colors(points, colours, 1.5)
 			var half := 4.0
 			var diamond_points := PackedVector2Array(
 				[
@@ -227,7 +231,11 @@ static func _labels(theme: Theme, mono: Font, display: Font) -> void:
 	_label_role(theme, CARD_TITLE, display_font(1), UiTokens.SIZE_HEADING, UiTokens.TEXT)
 	_label_role(theme, CARD_BLURB, mono, UiTokens.SIZE_SMALL, UiTokens.MUTED)
 	_label_role(
-		theme, CARD_INDEX, mono_font(UiTokens.LABEL_TRACKING), UiTokens.SIZE_TINY, UiTokens.FAINT
+		theme,
+		CARD_INDEX,
+		mono_font(UiTokens.LABEL_TRACKING),
+		UiTokens.SIZE_TINY,
+		Color(UiTokens.TEXT, 0.6)
 	)
 
 	_label_role(theme, HUD, mono, UiTokens.SIZE_HUD, UiTokens.HUD_TEXT)
@@ -261,6 +269,9 @@ static func _buttons(theme: Theme) -> void:
 
 	theme.set_type_variation(CARD, "Button")
 	_button_states(theme, CARD)
+	# A card draws its own frame, in its own hue (see ArcaneCard).
+	theme.set_stylebox("focus", CARD, StyleBoxEmpty.new())
+	theme.set_stylebox("hover", CARD, plate(UiTokens.PANEL_HOVER, UiTokens.LINE))
 
 	for state in ["font_color", "font_focus_color"]:
 		theme.set_color(state, "CheckBox", UiTokens.TEXT)

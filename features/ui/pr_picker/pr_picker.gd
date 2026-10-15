@@ -335,7 +335,7 @@ func _on_pulls_received(
 	_reset_merge_hold()
 	var now := int(Time.get_unix_time_from_system())
 	for entry in entries:
-		_list.add_child(_card(entry, now))
+		_list.add_child(_card(entry, now, _list.get_child_count()))
 	if entries.is_empty():
 		_set_status("No open pull requests.")
 		return
@@ -432,13 +432,14 @@ func _build() -> void:
 	content.add_child(_log_view)
 
 
-func _card(entry: Dictionary, now_unix: int) -> Button:
+func _card(entry: Dictionary, now_unix: int, slot: int) -> Button:
 	var button := ArcaneCard.make(
 		"PR%d" % entry["number"],
 		entry["title"],
 		describe(entry, now_unix),
 		"#%d" % entry["number"],
-		UiTokens.ROW_HEIGHT
+		UiTokens.ROW_HEIGHT,
+		UiTokens.hue(slot)
 	)
 	button.pressed.connect(start_build.bind(entry["number"]))
 
