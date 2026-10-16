@@ -69,3 +69,21 @@ func apply_to(material: ShaderMaterial) -> void:
 	material.set_shader_parameter("canvas_grain", canvas_grain)
 	material.set_shader_parameter("canvas_scale", canvas_scale)
 	material.set_shader_parameter("wobble", wobble)
+
+
+## Set [param into] to the look [param weight] of the way from [param from] to
+## [param to]: every colour and number eased, so one tank can move from one
+## look to another without a jump.
+static func blend_into(
+	into: PainterlyStyle, from: PainterlyStyle, to: PainterlyStyle, weight: float
+) -> void:
+	for property in to.get_property_list():
+		if property["usage"] & PROPERTY_USAGE_SCRIPT_VARIABLE == 0:
+			continue
+		var field: String = property["name"]
+		var a: Variant = from.get(field)
+		var b: Variant = to.get(field)
+		if a is float or a is Color or a is Vector3:
+			into.set(field, lerp(a, b, weight))
+		else:
+			into.set(field, b)

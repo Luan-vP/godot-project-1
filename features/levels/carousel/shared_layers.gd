@@ -8,6 +8,11 @@ extends Node2D
 ## stir and paint, and [member band] to play with: wanting parts, moving the
 ## key, following its steps, and adding notes of its own over the top.
 ##
+## The tank is the game's one tank, the [code]Tank[/code] autoload, held for
+## as long as these layers are in the tree: the water the splash swirled the
+## logo away in, and the water the levels go on stirring when the carousel is
+## closed and opened again. Only a tank started here is seeded with paint.
+##
 ## A [FluidCarousel] owns one of these and keeps it through every transition,
 ## so the tank and the song carry on while levels slide over them. The band's
 ## clock (the [AudioManager] loops and tempo) runs without a break, and the
@@ -29,38 +34,26 @@ var band: Band
 ## Where the levels are instanced, drawn above the tank.
 var stage: Node2D
 
-var _renderer: FluidRenderer
-
 
 func _ready() -> void:
-	var extent := get_viewport_rect().size
-
-	var config := FluidConfig.new()
-	config.world_size = extent
-	fluid = FluidSimulation.new()
-	fluid.name = "Fluid"
-	fluid.config = config
-	add_child(fluid)
-
-	_renderer = FluidRenderer.new()
-	_renderer.name = "FluidRenderer"
-	_renderer.z_index = -100
-	add_child(_renderer)
+	var fresh := not Tank.is_started()
+	# The levels' own motion and look; the splash's still water and black paper
+	# ease over into them.
+	fluid = Tank.acquire(self)
+	reset_currents()
 
 	band = Band.new()
 	band.name = "Band"
 	add_child(band)
 	band.start()
 
-	# A tank that starts as flat colour looks like a bug. Seed it, once: every
+	# A tank that starts as flat colour looks like a bug. Seed it, once, when
+	# it starts here: after the splash it already holds the logo, and every
 	# level after the first inherits whatever the others have stirred up.
-	for i in SEED_BLOBS:
-		var where := Vector2(randf(), randf()) * extent
-		fluid.add_paint(
-			where, SEED_PALETTE[i % SEED_PALETTE.size()], SEED_DENSITY, SEED_RADIUS, 1.0
-		)
+	if fresh:
+		_seed()
 
-	# Last, so levels draw over the tank and sit in the tree beneath this node.
+	# Last, so levels sit in the tree beneath this node, after the band.
 	stage = Node2D.new()
 	stage.name = "Stage"
 	add_child(stage)
@@ -94,6 +87,15 @@ static func find(node: Node) -> SharedLayers:
 			return up
 		up = up.get_parent()
 	return null
+
+
+func _seed() -> void:
+	var extent := fluid.config.world_size
+	for i in SEED_BLOBS:
+		var where := Vector2(randf(), randf()) * extent
+		fluid.add_paint(
+			where, SEED_PALETTE[i % SEED_PALETTE.size()], SEED_DENSITY, SEED_RADIUS, 1.0
+		)
 
 
 ## Level out the tank's current. Each level leans it its own way (the spout's
