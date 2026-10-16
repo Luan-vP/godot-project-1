@@ -19,9 +19,16 @@ extends SpoutEmitter
 ##    each pin pushes back against whatever current runs through it, and a
 ##    droplet striking one splashes outwards. The painted stream visibly
 ##    divides around the pins instead of flowing through them.
+##
+## [b]How hard it pours[/b] is up to the player, in steps of the bar
+## ([SpoutFlow], run by [SpoutEmitter]): 2 droplets a bar at the gentlest, up
+## to 16, each leaving on the bar's grid. The jet's push and paint grow with
+## the step. With neither RT nor a touch held the spout is closed.
 
-## Acceleration the jet gives the fluid at the nozzle, pixels/second^2.
-const JET_ACCELERATION := 2600.0
+## Acceleration the jet gives the fluid at the nozzle, pixels/second^2, at
+## the gentlest and fullest steps.
+const JET_ACCELERATION_MIN := 2800.0
+const JET_ACCELERATION_MAX := 6400.0
 const JET_RADIUS := 34.0
 ## Pigment laid at the nozzle, density/second.
 const JET_PAINT := 2.4
@@ -29,10 +36,10 @@ const JET_PAINT_RADIUS := 26.0
 ## The tank's standing lean, so the stream carries on downward.
 const DOWNWARD_LEAN := Vector2(0.0, 45.0)
 
-## Droplets leaving the nozzle per second, their speed, and how far their
-## direction is scattered either side of the aim.
-const DROPLET_RATE := 16.0
-const DROPLET_SPEED := 340.0
+## Droplets' speed leaving the nozzle at the gentlest and fullest steps, and
+## how far their direction is scattered either side of the aim.
+const DROPLET_SPEED_MIN := 280.0
+const DROPLET_SPEED_MAX := 420.0
 const DROPLET_SPREAD := deg_to_rad(7.0)
 const MAX_DROPLETS := 96
 
@@ -52,7 +59,7 @@ const PALETTE_SECONDS := 9.0
 
 var simulation: FluidSimulation
 var _droplets: Array[SpoutDroplet] = []
-var _spawn_debt := 0.0
+var _fired := 0
 var _elapsed := 0.0
 var _hits := 0
 var _rng := RandomNumberGenerator.new()
@@ -66,6 +73,7 @@ func bind(level_node: Node, the_spout: Spout, the_pins: PinField) -> void:
 		simulation = shared.fluid
 	make_pool(MAX_DROPLETS)
 	_rng.randomize()
+	start_flow()
 
 
 ## Fill the droplet pool. Done by [method bind]; separate so tests can have a
@@ -88,20 +96,31 @@ func _physics_process(delta: float) -> void:
 	# arrived. It is a stored vector, so this costs nothing.
 	simulation.set_current_bias(DOWNWARD_LEAN)
 	_elapsed += delta
+	var due := tick_flow()
+	if flow_step() >= 0:
+		_pour(delta, due)
+	_resist_at_pins(delta)
+	collide_droplets()
+
+
+## One frame of pouring: the jet's push and paint, scaled to the step, and
+## [param due] droplets launched on the grid, each with a light haptic tick.
+func _pour(delta: float, due: int) -> void:
+	var strength := flow_fraction()
 	var tint := stream_color(_elapsed)
 	var muzzle := spout.muzzle_position()
 	var dir := spout.direction()
-	simulation.add_velocity_impulse(muzzle, dir * JET_ACCELERATION, JET_RADIUS, delta)
-	simulation.add_paint(muzzle, tint, JET_PAINT, JET_PAINT_RADIUS, delta)
-
-	_spawn_debt += DROPLET_RATE * delta
-	while _spawn_debt >= 1.0:
-		_spawn_debt -= 1.0
+	var push := lerpf(JET_ACCELERATION_MIN, JET_ACCELERATION_MAX, strength)
+	if simulation != null:
+		simulation.add_velocity_impulse(muzzle, dir * push, JET_RADIUS, delta)
+		simulation.add_paint(muzzle, tint, JET_PAINT * (0.5 + strength), JET_PAINT_RADIUS, delta)
+	var speed := lerpf(DROPLET_SPEED_MIN, DROPLET_SPEED_MAX, strength)
+	var haptics: Haptics = level.get("haptics") if level != null else null
+	for i in due:
 		var angle := _rng.randf_range(-DROPLET_SPREAD, DROPLET_SPREAD)
-		spawn_droplet(muzzle, dir.rotated(angle) * DROPLET_SPEED, tint)
-
-	_resist_at_pins(delta)
-	collide_droplets()
+		spawn_droplet(muzzle, dir.rotated(angle) * speed, tint)
+		if haptics != null:
+			haptics.pulse(0.25 + 0.35 * strength, 0.02)
 
 
 ## A droplet from the pool, launched; the oldest in play is recycled when
@@ -115,7 +134,13 @@ func spawn_droplet(at: Vector2, initial: Vector2, tint: Color) -> SpoutDroplet:
 		if chosen == null or droplet.age > chosen.age:
 			chosen = droplet
 	chosen.launch(at, initial, tint)
+	_fired += 1
 	return chosen
+
+
+## Droplets launched since the level began.
+func fired_count() -> int:
+	return _fired
 
 
 func active_count() -> int:
@@ -206,4 +231,11 @@ func hit_count() -> int:
 
 
 func describe() -> String:
-	return "A: fluid · %d droplets · %d pin hits" % [active_count(), _hits]
+	return (
+		"A: fluid · pouring %s · %d droplets · %d pin hits"
+		% [describe_flow(), active_count(), _hits]
+	)
+
+
+func controls_hint() -> String:
+	return "RT or touch pours, 2–16 a bar (touch further away = more; Space full, 1–5)"

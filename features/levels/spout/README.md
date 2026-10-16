@@ -10,8 +10,11 @@ full.
 There are two versions, differing only in what comes out of the spout:
 
 - **A** (`a_fluid/`) pours the eye tank's fluid.
-- **B** (`b_balls/`) fires billiard-like balls, at a rate set by how far RT is
-  pressed, with a haptic tick per ball.
+- **B** (`b_balls/`) fires billiard-like balls, with a haptic tick per ball.
+
+Both pour in **steps of the bar** (see [Pouring in bar subdivisions](#pouring-in-bar-subdivisions)):
+2 drops a bar up to 16, each on the bar's grid, set by RT or by which ring
+round the spout you touch. In the carousel the spout slot plays A or B, 50:50.
 
 `spout_level.tscn` is the shell both build on, with a debug emitter in place
 of either: Space plucks the pin you are aiming at.
@@ -22,9 +25,9 @@ of either: Space plucks the pin you are aiming at.
 | --- | --- | --- | --- |
 | Aim | Either stick | Touch the screen where you want it to point | A / D, or hold the mouse button |
 | Key down / up a fourth | L1 / R1 | `key −4th` / `key +4th` buttons, top right | Q / E |
-| Key down / up a fifth | L2 / R2 (not in B) | — | Z / X |
+| Key down / up a fifth | — (RT pours) | — | Z / X |
 | Next scale (temporary) | Y | A (sends Enter), or the `scale ▸` button | Enter |
-| B: fire | RT, depth = rate | Touch (further from the spout = faster), Y (sends Space) = full | Space = full, 1–5 = depths, or hold the mouse button |
+| Pour / fire, 2–16 a bar | RT, depth = step | Touch: the ring you touch is the step; Y (sends Space) = full | Space = full, 1–5 = depths, or hold the mouse button |
 | Tempo | D-pad | D-pad (sends arrows) | Arrows |
 | Back to the menu | View | View (sends Tab), or the `‹ menu` button | Backspace |
 
@@ -55,7 +58,9 @@ already means "back to the menu".
 | `spout_pointer.gd` | `SpoutPointer` — a touch or held click, aiming the spout while it is down. |
 | `pin_field.gd` | `PinField` — staggered pins with bodies; `hit(pin, strength)` plucks. |
 | `peg_scale.gd` | `PegScale` — pure: which note each column plays, and the scroll. |
-| `spout_emitter.gd` | `SpoutEmitter` — the slot an emitter fills. |
+| `spout_emitter.gd` | `SpoutEmitter` — the slot an emitter fills, and the stepped pour both versions share. |
+| `spout_flow.gd` | `SpoutFlow` — pure: trigger depth and touch distance to a step, drops due on the bar's grid. |
+| `spout_flow_overlay.gd` | `SpoutFlowOverlay` — the rings round the spout, one per step. |
 | `debug_spout_emitter.gd` | `DebugSpoutEmitter` — the shell's stand-in: Space plucks. |
 
 The music is the host's [`Band`](../../../core/audio/band.gd) (see
@@ -98,10 +103,11 @@ The solve has no particles and no solid obstacles, so "a fluid element hits a
 pin" needed an answer. [`FluidEmitter`](a_fluid/fluid_emitter.gd) gives it in
 three parts:
 
-1. **The stream.** Each physics frame the nozzle pushes the fluid along its
-   aim and paints into it, so a painted jet swings with the spout. The tank
-   leans gently downwards to keep it falling.
-2. **Droplets.** Sixteen a second leave the nozzle as small
+1. **The stream.** Each physics frame it pours, the nozzle pushes the fluid
+   along its aim and paints into it, harder at a higher step, so a painted
+   jet swings with the spout. The tank leans gently downwards to keep it
+   falling.
+2. **Droplets.** One per step of the bar's grid leaves the nozzle as a small
    [`SpoutDroplet`](a_fluid/droplet.gd)s — `FluidBody`s that sink, are
    dragged by the real current, and stain the water. They are the fluid
    elements: a droplet striking a pin plays it at a strength set by how fast
@@ -122,31 +128,47 @@ making by ear.
 little bouncy — that clack off the pins, off the side cushions and off each
 other, and leave through the open floor.
 
-**RT sets the rate.** [`SpoutFireRate`](b_balls/spout_fire_rate.gd) maps the
-right trigger's depth to balls per second, in proportion: nothing inside a
-small deadzone, 1/s just past it, 12/s fully pressed. An accumulator carries
-the fraction of a ball owed between frames, so easing the trigger eases the
-rate; the first ball of each press fires at once. Without a pad: Space is
-fully pressed and 1–5 hold fifths of the way.
-
-**Touch fires too.** Touching aims the spout at the finger and fires at once,
-faster the further the finger is from the spout — like drawing a slingshot —
-from a dribble right by the nozzle to the full 12/s down at the pins. A held
-click (the Deck's R2 outside Steam, with the right trackpad as the pointer)
-does the same.
+**RT or a touch sets the step**, as in version A: see below.
 
 **A tick per ball.** Every ball fired asks the level's
 [`Haptics`](../../../core/haptics/README.md) for a 25 ms pulse, a little
-stronger the deeper the trigger. At 12 balls a second the port's rate limit
-decides what is felt.
+stronger the higher the step. At 16 a bar the port's rate limit decides what
+is felt.
 
 **Hits.** A ball reports each pin it strikes with how fast it was closing on
 it — the part of its speed along the line to the pin, taken from the step
 before the bounce — so a straight drop plays loud and a glancing roll plays
 soft or not at all (under 45 px/s stays quiet).
 
+## Pouring in bar subdivisions
+
+Both versions share it, in [`SpoutEmitter`](spout_emitter.gd) with the pure
+rules in [`SpoutFlow`](spout_flow.gd).
+
+**Steps of the bar.** The spout pours (A) or fires (B) at **2, 3, 4, 5, 6, 7,
+8, 9, 10, 12, 14 or 16 drops a bar**. With *n* a bar, one leaves at each
+*k/n* of the bar, so 4 a bar is quarter notes, 3 a triplet feel, 16
+sixteenths — the stream plays in time with the band. The grid is read from
+the music time source the band's `StepClock` plays from, not
+`AudioManager.get_current_bar()`, which only moves while loop layers play.
+Changing step starts counting from that moment, so it never releases a
+burst, and at most two drops leave in one frame.
+
+**RT** past a small deadzone splits its travel evenly into the twelve steps.
+Space is full, 1–5 fixed depths. With nothing held the spout is closed.
+
+**Touch** sets the step by how far from the spout the finger is: the bands
+run evenly from just past the nozzle's tip down to the bottom of the pins.
+Any touch pours, at least 2 a bar.
+
+**The rings.** [`SpoutFlowOverlay`](spout_flow_overlay.gd) draws a ring round
+the spout for each step, labelled with its drops a bar. The band under the
+finger is lit and pulses with each drop; a dashed line runs from the pivot to
+the finger, with an `8 / bar` readout beside it. It fades in on touch and out
+on release; RT shows the lit ring faintly.
+
 **RT is not a key move here.** In the eye band L2/R2 move the key by a fifth;
-here RT fires, so both triggers are left out of key moves and L1/R1 (fourths)
+here RT pours, so both triggers are left out of key moves and L1/R1 (fourths)
 do the job alone — repeated fourths still reach all twelve keys.
 
 ## Tuning so far
@@ -156,10 +178,10 @@ the middle 80% of the screen width, 50-80% of its height; the spout hung at 7%
 of the height; ±60° of aim; 1.6 rad/s at full stick, 0.9 on the keys; pluck
 level 0.11, release 0.9 s.
 
-Version A: jet 2600 px/s², 34 px wide; droplets 16/s at 340 px/s, ±7°,
+Version A: jet 2800–6400 px/s² from the gentlest step to the fullest (twice
+what it first was), 34 px wide; droplets 280–420 px/s, ±7°,
 sinking at 240 px/s², drag 2.2; restitution 0.5; full strength at 420 px/s
-closing speed; pin resistance 5/s. Aimed straight down it plays about thirty
-hits a second, which the 60 ms per-pin cooldown thins out.
+closing speed; pin resistance 5/s.
 
 Version B: muzzle speed 520 px/s, ±2.5° scatter; ball bounce 0.3 over the
 pins' 0.6 and the cushions' 0.45 (Godot adds them, capped at 1); linear damp

@@ -12,7 +12,7 @@ extends Node2D
 ##
 ## Behind it the host's band plays its song in full, with the eye band's
 ## key moves: L1/R1 (Q/E) a fourth, L2/R2 (Z/X) a fifth — unless the emitter
-## wants the triggers, as version B does. A key move scrolls the pins over to
+## wants the triggers, as both versions do: RT pours. A key move scrolls the pins over to
 ## the new key, one column per step of the music, left to right. So does a
 ## change of scale: [method set_pin_scale] / [method cycle_scale], for now on
 ## the pad's Y, [kbd]Enter[/kbd] (the Deck's A outside Steam) or the touch
