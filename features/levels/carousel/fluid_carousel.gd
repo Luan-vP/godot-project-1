@@ -27,9 +27,15 @@ extends Node2D
 ##
 ## It never advances on its own unless [member dwell_seconds] is set.
 ##
+## Two of the slots are A/B pairs ([constant VARIANTS]): spout A (the fluid)
+## or B (the balls), and the waterboatmen or the birds. Every time the
+## carousel arrives at one of those slots it picks one of the pair, each as
+## likely, so swiping round again may bring the other.
+##
 ## [member level_paths] is exported, so a variant is just a scene that sets it:
-## the birds carousel, and a carousel of one for each level played on its own
-## (features/levels/carousel/solo/), which never advances.
+## a carousel of one for each level played on its own
+## (features/levels/carousel/solo/), which never advances and always plays
+## exactly its level.
 
 ## Emitted once a level has finished arriving, with its index in [member
 ## level_paths].
@@ -40,6 +46,19 @@ const LEVELS: Array[String] = [
 	"res://features/levels/secret_eyes/eye_band_demo.tscn",
 	"res://features/levels/spout/a_fluid/level_three_a.tscn",
 	"res://features/levels/boids/boids_level.tscn",
+]
+
+## Levels that share a slot, A/B: arriving at a slot holding any of them,
+## one of the group is played, picked at random.
+const VARIANTS: Array[Array] = [
+	[
+		"res://features/levels/spout/a_fluid/level_three_a.tscn",
+		"res://features/levels/spout/b_balls/level_three_b.tscn",
+	],
+	[
+		"res://features/levels/boids/boids_level.tscn",
+		"res://features/levels/boids/birds_level.tscn",
+	],
 ]
 
 ## Metadata key under which a [CanvasLayer]'s own horizontal offset is kept,
@@ -63,6 +82,9 @@ const NO_SWIPE := Vector2.INF
 ## The scenes cycled through. [constant LEVELS] unless a scene or a test sets
 ## it before the carousel enters the tree.
 @export var level_paths: Array[String] = LEVELS.duplicate()
+
+## Picks between a slot's variants. Seed it for a repeatable pick.
+var rng := RandomNumberGenerator.new()
 
 var _shared: SharedLayers
 var _timer: Timer
@@ -239,4 +261,17 @@ func _restart_timer() -> void:
 
 
 func _instance_level(index: int) -> Node2D:
-	return (load(level_paths[index]) as PackedScene).instantiate() as Node2D
+	return (load(path_for(index)) as PackedScene).instantiate() as Node2D
+
+
+## The scene to play for slot [param index]: its own level, or, when that is
+## one of an A/B pair ([constant VARIANTS]), either of the pair, picked
+## afresh each call. A carousel of one always plays its own level.
+func path_for(index: int) -> String:
+	var path := level_paths[index]
+	if level_paths.size() < 2:
+		return path
+	for group in VARIANTS:
+		if group.has(path):
+			return group[rng.randi_range(0, group.size() - 1)]
+	return path

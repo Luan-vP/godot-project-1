@@ -1,7 +1,7 @@
 # Fluid carousel
 
-The three fluid levels in turn — the eye band, spout A and the waterboatmen —
-looping, over one tank and one band. `scripts/run.sh carousel`, or "Fluid
+Three fluid levels in turn — the eye band, a spout and a flock — looping,
+over one tank and one band. `scripts/run.sh carousel`, or "Fluid
 carousel" in the demo menu. This is the main way to play: the game opens
 straight into it after the splash, with the demo menu behind it (Backspace,
 Select or the `‹ menu` button).
@@ -9,15 +9,16 @@ Select or the `‹ menu` button).
 Swipe along the bottom of the screen to change level: left for the next,
 right for the previous. A mouse drag works the same on a desktop.
 
-`level_paths` is exported, so every other way in is just a scene that sets
-it:
+The spout and the flock are A/B pairs (`FluidCarousel.VARIANTS`): spout A (the
+fluid) or B (the balls), and the waterboatmen or the birds. Each time the
+carousel arrives at one of those slots it picks one of the pair 50:50
+(`path_for`), so swiping round again may bring the other.
 
-- `fluid_carousel_birds.tscn` (`scripts/run.sh carousel-birds`) has the
-  flying birds in place of the waterboatmen.
-- `solo/` has a carousel of one for each level played on its own: the eye
-  band, spouts A and B, the spout shell, the birds and the waterboatmen. A
-  carousel of one never advances. The demo menu's level entries and
-  `run.sh`'s level names open these.
+`level_paths` is exported, so every other way in is just a scene that sets
+it. `solo/` has a carousel of one for each level played on its own: the eye
+band, spouts A and B, the spout shell, the birds and the waterboatmen. A
+carousel of one never advances and always plays exactly its level. The demo menu's level entries and
+`run.sh`'s level names open these.
 
 ## The level format
 
