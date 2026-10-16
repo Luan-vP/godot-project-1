@@ -42,10 +42,14 @@ const DENSITY := 1.6
 ## The timeline, in seconds: black, the tank coming up out of black with the
 ## logo still in it, held still, stirred (as long as [member agitation] says),
 ## left to settle, and (only when going back to the menu) faded back to black.
+## Handing the tank to the carousel it settles only briefly
+## ([constant HANDOVER_SETTLE]), so the eyes come up over the logo's last
+## spirals and stir them away themselves.
 const LEAD_IN := 0.2
 const REVEAL := 0.6
 const HOLD := 1.0
 const SETTLE := 3.2
+const HANDOVER_SETTLE := 0.6
 const FADE_OUT := 0.7
 
 ## The lockup's width, as a share of the screen's width, and the most of the
@@ -157,11 +161,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		_finish()
 
 
-## The whole splash, in seconds, for a stir [param stir_seconds] long, with
-## or without the fade back to black at the end ([param fades_out]).
+## The whole splash, in seconds, for a stir [param stir_seconds] long: going
+## back to the menu, settled and faded to black ([param fades_out]), or else
+## handed to the carousel soon after the stir.
 static func total_seconds(stir_seconds: float, fades_out := true) -> float:
-	var fade := FADE_OUT if fades_out else 0.0
-	return LEAD_IN + REVEAL + HOLD + stir_seconds + SETTLE + fade
+	if not fades_out:
+		return LEAD_IN + REVEAL + HOLD + stir_seconds + HANDOVER_SETTLE
+	return LEAD_IN + REVEAL + HOLD + stir_seconds + SETTLE + FADE_OUT
 
 
 ## How much of the tank shows through the black [param seconds] in, 0 to 1.
