@@ -1,7 +1,7 @@
 class_name BallEmitter
 extends SpoutEmitter
-## Version B: the spout fires balls, at a rate set by how far RT is pressed,
-## with one haptic tick for every ball fired.
+## Version B: the spout fires balls in steps of the bar, with one haptic tick
+## for every ball fired.
 ##
 ## Balls ([SpoutBall]) are rigid bodies: they leave the nozzle along its aim,
 ## fall under gravity, bounce off the pins, the side walls and each other, and
@@ -9,11 +9,12 @@ extends SpoutEmitter
 ## glancing roll is quiet and a straight drop is loud. They leave through the
 ## open floor.
 ##
-## RT is the fire trigger here, so this emitter keeps L2/R2 out of key moves
-## ([method leaves_triggers_free]); L1/R1 still walk all twelve keys.
-##
-## On a touchscreen, touching aims and fires at once: the spout points at the
-## finger, and the further the finger is from the spout the faster it fires.
+## How fast it fires is the shared stepped pour ([SpoutFlow], run by
+## [SpoutEmitter]): 2 balls a bar at the gentlest, up to 16, each fired on the
+## bar's grid so the balls play in time with the band. RT sets the step by
+## depth, so L2/R2 are left out of key moves; L1/R1 still walk all twelve
+## keys. On a touchscreen, touching aims and fires at once: the spout points
+## at the finger, and the ring the finger is in round the spout sets the step.
 ## The Deck's right trackpad and R2 (pointer and left click outside Steam) do
 ## the same.
 
@@ -35,13 +36,8 @@ const WALL_LAYER := 1 << 4
 ## Billiard colours, ivory cue ball first.
 const COLORS: Array[Color] = ArtPalette.BALLS
 
-## Whether to read the pad and keyboard; off for tests.
-var reads_input := true
-
-var _rate := SpoutFireRate.new()
 var _balls: Array[SpoutBall] = []
 var _ball_material := PhysicsMaterial.new()
-var _depth := 0.0
 var _fired := 0
 var _hits := 0
 var _rng := RandomNumberGenerator.new()
@@ -53,31 +49,15 @@ func bind(level_node: Node, the_spout: Spout, the_pins: PinField) -> void:
 	_ball_material.friction = 0.05
 	_rng.randomize()
 	_build_walls()
+	start_flow()
 
 
-func _physics_process(delta: float) -> void:
+func _physics_process(_delta: float) -> void:
 	if spout == null:
 		return
-	if reads_input:
-		_depth = maxf(SpoutFireRate.read_depth(), pointer_depth())
-	for i in _rate.step(_depth, delta):
+	for i in tick_flow():
 		fire()
 	_retire_spent()
-
-
-## How hard a touch or held click is firing: 0 with none, else further from
-## the spout fires faster (see [method SpoutFireRate.pointer_depth]).
-func pointer_depth() -> float:
-	var pointer: SpoutPointer = level.get("pointer") if level != null else null
-	if pointer == null or not pointer.is_active():
-		return 0.0
-	var reach := pins.to_global(pins.area.position).y - spout.global_position.y
-	return SpoutFireRate.pointer_depth(spout.global_position, pointer.point(), reach)
-
-
-## Set the trigger depth by hand, for tests or another input.
-func set_depth(depth: float) -> void:
-	_depth = clampf(depth, 0.0, 1.0)
 
 
 ## Fire one ball from the nozzle, with a haptic tick. Returns it.
@@ -100,7 +80,7 @@ func fire() -> SpoutBall:
 	_fired += 1
 	var haptics: Haptics = level.get("haptics") if level != null else null
 	if haptics != null:
-		haptics.pulse(0.35 + 0.45 * _depth, 0.025)
+		haptics.pulse(0.35 + 0.45 * flow_fraction(), 0.025)
 	return ball
 
 
@@ -164,16 +144,12 @@ func _build_walls() -> void:
 		add_child(wall)
 
 
-func leaves_triggers_free() -> bool:
-	return false
-
-
 func describe() -> String:
 	return (
-		"B: balls · RT %.2f · %.1f/s · %d in play · %d fired · %d pin hits"
-		% [_depth, SpoutFireRate.rate_for(_depth), in_play(), _fired, _hits]
+		"B: balls · firing %s · %d in play · %d fired · %d pin hits"
+		% [describe_flow(), in_play(), _fired, _hits]
 	)
 
 
 func controls_hint() -> String:
-	return "RT or touch fires, harder / further = faster (Space: full, 1–5: depths)"
+	return "RT or touch fires, 2–16 a bar (touch further away = more; Space full, 1–5)"

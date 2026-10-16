@@ -1,6 +1,7 @@
 extends GutTest
-## Covers #116: version B's fire rate from trigger depth, hit strength from
-## impact speed, and a haptic tick per ball fired.
+## Covers version B: hit strength from impact speed, a haptic tick per ball
+## fired, the capped pool, and firing in steps of the bar like the fluid
+## spout ([SpoutFlow]; the steps themselves are in test_spout_flow.gd).
 
 const Hosting := preload("res://tests/hosting.gd")
 
@@ -19,53 +20,6 @@ func after_each() -> void:
 	SaveManager.settings_path = SaveManager.DEFAULT_SETTINGS_PATH
 	SaveManager.reload()
 	AudioManager.set_tempo(120.0, 4)
-
-
-func test_nothing_fires_inside_the_deadzone() -> void:
-	assert_eq(SpoutFireRate.rate_for(0.0), 0.0)
-	assert_eq(SpoutFireRate.rate_for(SpoutFireRate.DEADZONE), 0.0)
-
-
-func test_rate_rises_in_proportion_to_depth() -> void:
-	var low := SpoutFireRate.rate_for(0.3)
-	var high := SpoutFireRate.rate_for(0.9)
-	assert_lt(low, high)
-	assert_almost_eq(SpoutFireRate.rate_for(1.0), SpoutFireRate.MAX_RATE, 0.0001, "Full press")
-	var mid := SpoutFireRate.rate_for((1.0 + SpoutFireRate.DEADZONE) / 2.0)
-	var expected := (SpoutFireRate.MIN_RATE + SpoutFireRate.MAX_RATE) / 2.0
-	assert_almost_eq(mid, expected, 0.0001, "Linear between the ends")
-
-
-func test_first_ball_of_a_press_fires_at_once() -> void:
-	var rate := SpoutFireRate.new()
-	assert_eq(rate.step(0.5, 0.001), 1, "Immediate")
-
-
-func test_a_held_trigger_fires_at_its_rate() -> void:
-	var rate := SpoutFireRate.new()
-	var fired := 0
-	for i in 600:  # Ten seconds at 60 fps.
-		fired += rate.step(1.0, 1.0 / 60.0)
-	assert_almost_eq(float(fired), SpoutFireRate.MAX_RATE * 10.0 + 1.0, 1.0)
-
-
-func test_changing_depth_changes_the_rate_without_a_reset() -> void:
-	var rate := SpoutFireRate.new()
-	rate.step(1.0, 0.0)  # Spend the first, immediate ball.
-	var fired := 0
-	for i in 30:
-		fired += rate.step(1.0, 1.0 / 60.0)
-	for i in 30:
-		fired += rate.step(0.3, 1.0 / 60.0)
-	var expected := (SpoutFireRate.MAX_RATE + SpoutFireRate.rate_for(0.3)) * 0.5
-	assert_almost_eq(float(fired), expected, 1.0)
-
-
-func test_releasing_rearms_the_immediate_ball() -> void:
-	var rate := SpoutFireRate.new()
-	rate.step(1.0, 0.0)
-	rate.step(0.0, 0.1)
-	assert_eq(rate.step(0.4, 0.001), 1)
 
 
 func test_closing_speed_is_the_part_along_the_line_to_the_pin() -> void:
@@ -120,21 +74,31 @@ func test_the_pool_is_capped() -> void:
 	assert_eq(emitter.in_play(), BallEmitter.MAX_BALLS)
 
 
-func test_pointer_depth_grows_with_distance_and_always_fires() -> void:
-	var pivot := Vector2(500, 50)
-	var near := SpoutFireRate.pointer_depth(pivot, Vector2(500, 60), 400.0)
-	var far := SpoutFireRate.pointer_depth(pivot, Vector2(500, 450), 400.0)
-	assert_eq(near, 0.2, "A touch by the spout still dribbles")
-	assert_eq(far, 1.0, "Down at the pins: full rate")
-	var mid := SpoutFireRate.pointer_depth(pivot, Vector2(500, 290), 400.0)
-	assert_almost_eq(mid, 0.6, 0.0001)
-
-
 func test_a_touch_fires_in_version_b() -> void:
 	var level: SpoutLevel = LEVEL_B.instantiate()
 	Hosting.host(self, level)
 	var emitter: BallEmitter = level.emitter
-	assert_eq(emitter.pointer_depth(), 0.0, "Nothing touching")
+	emitter.reads_input = false
+	assert_eq(emitter.current_step(), -1, "Nothing touching: closed")
 	level.pointer.press(level.spout.global_position + Vector2(0, 300))
-	assert_gt(emitter.pointer_depth(), 0.0, "A touch fires")
+	assert_gte(emitter.current_step(), 0, "A touch fires")
 	level.pointer.release()
+
+
+func test_balls_fire_on_the_grid_as_the_music_moves() -> void:
+	var scripted := ScriptedMusicTime.new()
+	AudioManager.set_music_time_source(scripted)
+	var level: SpoutLevel = LEVEL_B.instantiate()
+	Hosting.host(self, level)
+	var emitter: BallEmitter = level.emitter
+	emitter.reads_input = false
+	emitter.set_depth(SpoutFlow.DEADZONE + 0.01)  # The gentlest step: 2 a bar.
+	assert_eq(SpoutFlow.per_bar(emitter.current_step()), 2)
+	emitter._physics_process(1.0 / 60.0)  # Opens; starts counting.
+	var before := emitter.fired_count()
+	var beats_per_bar := AudioManager.get_music_clock().beats_per_bar
+	for i in 64:
+		scripted.advance(beats_per_bar / 64.0)
+		emitter._physics_process(1.0 / 60.0)
+	assert_eq(emitter.fired_count() - before, 2, "Two balls in a bar")
+	AudioManager.set_music_time_source(WallClockMusicTime.new())
