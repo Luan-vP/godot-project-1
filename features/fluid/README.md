@@ -24,6 +24,16 @@ retuning the look should never be able to change the physics.
 
 ## Using it
 
+In the game, don't build one: take the game's tank, the `Tank` autoload, which
+starts on first use and persists from the splash into the carousel (see
+`features/levels/carousel/README.md`):
+
+```gdscript
+var tank := Tank.acquire(self, my_motion, my_look)  # held until self leaves the tree
+```
+
+A tank of your own, for a test or a tool:
+
 ```gdscript
 var tank := FluidSimulation.new()
 tank.config = preload("res://resources/tank.tres")

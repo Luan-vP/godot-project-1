@@ -23,9 +23,8 @@ it:
 
 Every level has the same shape: **a foreground over a host.**
 
-The host is `SharedLayers`. It owns the background — the eye tank's
-`FluidSimulation` and its `FluidRenderer`, seeded once — and the music, a
-`Band` started once. The band's clock (the `AudioManager` loops and tempo)
+The host is `SharedLayers`. It holds the background — the game's one tank,
+the `Tank` autoload (see below) — and owns the music, a `Band` started once. The band's clock (the `AudioManager` loops and tempo)
 runs without a break across every level, and its own `_exit_tree` stops the
 loops when the carousel leaves the tree, which is the only time they stop.
 
@@ -58,6 +57,24 @@ What each level does with the band:
 
 The tank does not move. The fluid emitter re-applies its downward lean every
 physics frame, since each transition resets the tank's currents.
+
+## The tank
+
+There is one tank for the whole game: the `Tank` autoload
+(`autoload/Tank.gd`), a `FluidSimulation` and its `FluidRenderer` on a canvas
+layer under everything else. Nothing builds it up front; the first thing to
+call `Tank.acquire(holder, motion, look)` starts it, sized to the screen, and
+it lives until the game quits. For a player that is the splash, which prints
+the logo into it; the carousel then takes the same water over with the logo's
+last swirls still in it, and the splash's black paper eases into the levels'
+look over `Tank.BLEND_SECONDS`.
+
+A holder brings its own motion (a `FluidConfig`: everything but the fields
+that size the tank, `Tank.BUILD_FIELDS`) and its own look (a
+`PainterlyStyle`), and lets go by leaving the tree. With nobody holding it the
+tank is paused, hidden and out of the `fluid_simulation` group, its water kept:
+close the carousel for the menu, open it again, and it is the same tank.
+`SharedLayers` seeds it with paint only when it is the one that starts it.
 
 ## Transitions
 

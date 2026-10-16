@@ -153,16 +153,13 @@ func _probe(demo: Dictionary) -> Dictionary:
 	return result
 
 
-## The running demo's tank. Only its own: a demo just closed is still in the
-## tree until the end of the frame, and its tank must not be measured instead.
+## The running demo's tank: the game's one tank, when the demo holds it. A
+## demo just closed has let go of it, so it is never measured for the next.
 func _find_tank() -> FluidSimulation:
 	var demo := _menu.get_demo()
 	if demo == null:
 		return null
-	for node in get_tree().get_nodes_in_group(FluidSimulation.GROUP_NAME):
-		if node is FluidSimulation and demo.is_ancestor_of(node):
-			return node
-	return null
+	return Tank.held_within(demo)
 
 
 ## A finger drawing a loop through the middle of the screen, delivered as real
