@@ -46,12 +46,10 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
              rhythm to favour its flocks; hold it and the others scatter.
   boatmen    The same, as waterboatmen rowing in strokes and glides
              (also: waterboatmen, boids).
-  carousel   The eye band, spout A and the waterboatmen in turn, sliding over
-             one shared tank and one continuous band. Swipe (or drag) along
-             the bottom to change level; each level plays as it does alone.
-  carousel-birds
-             The same carousel with the flying birds in place of the
-             waterboatmen.
+  carousel   The eye band, a spout and a flock in turn, sliding over one
+             shared tank and one continuous band. The spout is A (fluid) or B
+             (balls) and the flock waterboatmen or birds, picked 50:50 each
+             time you arrive. Swipe (or drag) along the bottom to change level.
   synth      Synth voices. A-K hold notes, Up/Down glide, 1/2/3 waveform,
              R plays a phrase, Space holds a high note.
   groove     Floaty synthwave loop at 70 bpm: rendered drums plus live bass and
@@ -86,7 +84,6 @@ scene_for() {
 		birds) echo "res://features/levels/carousel/solo/birds.tscn" ;;
 		waterboatmen | boatmen | boids) echo "res://features/levels/carousel/solo/waterboatmen.tscn" ;;
 		carousel | fluid-carousel) echo "res://features/levels/carousel/fluid_carousel.tscn" ;;
-		carousel-birds) echo "res://features/levels/carousel/fluid_carousel_birds.tscn" ;;
 		synth) echo "res://core/audio/synth_demo.tscn" ;;
 		groove) echo "res://core/audio/groove_demo.tscn" ;;
 		audio) echo "res://core/audio/audio_demo.tscn" ;;
