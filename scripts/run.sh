@@ -24,7 +24,7 @@ usage() {
 Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
 
   play       The game as every player sees it (run/main_scene): the splash,
-             then the demo menu. Backspace comes back.
+             then the fluid carousel. Backspace goes to the demo menu.
   splash     Just the splash: the logo printed in the tank and swirled away.
   menu       Click into any of the demos below; Backspace comes back.
   band       The eye tank as a band: each eye plays one part of a 70 bpm loop
@@ -47,8 +47,8 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
   boatmen    The same, as waterboatmen rowing in strokes and glides
              (also: waterboatmen, boids).
   carousel   The eye band, spout A and the waterboatmen in turn, sliding over
-             one shared tank and one continuous band. Cycles every 20 seconds
-             on its own; each level plays as it does alone.
+             one shared tank and one continuous band. Swipe (or drag) along
+             the bottom to change level; each level plays as it does alone.
   carousel-birds
              The same carousel with the flying birds in place of the
              waterboatmen.

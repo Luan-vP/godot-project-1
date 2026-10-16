@@ -3,14 +3,17 @@ extends Control
 ## The studio logo printed into a fluid tank: it appears still, on a jazzy
 ## chord, then time
 ## starts, the water is swirled slowly ([member agitation]) and the logo winds
-## into a spiral and dissolves, and the demo menu takes over.
+## into a spiral and dissolves, and the fluid carousel takes over, opened
+## from the demo menu so that Backspace (or the corner button) leaves it for
+## the menu.
 ##
 ## This is [code]run/main_scene[/code], so it is the first thing the game
-## shows. Any key, pad button or tap skips straight to the menu. It steps
-## aside entirely when the game is started for a job rather than a player
-## ([method skips_for]): the pull request picker's handoff, a probe, or a
-## demo opened from the command line, all of which the menu reads itself.
-## It also steps aside where there is no compute device to run the tank.
+## shows after Godot's own boot splash. Any key, pad button or tap skips
+## straight to the carousel. It steps aside entirely when the game is started
+## for a job rather than a player ([method skips_for]): the pull request
+## picker's handoff, a probe, or a demo opened from the command line, all of
+## which the menu reads itself, so those land on the menu. So does a device
+## with no compute to run the tank, since the carousel needs one too.
 ##
 ## Opened from the demo menu's own list, it plays the same way and then closes
 ## back to the menu instead of replacing it.
@@ -19,6 +22,8 @@ extends Control
 signal finished
 
 const MENU_PATH := "res://features/ui/demo_menu/demo_menu.tscn"
+## What a player lands on once the splash is over.
+const START_PATH := "res://features/levels/carousel/fluid_carousel.tscn"
 ## The full lockup: the shell, GOLDEN RULE and ENGINEERING, in the brand's
 ## gold with the black lettering turned white for a black screen.
 const LOGO := preload("res://features/splash/logo.png")
@@ -91,7 +96,7 @@ func _ready() -> void:
 	# No compute device (the Compatibility renderer), no tank: only black to
 	# show, so straight on to the menu.
 	if not FluidGPU.is_available() or (not is_inside_menu() and skips_for(args)):
-		_finish.call_deferred()
+		_finish.call_deferred(false)
 		return
 	var screen := get_viewport_rect().size
 	_logo_rect = logo_rect_for(screen)
@@ -314,7 +319,9 @@ func _start_time() -> void:
 	_config.dye_dissipation = SETTLE_RETENTION
 
 
-func _finish() -> void:
+## Hand over: back to the menu that opened this, or else to a new menu,
+## opening the carousel in front of it when [param to_carousel].
+func _finish(to_carousel := true) -> void:
 	if _done:
 		return
 	_done = true
@@ -322,5 +329,11 @@ func _finish() -> void:
 	var menu := _menu()
 	if menu != null:
 		menu.close_demo()
-	else:
-		get_tree().change_scene_to_file(MENU_PATH)
+		return
+	var tree := get_tree()
+	menu = (load(MENU_PATH) as PackedScene).instantiate() as DemoMenu
+	if to_carousel:
+		menu.start_demo = START_PATH
+	tree.root.add_child(menu)
+	tree.current_scene = menu
+	queue_free()

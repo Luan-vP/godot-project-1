@@ -2,7 +2,12 @@
 
 The three fluid levels in turn — the eye band, spout A and the waterboatmen —
 looping, over one tank and one band. `scripts/run.sh carousel`, or "Fluid
-carousel" in the demo menu. This is the main way to play.
+carousel" in the demo menu. This is the main way to play: the game opens
+straight into it after the splash, with the demo menu behind it (Backspace,
+Select or the `‹ menu` button).
+
+Swipe along the bottom of the screen to change level: left for the next,
+right for the previous. A mouse drag works the same on a desktop.
 
 `level_paths` is exported, so every other way in is just a scene that sets
 it:
@@ -66,5 +71,11 @@ the slide ends the old level is freed and the new one comes alive.
 Levels are `Node2D`s but their HUDs are `CanvasLayer`s, which ignore the parent
 transform, so `_place` moves the layers' offsets by hand.
 
-It advances itself every `dwell_seconds` for now. `advance()` and `retreat()`
-are public so keys can be bound later; a call during a slide is ignored.
+A swipe is a press (finger or left mouse button) that starts in the bottom
+`SWIPE_BAND` (a fifth) of the screen and lets go at least `SWIPE_MIN_TRAVEL`
+(an eighth or so) of the screen's width to the side, more across than up.
+The carousel watches it in `_input` without consuming it, so the level
+underneath still sees the touch. `advance()` and `retreat()` are public so
+keys can be bound too; a call during a slide is ignored.
+
+It never advances on its own unless `dwell_seconds` is set above zero.

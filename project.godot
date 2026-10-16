@@ -15,7 +15,7 @@ config/version="0.1.0"
 run/main_scene="res://features/splash/splash.tscn"
 config/features=PackedStringArray("4.4", "Forward Plus")
 boot_splash/bg_color=Color(0, 0, 0, 1)
-boot_splash/show_image=false
+boot_splash/minimum_display_time=1500
 
 [audio]
 
@@ -33,11 +33,11 @@ ComfortSettings="*res://autoload/ComfortSettings.gd"
 
 [display]
 
+window/handheld/orientation=1
 window/size/viewport_width.mobile=540
 window/size/viewport_height.mobile=960
 window/stretch/mode.mobile="canvas_items"
 window/stretch/aspect.mobile="expand"
-window/handheld/orientation=1
 
 [editor_plugins]
 
@@ -54,6 +54,4 @@ recentre_tilt={
 
 [rendering]
 
-renderer/rendering_method="forward_plus"
-renderer/rendering_method.mobile="mobile"
 textures/vram_compression/import_etc2_astc=true

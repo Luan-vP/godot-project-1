@@ -5,6 +5,8 @@ extends GutTest
 
 const MENU_SCENE := preload("res://features/ui/demo_menu/demo_menu.tscn")
 const SPLASH_PATH := "res://features/splash/splash.tscn"
+## A light demo to stand in for the carousel.
+const COMFORT_PATH := "res://features/ui/comfort_settings/comfort_settings_demo.tscn"
 
 
 func test_the_tank_comes_up_holds_and_goes_back_to_black() -> void:
@@ -127,6 +129,24 @@ func test_opened_from_the_menu_it_closes_back_to_it() -> void:
 	splash._unhandled_input(key)
 	assert_false(menu.is_demo_open(), "A key skips back to the menu")
 	assert_true(menu.visible, "Showing")
+	menu.free()
+
+
+func test_a_player_lands_on_the_carousel() -> void:
+	assert_eq(Splash.START_PATH, "res://features/levels/carousel/fluid_carousel.tscn")
+	assert_true(ResourceLoader.exists(Splash.START_PATH), "It exists")
+
+
+func test_the_menu_opens_its_start_demo_in_front_of_itself() -> void:
+	var menu: DemoMenu = MENU_SCENE.instantiate()
+	menu.quits_tree = false
+	menu.start_demo = COMFORT_PATH
+	get_tree().root.add_child(menu)
+	await get_tree().process_frame
+	assert_true(menu.is_demo_open(), "Opened straight away")
+	assert_eq(menu.get_demo().scene_file_path, COMFORT_PATH, "The one it was given")
+	menu.close_demo()
+	assert_true(menu.visible, "Back leaves it for the menu")
 	menu.free()
 
 
