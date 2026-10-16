@@ -34,11 +34,12 @@ A 2D game about floaty eye thingies, in a painterly style. Godot 4.4.
 - `addons/` — vendored third-party code; see [addons/README.md](addons/README.md).
 - `tests/` — GUT suite.
 
-Pressing play opens on the studio logo (`features/splash/`; any key or tap
-skips it), then `features/ui/demo_menu/`, the list of every level and
-demo (also `scripts/run.sh menu`): pick one with a click, `Enter`, or a
-gamepad, and press `Backspace` (or `Select` on a gamepad) from inside one to
-come back. `Backspace` or `Select` at the list itself quits, as does its Quit
+Pressing play opens on Godot's boot splash, then the studio logo
+(`features/splash/`; any key or tap skips it), then straight into the fluid
+carousel (swipe along the bottom to change level). `Backspace` (or `Select`
+on a gamepad) leaves it for `features/ui/demo_menu/`, the list of every level
+and demo (also `scripts/run.sh menu`): pick one with a click, `Enter`, or a
+gamepad, and press `Backspace` from inside one to come back. `Backspace` or `Select` at the list itself quits, as does its Quit
 button. On a touch screen with no `Backspace`, a tappable `‹ menu` button in
 the corner takes its place.
 
@@ -50,7 +51,7 @@ change a colour, font or size in `UiTokens` and every menu follows. See
 
 ```sh
 scripts/run.sh             # list the levels and demos, with their controls
-scripts/run.sh play        # the game as every player sees it: splash, then menu
+scripts/run.sh play        # the game as every player sees it: splash, then carousel
 scripts/run.sh menu        # straight to the demo menu
 scripts/run.sh carousel    # the levels in turn over one tank and one band
 scripts/run.sh band        # the eye tank as a band: eyes off the walls play parts

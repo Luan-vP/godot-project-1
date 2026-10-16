@@ -3,22 +3,32 @@ extends Control
 ## The studio logo printed into a fluid tank: it appears still, on a jazzy
 ## chord, then time
 ## starts, the water is swirled slowly ([member agitation]) and the logo winds
-## into a spiral and dissolves, and the demo menu takes over.
+## into a spiral and dissolves, and the fluid carousel takes over, opened
+## from the demo menu so that Backspace (or the corner button) leaves it for
+## the menu.
 ##
 ## This is [code]run/main_scene[/code], so it is the first thing the game
-## shows. Any key, pad button or tap skips straight to the menu. It steps
-## aside entirely when the game is started for a job rather than a player
-## ([method skips_for]): the pull request picker's handoff, a probe, or a
-## demo opened from the command line, all of which the menu reads itself.
-## It also steps aside where there is no compute device to run the tank.
+## shows after Godot's own boot splash. Any key, pad button or tap skips
+## straight to the carousel. It steps aside entirely when the game is started
+## for a job rather than a player ([method skips_for]): the pull request
+## picker's handoff, a probe, or a demo opened from the command line, all of
+## which the menu reads itself, so those land on the menu. So does a device
+## with no compute to run the tank, since the carousel needs one too.
 ##
-## Opened from the demo menu's own list, it plays the same way and then closes
-## back to the menu instead of replacing it.
+## The tank is the game's one tank, the [code]Tank[/code] autoload, which
+## the splash is usually the first to use and so starts. It does not fade to
+## black at the end: the carousel takes the same water over, the logo's last
+## swirls and all, and the black paper eases into the levels' own.
+##
+## Opened from the demo menu's own list, it plays the same way, wiping the
+## tank first, and then fades out and closes back to the menu instead.
 
 ## Emitted when the splash is over and the menu is about to take the screen.
 signal finished
 
 const MENU_PATH := "res://features/ui/demo_menu/demo_menu.tscn"
+## What a player lands on once the splash is over.
+const START_PATH := "res://features/levels/carousel/fluid_carousel.tscn"
 ## The full lockup: the shell, GOLDEN RULE and ENGINEERING, in the brand's
 ## gold with the black lettering turned white for a black screen.
 const LOGO := preload("res://features/splash/logo.png")
@@ -31,27 +41,31 @@ const DENSITY := 1.6
 
 ## The timeline, in seconds: black, the tank coming up out of black with the
 ## logo still in it, held still, stirred (as long as [member agitation] says),
-## left to settle, and faded back to black.
+## left to settle, and (only when going back to the menu) faded back to black.
+## Handing the tank to the carousel it settles only briefly
+## ([constant HANDOVER_SETTLE]), so the eyes come up over the logo's last
+## spirals and stir them away themselves.
 const LEAD_IN := 0.2
 const REVEAL := 0.6
 const HOLD := 1.0
 const SETTLE := 3.2
+const HANDOVER_SETTLE := 0.6
 const FADE_OUT := 0.7
 
 ## The lockup's width, as a share of the screen's width, and the most of the
 ## screen's height it may take.
 const LOGO_SCALE := 0.62
 const LOGO_MAX_HEIGHT := 0.6
-## Grid cells across the tank. The finest the solver takes, so the lines
-## between the logo's chambers survive the printing.
-const RESOLUTION := 512
 ## How much pigment survives each second once time starts; held at 1 (none
 ## lost) until then, so the logo stays crisp while it is still.
 const SETTLE_RETENTION := 0.6
+## The grid the splash's brushwork was tuned on. On a coarser tank its brush
+## is narrowed to match, so the lettering keeps its edges.
+const BRUSH_RESOLUTION := 512.0
 ## The gentle drift the water has once time starts; none before.
 const DRIFT := 10.0
-## Curl kept in the stirred water. Lower than the levels' tanks: at this
-## resolution a hand-sized push with their curl runs away.
+## Curl kept in the stirred water. Lower than the levels' tanks: with their
+## curl a push this broad runs away.
 const VORTICITY := 10.0
 
 ## E-flat major 9, voiced warm and low, as MIDI notes: the root alone in the
@@ -73,7 +87,6 @@ const JOB_PREFIXES: Array[String] = ["--open=", "--probe="]
 @export var agitation: SplashAgitation = SwirlAgitation.new()
 
 var fluid: FluidSimulation
-var _config: FluidConfig
 var _curtain: ColorRect
 var _keys: Synth
 var _pad: Synth
@@ -81,6 +94,8 @@ var _logo_rect: Rect2
 var _time := 0.0
 var _flowing := false
 var _done := false
+## Whether it goes back to black at the end: only when going back to the menu.
+var _fades_out := false
 
 
 func _ready() -> void:
@@ -91,12 +106,14 @@ func _ready() -> void:
 	# No compute device (the Compatibility renderer), no tank: only black to
 	# show, so straight on to the menu.
 	if not FluidGPU.is_available() or (not is_inside_menu() and skips_for(args)):
-		_finish.call_deferred()
+		_finish.call_deferred(false)
 		return
+	_fades_out = is_inside_menu()
 	var screen := get_viewport_rect().size
 	_logo_rect = logo_rect_for(screen)
-	_build_tank(screen)
-	fluid.stamp_dye(logo_dye(LOGO.get_image(), _logo_rect, screen, _config.simulation_size()))
+	_take_tank()
+	var grid := fluid.config.simulation_size()
+	fluid.stamp_dye(logo_dye(LOGO.get_image(), _logo_rect, fluid.config.world_size, grid))
 
 	# Black over everything, lifted to reveal the tank and lowered at the end.
 	_curtain = ColorRect.new()
@@ -122,7 +139,7 @@ func _process(delta: float) -> void:
 	var t := _time - stir_from
 	if _flowing and t < agitation.seconds:
 		agitation.stir(fluid, t, delta, _logo_rect)
-	if _time >= total_seconds(agitation.seconds):
+	if _time >= total_seconds(agitation.seconds, _fades_out):
 		_finish()
 
 
@@ -144,8 +161,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		_finish()
 
 
-## The whole splash, in seconds, for a stir [param stir_seconds] long.
-static func total_seconds(stir_seconds: float) -> float:
+## The whole splash, in seconds, for a stir [param stir_seconds] long: going
+## back to the menu, settled and faded to black ([param fades_out]), or else
+## handed to the carousel soon after the stir.
+static func total_seconds(stir_seconds: float, fades_out := true) -> float:
+	if not fades_out:
+		return LEAD_IN + REVEAL + HOLD + stir_seconds + HANDOVER_SETTLE
 	return LEAD_IN + REVEAL + HOLD + stir_seconds + SETTLE + FADE_OUT
 
 
@@ -223,36 +244,32 @@ func _menu() -> DemoMenu:
 	return null
 
 
-func _build_tank(screen: Vector2) -> void:
-	var black := ColorRect.new()
-	black.color = Color.BLACK
-	black.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(black)
-
-	_config = FluidConfig.new()
-	_config.world_size = screen
-	_config.simulation_resolution = RESOLUTION
-	_config.readback_enabled = false
-	# Still until time starts: no drift, and nothing fades.
-	_config.ambient_current = 0.0
-	_config.dye_dissipation = 1.0
-	_config.vorticity = VORTICITY
-	fluid = FluidSimulation.new()
-	fluid.name = "Fluid"
-	fluid.config = _config
-	add_child(fluid)
-
+## Take the game's tank, still, wiped and on black paper, for the logo.
+func _take_tank() -> void:
+	# Still until time starts: no drift, nothing fades, and no readback, since
+	# nothing here floats on it.
+	var still := FluidConfig.new()
+	still.ambient_current = 0.0
+	still.dye_dissipation = 1.0
+	still.vorticity = VORTICITY
+	still.readback_enabled = false
 	# Gold on black, like the logo itself, rather than the levels' violet paper.
-	var style := PainterlyStyle.new()
-	style.paper_color = Color.BLACK
-	style.deep_color = Color.BLACK
+	var look := PainterlyStyle.new()
+	look.paper_color = Color.BLACK
+	look.deep_color = Color.BLACK
 	# Equal absorption, so the gold thins to a darker gold, not to olive.
-	style.absorption = Vector3(1.3, 1.3, 1.3)
-	var renderer := FluidRenderer.new()
-	renderer.name = "FluidRenderer"
-	renderer.style = style
-	add_child(renderer)
-	renderer.simulation_path = renderer.get_path_to(fluid)
+	look.absorption = Vector3(1.3, 1.3, 1.3)
+	# The brush is measured in grid cells; keep it the width on screen it was
+	# tuned at, so the lettering stays clean on a coarser grid.
+	var fine := float(Tank.RESOLUTION) / BRUSH_RESOLUTION
+	look.stroke_size *= fine
+	look.wobble *= fine
+	look.edge_width *= fine
+	fluid = Tank.acquire(self, still, look)
+	Tank.set_look(look, 0.0)
+	# Whatever an earlier level left in it goes, so the logo prints clean.
+	fluid.reset()
+	fluid.set_current_bias(Vector2.ZERO)
 
 
 func _build_synths() -> void:
@@ -310,11 +327,13 @@ func _let_go() -> void:
 
 func _start_time() -> void:
 	_flowing = true
-	_config.ambient_current = DRIFT
-	_config.dye_dissipation = SETTLE_RETENTION
+	fluid.config.ambient_current = DRIFT
+	fluid.config.dye_dissipation = SETTLE_RETENTION
 
 
-func _finish() -> void:
+## Hand over: back to the menu that opened this, or else to a new menu,
+## opening the carousel in front of it when [param to_carousel].
+func _finish(to_carousel := true) -> void:
 	if _done:
 		return
 	_done = true
@@ -322,5 +341,11 @@ func _finish() -> void:
 	var menu := _menu()
 	if menu != null:
 		menu.close_demo()
-	else:
-		get_tree().change_scene_to_file(MENU_PATH)
+		return
+	var tree := get_tree()
+	menu = (load(MENU_PATH) as PackedScene).instantiate() as DemoMenu
+	if to_carousel:
+		menu.start_demo = START_PATH
+	tree.root.add_child(menu)
+	tree.current_scene = menu
+	queue_free()

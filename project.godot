@@ -15,7 +15,7 @@ config/version="0.1.0"
 run/main_scene="res://features/splash/splash.tscn"
 config/features=PackedStringArray("4.4", "Forward Plus")
 boot_splash/bg_color=Color(0, 0, 0, 1)
-boot_splash/show_image=false
+boot_splash/minimum_display_time=1500
 
 [audio]
 
@@ -30,6 +30,7 @@ AudioManager="*res://autoload/AudioManager.gd"
 TempoControl="*res://autoload/TempoControl.gd"
 SaveManager="*res://autoload/SaveManager.gd"
 ComfortSettings="*res://autoload/ComfortSettings.gd"
+Tank="*res://autoload/Tank.gd"
 
 [display]
 

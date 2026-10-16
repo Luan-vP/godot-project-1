@@ -5,6 +5,8 @@ extends GutTest
 
 const MENU_SCENE := preload("res://features/ui/demo_menu/demo_menu.tscn")
 const SPLASH_PATH := "res://features/splash/splash.tscn"
+## A light demo to stand in for the carousel.
+const COMFORT_PATH := "res://features/ui/comfort_settings/comfort_settings_demo.tscn"
 
 
 func test_the_tank_comes_up_holds_and_goes_back_to_black() -> void:
@@ -13,6 +15,15 @@ func test_the_tank_comes_up_holds_and_goes_back_to_black() -> void:
 	var still := Splash.LEAD_IN + Splash.REVEAL + Splash.HOLD * 0.5
 	assert_eq(Splash.visibility_at(still, stir), 1.0, "Up while the logo is still")
 	assert_eq(Splash.visibility_at(Splash.total_seconds(stir), stir), 0.0, "Black last")
+
+
+func test_handing_the_tank_to_the_carousel_it_does_not_go_back_to_black() -> void:
+	var stir := 1.4
+	var handover := Splash.total_seconds(stir, false)
+	var stirred := Splash.LEAD_IN + Splash.REVEAL + Splash.HOLD + stir
+	assert_lt(handover - stirred, 1.0, "Soon after the stir, with the logo still in the water")
+	assert_lt(handover, Splash.total_seconds(stir), "Sooner than going back to the menu")
+	assert_eq(Splash.visibility_at(handover - 0.01, stir), 1.0, "Still showing at the handover")
 
 
 func test_it_leaves_the_water_a_few_seconds_to_settle() -> void:
@@ -127,6 +138,24 @@ func test_opened_from_the_menu_it_closes_back_to_it() -> void:
 	splash._unhandled_input(key)
 	assert_false(menu.is_demo_open(), "A key skips back to the menu")
 	assert_true(menu.visible, "Showing")
+	menu.free()
+
+
+func test_a_player_lands_on_the_carousel() -> void:
+	assert_eq(Splash.START_PATH, "res://features/levels/carousel/fluid_carousel.tscn")
+	assert_true(ResourceLoader.exists(Splash.START_PATH), "It exists")
+
+
+func test_the_menu_opens_its_start_demo_in_front_of_itself() -> void:
+	var menu: DemoMenu = MENU_SCENE.instantiate()
+	menu.quits_tree = false
+	menu.start_demo = COMFORT_PATH
+	get_tree().root.add_child(menu)
+	await get_tree().process_frame
+	assert_true(menu.is_demo_open(), "Opened straight away")
+	assert_eq(menu.get_demo().scene_file_path, COMFORT_PATH, "The one it was given")
+	menu.close_demo()
+	assert_true(menu.visible, "Back leaves it for the menu")
 	menu.free()
 
 

@@ -17,8 +17,15 @@ extends Node2D
 ## Levels are [Node2D]s, but their HUDs live in [CanvasLayer]s, which ignore
 ## the parent's transform; [method _place] moves those by hand.
 ##
-## It advances on a timer for now. [method advance] and [method retreat] are
-## public so that keys can be bound to them later.
+## A swipe along the bottom of the screen changes level: a finger (or a
+## mouse drag) that starts in the bottom [constant SWIPE_BAND] of the screen
+## and travels far enough sideways ([method swipe_step]). Swiping left brings
+## the next level in from the right, as if pushing the current one away;
+## swiping right goes back. The swipe is only watched, never consumed, so the
+## level under it still sees the touch. [method advance] and [method retreat]
+## are public, so keys can be bound to them too.
+##
+## It never advances on its own unless [member dwell_seconds] is set.
 ##
 ## [member level_paths] is exported, so a variant is just a scene that sets it:
 ## the birds carousel, and a carousel of one for each level played on its own
@@ -39,8 +46,17 @@ const LEVELS: Array[String] = [
 ## captured the first time [method _place] sees it.
 const BASE_OFFSET_META := &"carousel_base_offset_x"
 
-## Seconds a level stays after it has arrived. Zero or less never advances.
-@export var dwell_seconds := 20.0
+## Share of the screen's height, up from the bottom edge, that a swipe has to
+## start in.
+const SWIPE_BAND := 0.2
+## Least sideways travel, as a share of the screen's width, that makes a swipe.
+const SWIPE_MIN_TRAVEL := 0.12
+## No swipe is being watched.
+const NO_SWIPE := Vector2.INF
+
+## Seconds a level stays after it has arrived before advancing on its own.
+## Zero or less, the default, never advances: the player swipes.
+@export var dwell_seconds := 0.0
 ## Seconds a transition takes.
 @export var slide_seconds := 1.4
 
@@ -53,6 +69,8 @@ var _timer: Timer
 var _current: Node2D
 var _index := 0
 var _sliding := false
+## Where the swipe being watched started, or [constant NO_SWIPE].
+var _swipe_from := NO_SWIPE
 
 
 func _ready() -> void:
@@ -71,6 +89,52 @@ func _ready() -> void:
 	_place(_current, 0.0)
 	_note_level()
 	_restart_timer()
+
+
+## Watched here rather than in an unhandled handler, so a level that takes
+## the touch for itself cannot hide the swipe from the carousel.
+func _input(event: InputEvent) -> void:
+	var press := _press_of(event)
+	if press.is_empty():
+		return
+	if press["pressed"]:
+		_swipe_from = press["position"]
+	elif _swipe_from != NO_SWIPE:
+		var step := swipe_step(_swipe_from, press["position"], get_viewport_rect().size)
+		_swipe_from = NO_SWIPE
+		if step != 0:
+			_go(step)
+
+
+## Which way a press at [param from] let go at [param to] on a [param
+## screen]-sized canvas swipes: 1 for the next level (a swipe to the left), -1
+## for the previous one, 0 when it is not a swipe along the bottom at all.
+static func swipe_step(from: Vector2, to: Vector2, screen: Vector2) -> int:
+	if from.y < screen.y * (1.0 - SWIPE_BAND):
+		return 0
+	var travel := to - from
+	if absf(travel.x) < screen.x * SWIPE_MIN_TRAVEL or absf(travel.x) < absf(travel.y):
+		return 0
+	return 1 if travel.x < 0.0 else -1
+
+
+## The first finger, or the left mouse button, going down or coming up, as
+## [code]{pressed, position}[/code]; empty for anything else. Mouse events
+## Godot makes up from a touch are skipped, so a touch is not counted twice.
+static func _press_of(event: InputEvent) -> Dictionary:
+	var touch := event as InputEventScreenTouch
+	if touch != null:
+		if touch.index != 0:
+			return {}
+		return {"pressed": touch.pressed, "position": touch.position}
+	var click := event as InputEventMouseButton
+	if (
+		click != null
+		and click.button_index == MOUSE_BUTTON_LEFT
+		and click.device != InputEvent.DEVICE_ID_EMULATION
+	):
+		return {"pressed": click.pressed, "position": click.position}
+	return {}
 
 
 func _exit_tree() -> void:

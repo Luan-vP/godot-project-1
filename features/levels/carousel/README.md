@@ -2,7 +2,12 @@
 
 The three fluid levels in turn — the eye band, spout A and the waterboatmen —
 looping, over one tank and one band. `scripts/run.sh carousel`, or "Fluid
-carousel" in the demo menu. This is the main way to play.
+carousel" in the demo menu. This is the main way to play: the game opens
+straight into it after the splash, with the demo menu behind it (Backspace,
+Select or the `‹ menu` button).
+
+Swipe along the bottom of the screen to change level: left for the next,
+right for the previous. A mouse drag works the same on a desktop.
 
 `level_paths` is exported, so every other way in is just a scene that sets
 it:
@@ -18,9 +23,8 @@ it:
 
 Every level has the same shape: **a foreground over a host.**
 
-The host is `SharedLayers`. It owns the background — the eye tank's
-`FluidSimulation` and its `FluidRenderer`, seeded once — and the music, a
-`Band` started once. The band's clock (the `AudioManager` loops and tempo)
+The host is `SharedLayers`. It holds the background — the game's one tank,
+the `Tank` autoload (see below) — and owns the music, a `Band` started once. The band's clock (the `AudioManager` loops and tempo)
 runs without a break across every level, and its own `_exit_tree` stops the
 loops when the carousel leaves the tree, which is the only time they stop.
 
@@ -54,6 +58,24 @@ What each level does with the band:
 The tank does not move. The fluid emitter re-applies its downward lean every
 physics frame, since each transition resets the tank's currents.
 
+## The tank
+
+There is one tank for the whole game: the `Tank` autoload
+(`autoload/Tank.gd`), a `FluidSimulation` and its `FluidRenderer` on a canvas
+layer under everything else. Nothing builds it up front; the first thing to
+call `Tank.acquire(holder, motion, look)` starts it, sized to the screen, and
+it lives until the game quits. For a player that is the splash, which prints
+the logo into it; the carousel then takes the same water over with the logo's
+last swirls still in it, and the splash's black paper eases into the levels'
+look over `Tank.BLEND_SECONDS`.
+
+A holder brings its own motion (a `FluidConfig`: everything but the fields
+that size the tank, `Tank.BUILD_FIELDS`) and its own look (a
+`PainterlyStyle`), and lets go by leaving the tree. With nobody holding it the
+tank is paused, hidden and out of the `fluid_simulation` group, its water kept:
+close the carousel for the menu, open it again, and it is the same tank.
+`SharedLayers` seeds it with paint only when it is the one that starts it.
+
 ## Transitions
 
 `advance()` instances the next level frozen, parks it one viewport width to the
@@ -66,5 +88,11 @@ the slide ends the old level is freed and the new one comes alive.
 Levels are `Node2D`s but their HUDs are `CanvasLayer`s, which ignore the parent
 transform, so `_place` moves the layers' offsets by hand.
 
-It advances itself every `dwell_seconds` for now. `advance()` and `retreat()`
-are public so keys can be bound later; a call during a slide is ignored.
+A swipe is a press (finger or left mouse button) that starts in the bottom
+`SWIPE_BAND` (a fifth) of the screen and lets go at least `SWIPE_MIN_TRAVEL`
+(an eighth or so) of the screen's width to the side, more across than up.
+The carousel watches it in `_input` without consuming it, so the level
+underneath still sees the touch. `advance()` and `retreat()` are public so
+keys can be bound too; a call during a slide is ignored.
+
+It never advances on its own unless `dwell_seconds` is set above zero.

@@ -13,7 +13,9 @@ extends Control
 ## [code]AudioManager[/code].
 ##
 ## The game opens on [Splash] ([code]run/main_scene[/code]), which hands over
-## to this list. At the menu itself Backspace or Select, or the Quit button, leaves the game — on a
+## to this list with the fluid carousel already open in front of it
+## ([member start_demo]), so Backspace from the carousel lands here. At the
+## menu itself Backspace or Select, or the Quit button, leaves the game — on a
 ## Deck there is no keyboard and no window to close, so this is the only way
 ## out. (The Quit button is hidden on iOS, where an app does not quit itself.)
 ##
@@ -93,13 +95,19 @@ const DEMOS: Array[Dictionary] = [
 		"name": "Fluid carousel",
 		"path": "res://features/levels/carousel/fluid_carousel.tscn",
 		"blurb":
-		"Eye band, Spout A and Waterboatmen in turn over one tank and one band. Cycles on its own.",
+		(
+			"Eye band, Spout A and Waterboatmen over one tank and one band. "
+			+ "Swipe along the bottom to change level."
+		),
 	},
 	{
 		"name": "Fluid carousel (birds)",
 		"path": "res://features/levels/carousel/fluid_carousel_birds.tscn",
 		"blurb":
-		"Eye band, Spout A and Birds in turn over one tank and one band. Cycles on its own.",
+		(
+			"Eye band, Spout A and Birds over one tank and one band. "
+			+ "Swipe along the bottom to change level."
+		),
 	},
 	{
 		"name": "Synth",
@@ -159,6 +167,11 @@ const QUIT_BUTTON_NAME := "Quit"
 ## so the runner they live in survives.
 var quits_tree := true
 
+## A demo to open as soon as the menu is ready, set by whoever builds the menu
+## before adding it (the splash sets the carousel). A command-line option that
+## opens something else wins.
+var start_demo := ""
+
 var _demo: Node
 var _overlay: CanvasLayer
 var _back_button: Button
@@ -183,9 +196,12 @@ func _ready() -> void:
 	_fit_to_screen()
 	get_viewport().size_changed.connect(_fit_to_screen)
 	_focus_first_card()
+	var options := launch_options(_command_line())
 	if args.has("--prs"):
 		open_demo.call_deferred(PR_PICKER_PATH)
-	_apply_launch_options.call_deferred(launch_options(_command_line()))
+	elif not start_demo.is_empty() and options.is_empty():
+		open_demo.call_deferred(start_demo)
+	_apply_launch_options.call_deferred(options)
 
 
 ## Whether a demo is running in front of the menu.
