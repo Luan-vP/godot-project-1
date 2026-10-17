@@ -39,7 +39,7 @@ func test_pitch_rises_left_to_right() -> void:
 		var note := _field.note_for(pin)
 		assert_gte(note, last, "Pin %d" % pin)
 		last = note
-	assert_eq(_field.note_for(0), 48, "Leftmost is the lowest note at or above C3")
+	assert_eq(_field.note_for(0), 57, "Leftmost is the lowest note at or above A3")
 
 
 func test_pins_in_a_column_share_a_note() -> void:

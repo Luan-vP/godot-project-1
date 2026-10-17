@@ -44,7 +44,7 @@ const CYCLE: Array[String] = [
 ]
 
 var _pin_count := 0
-var _low_note := 48
+var _low_note := 57
 var _root := 9
 var _minor := true
 ## The scale in use, and its name in [constant SCALES] (empty for one passed
