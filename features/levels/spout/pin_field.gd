@@ -26,7 +26,7 @@ const FLIP_SECONDS := 0.3
 @export var area: Rect2 = Rect2(0, 0, 1000, 300)
 ## Rows of pins, top to bottom. Even rows hold [member pins_per_row], odd rows
 ## one fewer, set in by half a gap.
-@export var rows: int = 6
+@export var rows: int = 4
 @export var pins_per_row: int = 7
 @export var pin_radius: float = 9.0
 ## The lowest note the leftmost column may play, as MIDI: D4, so the field

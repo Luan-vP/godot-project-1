@@ -174,10 +174,11 @@ do the job alone — repeated fourths still reach all twelve keys.
 
 ## Tuning so far
 
-All first guesses, waiting on a play on real hardware: 6 rows of 7/6 pins over
-the middle 80% of the screen width, 50-80% of its height; the spout hung at 7%
-of the height; ±90° of aim (horizontal either way); 1.6 rad/s at full stick, 0.9 on the keys; pluck
-level 0.11, release 0.9 s.
+All first guesses, waiting on a play on real hardware: 4 rows of 7/6 pins (two
+pins to each note) over the middle 80% of the screen width, 50-80% of its
+height; the spout hung at 7% of the height; ±90° of aim (horizontal either
+way); 1.6 rad/s at full stick, 0.9 on the keys; pluck level 0.11, release 0.9
+s.
 
 Version A: jet 2800–6400 px/s² from the gentlest step to the fullest (twice
 what it first was), 34 px wide; droplets 280–420 px/s, ±7°,
