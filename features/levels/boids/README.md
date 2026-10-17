@@ -39,7 +39,7 @@ One sim and one level, two ways to move, picked by `FlockSim.Motion` and
 | Alignment | Against neighbours' headings | Against neighbours' velocities |
 | Wander | `WANDER_ACCEL` | `FLY_WANDER_ACCEL` |
 | Drawn as | Oval body with oars (`_draw_boatman`) | Arrowhead (`_draw_flier`) |
-| Wake strength | `WAKE_GAIN_ROW` (3) | `WAKE_GAIN_FLY` (2) |
+| Wake strength | `WAKE_GAIN_ROW` (1) | `WAKE_GAIN_FLY` (0.67) |
 
 Flocks, voices, the snare, taps, the scatter and the wakes are shared. The
 flying motion is how the level first worked (PR #97, before the boatmen);

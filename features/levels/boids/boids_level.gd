@@ -84,11 +84,11 @@ const WAKE_CELL := 110.0
 ## Light: the flocks stir the wash as they pass without hauling it along
 ## behind them. Boatmen glide slower than the birds fly, so theirs is higher.
 ## See [method wake_gain].
-const WAKE_GAIN_FLY := 2.0
-const WAKE_GAIN_ROW := 3.0
+const WAKE_GAIN_FLY := 0.67
+const WAKE_GAIN_ROW := 1.0
 ## Cap on one cell's push, in pixels/second^2, so a packed flock swirls the
 ## water rather than blasting it.
-const WAKE_MAX := 2500.0
+const WAKE_MAX := 850.0
 ## Gaussian radius of a wake: grows with the birds in it, from a lone bird's
 ## [constant WAKE_RADIUS] up to [constant WAKE_RADIUS_MAX].
 const WAKE_RADIUS := 45.0
