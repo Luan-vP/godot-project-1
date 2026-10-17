@@ -43,7 +43,7 @@ extends Node2D
 ## design.
 
 const BEATS_PER_BAR := 4
-const BIRD_COUNT := 64
+const BIRD_COUNT := 43
 
 ## A flock of each of these is already flying when the level opens, so the
 ## first bar is already 3-against-4.

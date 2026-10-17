@@ -137,8 +137,8 @@ the level names a rhythm. At 420 steps a bar the grid sequencer fires about
   block (roughly 10 ms) of the grid. `tap_offset_seconds` is there to cancel
   press-to-hear latency once it has been measured on the Deck; it is 0 until
   then.
-- **The sim is O(n²)** over 64 birds, about 1.5 ms a step on a desktop. A
-  spatial grid is the fix if the Deck needs it.
+- **The sim is O(n²)** over 43 birds (64 measured at about 1.5 ms a step on a
+  desktop). A spatial grid is the fix if the Deck needs it.
 - **Every constant was picked by eye and a headless balance run,** not by
   ear. The sky neither fills up nor empties when left alone, and favouring a
   rhythm shifts it over tens of seconds without wiping it out. That leaves
