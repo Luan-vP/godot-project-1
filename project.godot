@@ -34,11 +34,11 @@ Tank="*res://autoload/Tank.gd"
 
 [display]
 
-window/size/viewport_width.mobile=540
-window/size/viewport_height.mobile=960
+window/size/viewport_width.mobile=1152
+window/size/viewport_height.mobile=648
 window/stretch/mode.mobile="canvas_items"
 window/stretch/aspect.mobile="expand"
-window/handheld/orientation=1
+window/handheld/orientation=4
 
 [editor_plugins]
 

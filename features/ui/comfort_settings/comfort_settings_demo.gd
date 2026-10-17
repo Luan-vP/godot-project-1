@@ -47,7 +47,7 @@ func _ready() -> void:
 
 
 ## A name and its value on one line, the slider across the full width under
-## them, so the row fits a phone's 540-unit canvas as well as a Deck's.
+## them, so the row fits a narrow canvas as well as a Deck's.
 func _build_row(
 	label_text: String, min_value: float, max_value: float, value: float, setter: Callable
 ) -> VBoxContainer:
