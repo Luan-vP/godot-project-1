@@ -72,8 +72,9 @@ plays, on whichever of the eye band's songs comes up. Its `key_changed` keeps th
 in one of 13 distinct columns across the field (7 full columns and 6 set in
 between them); the scale gives each column a note, and pins in the same column
 share it. A pentatonic over 13 columns spans about two and a half octaves,
-from A3 up (the lowest scale tone at or above it) — enough range to feel like a melody, few enough that neighbouring
-pins are still neighbouring notes.
+from D4 up (the lowest scale tone at or above it) — enough range to feel
+like a melody, few enough that neighbouring pins are still neighbouring
+notes.
 
 **Changing key or scale scrolls.** The new notes don't snap in. They flip
 column by column, leftmost first, one per sixteenth of the music, so a change
