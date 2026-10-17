@@ -145,21 +145,21 @@ soft or not at all (under 45 px/s stays quiet).
 Both versions share it, in [`SpoutEmitter`](spout_emitter.gd) with the pure
 rules in [`SpoutFlow`](spout_flow.gd).
 
-**Steps of the bar.** The spout pours (A) or fires (B) at **2, 3, 4, 5, 6, 7,
-8, 9, 10, 12, 14 or 16 drops a bar**. With *n* a bar, one leaves at each
-*k/n* of the bar, so 4 a bar is quarter notes, 3 a triplet feel, 16
-sixteenths — the stream plays in time with the band. The grid is read from
+**Steps of the bar.** The spout pours (A) or fires (B) at **8, 12, 16, 20 or 24
+drops a bar** — few steps, so each gets a wide ring to aim for. With *n* a
+bar, one leaves at each *k/n* of the bar, so 8 a bar is eighth notes, 12
+eighth-note triplets, 16 sixteenths, 24 sixteenth triplets — the stream plays in time with the band. The grid is read from
 the music time source the band's `StepClock` plays from, not
 `AudioManager.get_current_bar()`, which only moves while loop layers play.
 Changing step starts counting from that moment, so it never releases a
 burst, and at most two drops leave in one frame.
 
-**RT** past a small deadzone splits its travel evenly into the twelve steps.
+**RT** past a small deadzone splits its travel evenly into the five steps.
 Space is full, 1–5 fixed depths. With nothing held the spout is closed.
 
 **Touch** sets the step by how far from the spout the finger is: the bands
 run evenly from just past the nozzle's tip down to the bottom of the pins.
-Any touch pours, at least 2 a bar.
+Any touch pours, at least 8 a bar.
 
 **The rings.** [`SpoutFlowOverlay`](spout_flow_overlay.gd) draws a ring round
 the spout for each step, labelled with its drops a bar. The band under the

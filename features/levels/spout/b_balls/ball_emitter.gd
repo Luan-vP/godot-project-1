@@ -10,7 +10,7 @@ extends SpoutEmitter
 ## open floor.
 ##
 ## How fast it fires is the shared stepped pour ([SpoutFlow], run by
-## [SpoutEmitter]): 2 balls a bar at the gentlest, up to 16, each fired on the
+## [SpoutEmitter]): 8 balls a bar at the gentlest, up to 24, each fired on the
 ## bar's grid so the balls play in time with the band. RT sets the step by
 ## depth, so L2/R2 are left out of key moves; L1/R1 still walk all twelve
 ## keys. On a touchscreen, touching aims and fires at once: the spout points
@@ -152,4 +152,4 @@ func describe() -> String:
 
 
 func controls_hint() -> String:
-	return "RT or touch fires, 2–16 a bar (touch further away = more; Space full, 1–5)"
+	return "RT or touch fires, 8–24 a bar (touch further away = more; Space full, 1–5)"

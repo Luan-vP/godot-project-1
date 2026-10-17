@@ -9,7 +9,7 @@ extends Node2D
 ## each frame, and reports pins it hits with [method PinField.hit].
 ##
 ## [b]The stepped pour[/b] is shared: both versions pour (or fire) in steps
-## of the bar ([SpoutFlow]), 2 drops a bar at the gentlest, up to 16, each one
+## of the bar ([SpoutFlow]), 8 drops a bar at the gentlest, up to 24, each one
 ## leaving on the bar's grid so the stream plays in time with the band. RT
 ## sets the step by depth; a touch (or held click) by how far from the spout
 ## it is, with [SpoutFlowOverlay] drawing the steps as rings round the nozzle.
