@@ -197,9 +197,10 @@ Everything generated lands in `builds/` (ignored by git, and by Godot via a
 The `mobile` feature tag carries the phone-only settings in `project.godot`,
 so the desktop window is untouched:
 
-- **Portrait**, on a 540-unit-wide canvas that stretches (`canvas_items`,
-  `expand`) to whatever height the phone has. Tanks size themselves from the
-  viewport, so every tank is portrait-shaped on a phone.
+- **Landscape**, either way up, on the desktop's 1152x648 canvas, stretched
+  (`canvas_items`, `expand`) to the phone's wider shape — about 1400x648 on
+  an iPhone 14 Pro Max. Layouts made for the desktop and the Deck carry over,
+  splash included; tanks size themselves from the viewport.
 - **Mobile renderer.** Forward+ does not exist on iOS. The Mobile renderer
   still has a `RenderingDevice` on Metal, which is what the fluid's compute
   solve needs.
