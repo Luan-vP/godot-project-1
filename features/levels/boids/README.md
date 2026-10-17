@@ -93,9 +93,9 @@ and the band they sing over are the host's.
 - **The snare shows how it was heard.** It sounds the instant it is hit, and
   a quiet ghost of it lands a bar later on the pulse it was read as.
 - **Boatmen stir the fluid; the fluid leaves boatmen alone.** The sky is the
-  host's painterly fluid (`features/fluid/`). Every bird pushes the water
-  along its heading, so flocks drag wakes through the wash, and flocked birds
-  stain it faintly in their rhythm's colour. Nothing flows back: `FlockSim`
+  host's painterly fluid (`features/fluid/`). Only flocked birds touch it:
+  each pushes the water along its heading, so flocks drag wakes through the
+  wash, and stains it faintly in its rhythm's colour. Loners leave no wake. Nothing flows back: `FlockSim`
   never samples the current, so the flocking is exactly what it was on a
   plain sky. The tank takes only 16 stirrers a frame, so birds are binned on
   a coarse grid and each cell pushes once with its birds' summed momentum

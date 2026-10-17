@@ -469,12 +469,17 @@ func _draw_boatman(
 	draw_circle(at + heading * 7.0 * scale, 2.0 * scale, color.lightened(0.25))
 
 
-## Push the birds' wakes into the tank for [param delta] seconds. Nothing
-## comes back the other way.
+## Push the flocked birds' wakes into the tank for [param delta] seconds.
+## Loners leave the water alone, so only the groups move it. Nothing comes
+## back the other way.
 func _stir(delta: float) -> void:
 	if _fluid == null or delta <= 0.0:
 		return
-	var wakes := BirdWakes.gather(sim.birds, WAKE_CELL, _bird_color)
+	var flocked: Array[Bird] = []
+	for bird in sim.birds:
+		if bird.flock != null:
+			flocked.append(bird)
+	var wakes := BirdWakes.gather(flocked, WAKE_CELL, _bird_color)
 	for i in mini(wakes.size(), FluidSimulation.MAX_SPLATS):
 		var wake := wakes[i]
 		var push := (wake.momentum * wake_gain()).limit_length(WAKE_MAX)
