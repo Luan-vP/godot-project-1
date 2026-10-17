@@ -18,7 +18,9 @@ var color := ArtPalette.DROPLET
 
 
 func _init() -> void:
-	drag = 2.2
+	# Low: the droplets keep their own line through the current rather than
+	# being swept along by it, so the stream stays a stream.
+	drag = 0.35
 	buoyancy = 240.0
 	max_speed = 560.0
 	contained = false

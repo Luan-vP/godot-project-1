@@ -15,7 +15,7 @@ extends RefCounted
 ## every scene.
 
 ## Radians either side of straight down the nozzle can reach.
-const MAX_AIM := deg_to_rad(60.0)
+const MAX_AIM := deg_to_rad(90.0)
 ## Turn rate at full stick, radians/second.
 const MAX_RATE := 1.6
 ## Turn rate while A or D is held, radians/second.

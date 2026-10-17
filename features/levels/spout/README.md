@@ -72,8 +72,9 @@ plays, on whichever of the eye band's songs comes up. Its `key_changed` keeps th
 in one of 13 distinct columns across the field (7 full columns and 6 set in
 between them); the scale gives each column a note, and pins in the same column
 share it. A pentatonic over 13 columns spans about two and a half octaves,
-from C3 up — enough range to feel like a melody, few enough that neighbouring
-pins are still neighbouring notes.
+from D4 up (the lowest scale tone at or above it) — enough range to feel
+like a melody, few enough that neighbouring pins are still neighbouring
+notes.
 
 **Changing key or scale scrolls.** The new notes don't snap in. They flip
 column by column, leftmost first, one per sixteenth of the music, so a change
@@ -173,14 +174,15 @@ do the job alone — repeated fourths still reach all twelve keys.
 
 ## Tuning so far
 
-All first guesses, waiting on a play on real hardware: 6 rows of 7/6 pins over
-the middle 80% of the screen width, 50-80% of its height; the spout hung at 7%
-of the height; ±60° of aim; 1.6 rad/s at full stick, 0.9 on the keys; pluck
-level 0.11, release 0.9 s.
+All first guesses, waiting on a play on real hardware: 4 rows of 7/6 pins (two
+pins to each note) over the middle 80% of the screen width, 65-80% of its
+height; the spout hung at 7% of the height; ±90° of aim (horizontal either
+way); 1.6 rad/s at full stick, 0.9 on the keys; pluck level 0.11, release 0.9
+s.
 
 Version A: jet 2800–6400 px/s² from the gentlest step to the fullest (twice
 what it first was), 34 px wide; droplets 280–420 px/s, ±7°,
-sinking at 240 px/s², drag 2.2; restitution 0.5; full strength at 420 px/s
+sinking at 240 px/s², drag 0.35 (they hold their own line through the current); restitution 0.5; full strength at 420 px/s
 closing speed; pin resistance 5/s.
 
 Version B: muzzle speed 520 px/s, ±2.5° scatter; ball bounce 0.3 over the

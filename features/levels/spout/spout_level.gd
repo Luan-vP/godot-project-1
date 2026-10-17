@@ -36,8 +36,9 @@ const TOUCH_BUTTON_SIZE := Vector2(116, 52)
 @export var title: String = "Level 3"
 ## Fraction of the screen height the spout's pivot hangs at.
 @export var spout_height: float = 0.07
-## The pin field's rectangle, as fractions of the screen.
-@export var pin_area: Rect2 = Rect2(0.1, 0.5, 0.8, 0.3)
+## The pin field's rectangle, as fractions of the screen: its rows a twentieth
+## of the height apart, the bottom row at 80%.
+@export var pin_area: Rect2 = Rect2(0.1, 0.65, 0.8, 0.15)
 
 var band: Band
 var peg_scale: PegScale

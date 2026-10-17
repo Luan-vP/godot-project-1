@@ -7,8 +7,8 @@ extends RefCounted
 ## and drops the faintest past that, so 64 birds each pushing on their own
 ## would leave most of the sky still. Instead birds are binned on a coarse
 ## grid and each occupied cell pushes once, with the summed momentum of the
-## birds in it: a flock reads as one broad wake, and a lone bird as a faint
-## one that still makes the cut when the sky is quiet.
+## birds in it: a flock reads as one broad wake. [BoidsLevel] passes only
+## flocked birds, so loners leave no wake at all.
 
 
 ## One cell's worth of birds: where they are on average, the sum of their

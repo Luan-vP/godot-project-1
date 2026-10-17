@@ -43,7 +43,7 @@ extends Node2D
 ## design.
 
 const BEATS_PER_BAR := 4
-const BIRD_COUNT := 64
+const BIRD_COUNT := 43
 
 ## A flock of each of these is already flying when the level opens, so the
 ## first bar is already 3-against-4.
@@ -80,15 +80,15 @@ const NOTE_SECONDS := 0.16
 ## Birds are binned this many pixels across, and each occupied cell stirs the
 ## tank once — see [BirdWakes].
 const WAKE_CELL := 110.0
-## Acceleration a bird lends the water, per pixel/second of its own speed. A
-## lone bird at full speed pushes about as hard as an eye does in its tank.
-## Boatmen glide slower than the birds fly, so theirs is higher. See
-## [method wake_gain].
-const WAKE_GAIN_FLY := 6.0
-const WAKE_GAIN_ROW := 9.0
+## Acceleration a bird lends the water, per pixel/second of its own speed.
+## Light: the flocks stir the wash as they pass without hauling it along
+## behind them. Boatmen glide slower than the birds fly, so theirs is higher.
+## See [method wake_gain].
+const WAKE_GAIN_FLY := 0.67
+const WAKE_GAIN_ROW := 1.0
 ## Cap on one cell's push, in pixels/second^2, so a packed flock swirls the
 ## water rather than blasting it.
-const WAKE_MAX := 7000.0
+const WAKE_MAX := 850.0
 ## Gaussian radius of a wake: grows with the birds in it, from a lone bird's
 ## [constant WAKE_RADIUS] up to [constant WAKE_RADIUS_MAX].
 const WAKE_RADIUS := 45.0
@@ -469,12 +469,17 @@ func _draw_boatman(
 	draw_circle(at + heading * 7.0 * scale, 2.0 * scale, color.lightened(0.25))
 
 
-## Push the birds' wakes into the tank for [param delta] seconds. Nothing
-## comes back the other way.
+## Push the flocked birds' wakes into the tank for [param delta] seconds.
+## Loners leave the water alone, so only the groups move it. Nothing comes
+## back the other way.
 func _stir(delta: float) -> void:
 	if _fluid == null or delta <= 0.0:
 		return
-	var wakes := BirdWakes.gather(sim.birds, WAKE_CELL, _bird_color)
+	var flocked: Array[Bird] = []
+	for bird in sim.birds:
+		if bird.flock != null:
+			flocked.append(bird)
+	var wakes := BirdWakes.gather(flocked, WAKE_CELL, _bird_color)
 	for i in mini(wakes.size(), FluidSimulation.MAX_SPLATS):
 		var wake := wakes[i]
 		var push := (wake.momentum * wake_gain()).limit_length(WAKE_MAX)

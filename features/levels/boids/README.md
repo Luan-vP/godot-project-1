@@ -39,7 +39,7 @@ One sim and one level, two ways to move, picked by `FlockSim.Motion` and
 | Alignment | Against neighbours' headings | Against neighbours' velocities |
 | Wander | `WANDER_ACCEL` | `FLY_WANDER_ACCEL` |
 | Drawn as | Oval body with oars (`_draw_boatman`) | Arrowhead (`_draw_flier`) |
-| Wake strength | `WAKE_GAIN_ROW` (9) | `WAKE_GAIN_FLY` (6) |
+| Wake strength | `WAKE_GAIN_ROW` (1) | `WAKE_GAIN_FLY` (0.67) |
 
 Flocks, voices, the snare, taps, the scatter and the wakes are shared. The
 flying motion is how the level first worked (PR #97, before the boatmen);
@@ -93,9 +93,9 @@ and the band they sing over are the host's.
 - **The snare shows how it was heard.** It sounds the instant it is hit, and
   a quiet ghost of it lands a bar later on the pulse it was read as.
 - **Boatmen stir the fluid; the fluid leaves boatmen alone.** The sky is the
-  host's painterly fluid (`features/fluid/`). Every bird pushes the water
-  along its heading, so flocks drag wakes through the wash, and flocked birds
-  stain it faintly in their rhythm's colour. Nothing flows back: `FlockSim`
+  host's painterly fluid (`features/fluid/`). Only flocked birds touch it:
+  each pushes the water along its heading, so flocks drag wakes through the
+  wash, and stains it faintly in its rhythm's colour. Loners leave no wake. Nothing flows back: `FlockSim`
   never samples the current, so the flocking is exactly what it was on a
   plain sky. The tank takes only 16 stirrers a frame, so birds are binned on
   a coarse grid and each cell pushes once with its birds' summed momentum
@@ -137,8 +137,8 @@ the level names a rhythm. At 420 steps a bar the grid sequencer fires about
   block (roughly 10 ms) of the grid. `tap_offset_seconds` is there to cancel
   press-to-hear latency once it has been measured on the Deck; it is 0 until
   then.
-- **The sim is O(n²)** over 64 birds, about 1.5 ms a step on a desktop. A
-  spatial grid is the fix if the Deck needs it.
+- **The sim is O(n²)** over 43 birds (64 measured at about 1.5 ms a step on a
+  desktop). A spatial grid is the fix if the Deck needs it.
 - **Every constant was picked by eye and a headless balance run,** not by
   ear. The sky neither fills up nor empties when left alone, and favouring a
   rhythm shifts it over tens of seconds without wiping it out. That leaves
