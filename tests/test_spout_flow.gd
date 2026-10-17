@@ -22,14 +22,14 @@ func after_each() -> void:
 
 
 func test_the_steps_are_the_bar_subdivisions_asked_for() -> void:
-	assert_eq(SpoutFlow.STEPS, [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16] as Array[int])
+	assert_eq(SpoutFlow.STEPS, [8, 12, 16, 20, 24] as Array[int])
 
 
 func test_trigger_depth_climbs_the_steps() -> void:
 	assert_eq(SpoutFlow.step_for_depth(0.0), -1, "Released: closed")
 	assert_eq(SpoutFlow.step_for_depth(SpoutFlow.DEADZONE), -1, "Inside the deadzone")
-	assert_eq(SpoutFlow.per_bar(SpoutFlow.step_for_depth(0.1)), 2, "A gentle press: 2 a bar")
-	assert_eq(SpoutFlow.per_bar(SpoutFlow.step_for_depth(1.0)), 16, "Fully pressed: 16")
+	assert_eq(SpoutFlow.per_bar(SpoutFlow.step_for_depth(0.1)), 8, "A gentle press: 8 a bar")
+	assert_eq(SpoutFlow.per_bar(SpoutFlow.step_for_depth(1.0)), 24, "Fully pressed: 24")
 	var last := -1
 	for i in 101:
 		var step := SpoutFlow.step_for_depth(i / 100.0)
@@ -47,9 +47,9 @@ func test_every_step_is_reachable_by_trigger() -> void:
 
 func test_touch_distance_climbs_the_steps_and_always_pours() -> void:
 	assert_eq(SpoutFlow.step_for_distance(10.0, 100.0, 700.0), 0, "By the nozzle: gentlest")
-	assert_eq(SpoutFlow.step_for_distance(900.0, 100.0, 700.0), 11, "Past reach: fullest")
-	assert_eq(SpoutFlow.step_for_distance(149.0, 100.0, 700.0), 0, "First band")
-	assert_eq(SpoutFlow.step_for_distance(151.0, 100.0, 700.0), 1, "Second band")
+	assert_eq(SpoutFlow.step_for_distance(900.0, 100.0, 700.0), 4, "Past reach: fullest")
+	assert_eq(SpoutFlow.step_for_distance(219.0, 100.0, 700.0), 0, "First band")
+	assert_eq(SpoutFlow.step_for_distance(221.0, 100.0, 700.0), 1, "Second band")
 
 
 func test_bands_match_the_distance_steps() -> void:
@@ -90,12 +90,12 @@ func test_the_level_is_closed_until_rt_or_a_touch() -> void:
 	emitter.reads_input = false
 	assert_eq(emitter.current_step(), -1, "Nothing held: closed")
 	emitter.set_depth(1.0)
-	assert_eq(SpoutFlow.per_bar(emitter.current_step()), 16, "RT fully pressed")
+	assert_eq(SpoutFlow.per_bar(emitter.current_step()), 24, "RT fully pressed")
 	emitter.set_depth(0.0)
 	level.pointer.press(level.spout.global_position + Vector2(0, emitter.flow_inner() - 5.0))
-	assert_eq(SpoutFlow.per_bar(emitter.current_step()), 2, "A touch by the nozzle")
+	assert_eq(SpoutFlow.per_bar(emitter.current_step()), 8, "A touch by the nozzle")
 	level.pointer.move_to(level.spout.global_position + Vector2(0, emitter.flow_reach() + 10.0))
-	assert_eq(SpoutFlow.per_bar(emitter.current_step()), 16, "A touch down at the pins")
+	assert_eq(SpoutFlow.per_bar(emitter.current_step()), 24, "A touch down at the pins")
 	level.pointer.release()
 
 
@@ -149,7 +149,7 @@ func test_pouring_drops_droplets_on_the_grid_as_the_music_moves() -> void:
 	Hosting.host(self, level)
 	var emitter: FluidEmitter = level.emitter
 	emitter.reads_input = false
-	emitter.set_depth(1.0)  # 16 a bar.
+	emitter.set_depth(1.0)  # 24 a bar.
 	var beats_per_bar := AudioManager.get_music_clock().beats_per_bar
 	emitter._physics_process(1.0 / 60.0)  # Opens the spout; starts counting.
 	var before := emitter.fired_count()
@@ -157,7 +157,7 @@ func test_pouring_drops_droplets_on_the_grid_as_the_music_moves() -> void:
 	for i in 64:
 		scripted.advance(beats_per_bar / 64.0)
 		emitter._physics_process(1.0 / 60.0)
-	assert_eq(emitter.fired_count() - before, 16, "Sixteen droplets in a bar")
+	assert_eq(emitter.fired_count() - before, 24, "Twenty-four droplets in a bar")
 	emitter.set_depth(0.0)
 	emitter._physics_process(1.0 / 60.0)
 	var closed_at := emitter.fired_count()

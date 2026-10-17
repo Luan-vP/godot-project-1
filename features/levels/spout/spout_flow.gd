@@ -1,25 +1,25 @@
 class_name SpoutFlow
 extends RefCounted
-## How hard the spout pours or fires, in steps of the bar: 2 drops a bar
-## (droplets from the fluid spout, balls from the other), then 3, 4 and so on
-## up to 10, then 12, 14 and 16. Pure — depth or distance in, a step
+## How hard the spout pours or fires, in steps of the bar: 8 drops a bar
+## (droplets from the fluid spout, balls from the other), then 12, 16, 20
+## and 24. Few steps, so each gets a wide band. Pure — depth or distance in, a step
 ## out, and which droplets fall due between two moments of the music — so it
 ## can be tested without a pad or a clock.
 ##
 ## The rate is set two ways. RT (or its keyboard stand-ins) by depth: past a
 ## small deadzone the trigger's travel is split evenly into the steps, so a
-## gentle press is 2 a bar and the bottom of the travel 16. A touch by
+## gentle press is 8 a bar and the bottom of the travel 24. A touch by
 ## distance: the further from the spout, the higher the step, in even bands
 ## between [code]inner[/code] and [code]reach[/code] that [SpoutFlowOverlay]
 ## draws as rings.
 ##
 ## Drops leave on the grid. With [code]n[/code] a bar, one is due at each
-## [code]k/n[/code] of the bar, so 4 a bar is quarter notes, 3 a triplet feel,
-## 16 sixteenths — the stream plays in time with the band. [SpoutEmitter]
-## runs all of this for both spouts.
+## [code]k/n[/code] of the bar, so 8 a bar is eighth notes, 12 eighth-note
+## triplets, 16 sixteenths, 24 sixteenth triplets — the stream plays in
+## time with the band. [SpoutEmitter] runs all of this for both spouts.
 
 ## Drops per bar at each step, gentlest first.
-const STEPS: Array[int] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16]
+const STEPS: Array[int] = [8, 12, 16, 20, 24]
 ## Trigger travel ignored before the first step.
 const DEADZONE := 0.06
 ## Drops due in one frame are capped, so a stalled frame or a jump in the

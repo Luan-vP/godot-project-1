@@ -21,8 +21,8 @@ extends SpoutEmitter
 ##    divides around the pins instead of flowing through them.
 ##
 ## [b]How hard it pours[/b] is up to the player, in steps of the bar
-## ([SpoutFlow], run by [SpoutEmitter]): 2 droplets a bar at the gentlest, up
-## to 16, each leaving on the bar's grid. The jet's push and paint grow with
+## ([SpoutFlow], run by [SpoutEmitter]): 8 droplets a bar at the gentlest, up
+## to 24, each leaving on the bar's grid. The jet's push and paint grow with
 ## the step. With neither RT nor a touch held the spout is closed.
 
 ## Acceleration the jet gives the fluid at the nozzle, pixels/second^2, at
@@ -238,4 +238,4 @@ func describe() -> String:
 
 
 func controls_hint() -> String:
-	return "RT or touch pours, 2–16 a bar (touch further away = more; Space full, 1–5)"
+	return "RT or touch pours, 8–24 a bar (touch further away = more; Space full, 1–5)"

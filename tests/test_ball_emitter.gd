@@ -92,13 +92,13 @@ func test_balls_fire_on_the_grid_as_the_music_moves() -> void:
 	Hosting.host(self, level)
 	var emitter: BallEmitter = level.emitter
 	emitter.reads_input = false
-	emitter.set_depth(SpoutFlow.DEADZONE + 0.01)  # The gentlest step: 2 a bar.
-	assert_eq(SpoutFlow.per_bar(emitter.current_step()), 2)
+	emitter.set_depth(SpoutFlow.DEADZONE + 0.01)  # The gentlest step: 8 a bar.
+	assert_eq(SpoutFlow.per_bar(emitter.current_step()), 8)
 	emitter._physics_process(1.0 / 60.0)  # Opens; starts counting.
 	var before := emitter.fired_count()
 	var beats_per_bar := AudioManager.get_music_clock().beats_per_bar
 	for i in 64:
 		scripted.advance(beats_per_bar / 64.0)
 		emitter._physics_process(1.0 / 60.0)
-	assert_eq(emitter.fired_count() - before, 2, "Two balls in a bar")
+	assert_eq(emitter.fired_count() - before, 8, "Eight balls in a bar")
 	AudioManager.set_music_time_source(WallClockMusicTime.new())
