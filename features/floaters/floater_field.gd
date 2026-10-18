@@ -8,11 +8,17 @@ extends Node2D
 ##
 ## Given [member depths], the population is also split across depth bands and
 ## each band is drawn out of focus. Each band is an offscreen, transparent
-## [SubViewport] its floaters draw into at their real positions, shown back
-## through a bokeh blur. That assumes this field sits untransformed over the
-## whole viewport — true of a screen-space overlay, which is what floaters are.
+## [SubViewport] its floaters draw into at their real positions, blurred in a
+## second [SubViewport] around it, and composited back over the screen as
+## glass. That assumes this field sits untransformed over the whole viewport —
+## true of a screen-space overlay, which is what floaters are.
+##
+## Both offscreen passes draw at the resolution [RenderScale] gives — on a
+## phone, a sixteenth of the screen's pixels — and only the cheap glass
+## composite runs at the screen's own.
 
 const BOKEH_SHADER := preload("res://features/floaters/shaders/bokeh.gdshader")
+const GLASS_SHADER := preload("res://features/floaters/shaders/bokeh_glass.gdshader")
 
 ## How many floaters to keep in the tank.
 @export_range(0, 400) var count: int = 60
@@ -90,7 +96,12 @@ const BOKEH_SHADER := preload("res://features/floaters/shaders/bokeh.gdshader")
 
 var _rng := RandomNumberGenerator.new()
 var _layers: Array[SubViewport] = []
+var _blurs: Array[SubViewport] = []
+var _blur_materials: Array[ShaderMaterial] = []
 var _materials: Array[ShaderMaterial] = []
+var _composites: Array[Sprite2D] = []
+# Buffer pixels per canvas unit, which the blur radius is measured against.
+var _texels_per_unit := 1.0
 
 
 func _ready() -> void:
@@ -123,6 +134,13 @@ func get_layer(depth_index: int) -> SubViewport:
 	return _layers[depth_index]
 
 
+## The blur pass of a depth band, or null when the field has no bands.
+func get_blur(depth_index: int) -> SubViewport:
+	if depth_index < 0 or depth_index >= _blurs.size():
+		return null
+	return _blurs[depth_index]
+
+
 ## Radius range for a shape [param family] (0 dot, 1 strand, 2 cobweb): its own
 ## override when one is set, otherwise [member radius_range].
 func radius_range_for(family: int) -> Vector2:
@@ -138,14 +156,35 @@ func _resolve_simulation() -> FluidSimulation:
 
 func _build_layers() -> void:
 	for depth in depths:
+		# The blur reads the layer, so the layer sits inside it: a viewport's
+		# children draw before it does, so the blur never sees last frame's.
+		var blur := SubViewport.new()
+		blur.transparent_bg = true
+		blur.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+		add_child(blur)
+		_blurs.append(blur)
+
+		# The layer lays out in canvas units, whatever its resolution, so
+		# floaters draw into it at their real positions.
 		var layer := SubViewport.new()
 		layer.transparent_bg = true
 		layer.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-		add_child(layer)
+		layer.size_2d_override_stretch = true
+		blur.add_child(layer)
 		_layers.append(layer)
 
+		var blur_material := ShaderMaterial.new()
+		blur_material.shader = BOKEH_SHADER
+		_blur_materials.append(blur_material)
+
+		var blurred := Sprite2D.new()
+		blurred.centered = false
+		blurred.texture = layer.get_texture()
+		blurred.material = blur_material
+		blur.add_child(blurred)
+
 		var material := ShaderMaterial.new()
-		material.shader = BOKEH_SHADER
+		material.shader = GLASS_SHADER
 		_materials.append(material)
 
 		# Each composite reads the screen behind it, and the screen texture is
@@ -158,9 +197,11 @@ func _build_layers() -> void:
 
 		var composite := Sprite2D.new()
 		composite.centered = false
-		composite.texture = layer.get_texture()
+		composite.texture = blur.get_texture()
+		composite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 		composite.material = material
 		add_child(composite)
+		_composites.append(composite)
 
 	if not _layers.is_empty():
 		_fit_layers()
@@ -169,9 +210,15 @@ func _build_layers() -> void:
 
 
 func _fit_layers() -> void:
-	var size := Vector2i(get_viewport_rect().size)
-	for layer in _layers:
-		layer.size = size
+	var canvas := get_viewport_rect().size
+	var buffer := RenderScale.buffer_size_for(get_viewport(), canvas)
+	_texels_per_unit = float(buffer.x) / maxf(canvas.x, 1.0)
+	for i in _layers.size():
+		_layers[i].size = buffer
+		_layers[i].size_2d_override = Vector2i(canvas.round())
+		_blurs[i].size = buffer
+		_composites[i].scale = canvas / Vector2(buffer)
+	_apply_focus()
 
 
 func _apply_focus() -> void:
@@ -180,9 +227,10 @@ func _apply_focus() -> void:
 		var tint := color
 		tint.a *= depth.opacity
 		_materials[i].set_shader_parameter("tint", tint)
-		_materials[i].set_shader_parameter("radius_px", depth.blur_px if defocus_enabled else 0.0)
-		_materials[i].set_shader_parameter("gain", depth.gain if defocus_enabled else 1.0)
 		_materials[i].set_shader_parameter("refraction_px", refraction_px)
+		var radius := depth.blur_px * _texels_per_unit if defocus_enabled else 0.0
+		_blur_materials[i].set_shader_parameter("radius_px", radius)
+		_blur_materials[i].set_shader_parameter("gain", depth.gain if defocus_enabled else 1.0)
 
 
 func _make_floater(rect: Rect2, depth_index: int) -> Floater:
