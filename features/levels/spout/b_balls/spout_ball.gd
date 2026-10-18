@@ -13,6 +13,8 @@ const RADIUS := 8.0
 var pins: PinField
 var age := 0.0
 var color := ArtPalette.BALLS[0]
+## The pin this ball is stuck to (version C), or -1 while it is loose.
+var stuck_to := -1
 ## Velocity at the end of the previous physics step: by the time
 ## [signal RigidBody2D.body_entered] fires the bounce has already happened, so
 ## the speed it hit at has to come from before it.
@@ -34,8 +36,29 @@ func _init() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	age += delta
+	# A stuck ball is waiting to play, so it does not age out meanwhile.
+	if stuck_to < 0:
+		age += delta
 	_approach = linear_velocity
+
+
+## Stop dead against [param pin], resting at [param at] (global), and stay
+## there. Safe to call from a physics callback: the freeze lands after it.
+func stick_to(pin: int, at: Vector2) -> void:
+	stuck_to = pin
+	_settle.call_deferred(at)
+
+
+func is_stuck() -> bool:
+	return stuck_to >= 0
+
+
+func _settle(at: Vector2) -> void:
+	freeze_mode = RigidBody2D.FREEZE_MODE_STATIC
+	freeze = true
+	linear_velocity = Vector2.ZERO
+	angular_velocity = 0.0
+	global_position = at
 
 
 func _on_body_entered(body: Node) -> void:

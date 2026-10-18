@@ -25,6 +25,8 @@ var max_aim := deg_to_rad(60.0)
 ## Radii the bands run between: see [method SpoutFlow.step_for_distance].
 var inner := 120.0
 var reach := 500.0
+## Drops a bar at each step: see [method SpoutEmitter.flow_steps].
+var steps: Array[int] = SpoutFlow.STEPS
 
 var _step := -1
 var _touch := Vector2.ZERO
@@ -71,9 +73,9 @@ func _draw() -> void:
 	# draw_arc measures from +x, clockwise on screen; straight down is PI/2.
 	var start := PI / 2.0 - max_aim - MARGIN
 	var end := PI / 2.0 + max_aim + MARGIN
-	var count := SpoutFlow.STEPS.size()
+	var count := steps.size()
 	for step in count:
-		var radius := SpoutFlow.band_outer(step, inner, reach)
+		var radius := SpoutFlow.band_outer(step, inner, reach, steps)
 		var lit := step == _step
 		var color := LIT if lit else INK
 		var alpha := (0.75 + 0.25 * _pulse if lit else 0.16) * _alpha
@@ -88,7 +90,7 @@ func _draw() -> void:
 		draw_string(
 			font,
 			label_at + Vector2(4.0, 4.0),
-			str(SpoutFlow.per_bar(step)),
+			str(SpoutFlow.per_bar(step, steps)),
 			HORIZONTAL_ALIGNMENT_LEFT,
 			-1,
 			15 if lit else 11,
@@ -101,7 +103,7 @@ func _draw() -> void:
 		draw_string(
 			font,
 			_touch + Vector2(30.0, -10.0),
-			"%d / bar" % SpoutFlow.per_bar(_step),
+			"%d / bar" % SpoutFlow.per_bar(_step, steps),
 			HORIZONTAL_ALIGNMENT_LEFT,
 			-1,
 			20,

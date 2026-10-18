@@ -68,6 +68,15 @@ const DEMOS: Array[Dictionary] = [
 		"blurb": "Level 3, B: RT or a touch fires billiard balls at the pins. Stick or touch aims.",
 	},
 	{
+		"name": "Spout C: sticky",
+		"path": "res://features/levels/carousel/solo/spout_c.tscn",
+		"blurb":
+		(
+			"Level 3, C: balls stick to the pins they hit; each plays on the next "
+			+ "sixteenth and pops until the bar."
+		),
+	},
+	{
 		"name": "Spout (shell)",
 		"path": "res://features/levels/carousel/solo/spout_shell.tscn",
 		"blurb":

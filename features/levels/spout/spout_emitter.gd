@@ -50,6 +50,7 @@ func start_flow() -> void:
 	overlay.max_aim = spout.max_aim
 	overlay.inner = flow_inner()
 	overlay.reach = flow_reach()
+	overlay.steps = flow_steps()
 	add_child(overlay)
 
 
@@ -76,10 +77,11 @@ func tick_flow() -> int:
 ## The step to pour at now: the higher of the trigger's and a touch's, or -1
 ## when neither is held.
 func current_step() -> int:
-	var step := SpoutFlow.step_for_depth(_depth)
+	var steps := flow_steps()
+	var step := SpoutFlow.step_for_depth(_depth, steps)
 	if _pointer_active():
 		var distance := spout.global_position.distance_to(_pointer().point())
-		step = maxi(step, SpoutFlow.step_for_distance(distance, flow_inner(), flow_reach()))
+		step = maxi(step, SpoutFlow.step_for_distance(distance, flow_inner(), flow_reach(), steps))
 	return step
 
 
@@ -97,14 +99,20 @@ func flow_step() -> int:
 	return _step
 
 
+## Drops a bar at each step, gentlest first. [constant SpoutFlow.STEPS]
+## unless a version pours on its own.
+func flow_steps() -> Array[int]:
+	return SpoutFlow.STEPS
+
+
 ## Drops a bar at the current step; 0 while closed.
 func flow_per_bar() -> int:
-	return SpoutFlow.per_bar(_step)
+	return SpoutFlow.per_bar(_step, flow_steps())
 
 
 ## How far up the steps the spout is, 0 at the gentlest, 1 at the fullest.
 func flow_fraction() -> float:
-	return float(maxi(_step, 0)) / (SpoutFlow.STEPS.size() - 1)
+	return float(maxi(_step, 0)) / maxi(1, flow_steps().size() - 1)
 
 
 ## Set the trigger depth by hand, for tests or another input.

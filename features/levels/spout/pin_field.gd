@@ -13,6 +13,10 @@ extends Node2D
 ## the [StaticBody2D] every pin carries; version A's droplets look pins up with
 ## [method pin_at]. Both report a hit through [method hit], which plays the
 ## note, flashes the pin and emits [signal pin_hit].
+##
+## A pin can also [method pop]: it bursts and is gone — not drawn, not
+## collided with, not found by [method pin_at] — until [method restore]
+## brings it back. Version C pops each pin it plays.
 
 ## Emitted for every hit that sounds (not those inside a pin's cooldown).
 signal pin_hit(pin: int, note: int, strength: float)
@@ -21,6 +25,7 @@ const NOTE_NAMES: Array[String] = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "A
 ## Seconds a hit's glow takes to fade, and a flip's pop.
 const FLASH_SECONDS := 0.45
 const FLIP_SECONDS := 0.3
+const POP_SECONDS := 0.25
 
 ## The rectangle the field fills, in local coordinates.
 @export var area: Rect2 = Rect2(0, 0, 1000, 300)
@@ -61,6 +66,9 @@ var _flash: Array[float] = []
 ## Per column, how far through its flip animation it is (1 just flipped).
 var _flip: Array[float] = []
 var _bodies: Array[StaticBody2D] = []
+var _popped: Array[bool] = []
+## Per pin, how far through its burst it is (1 just popped).
+var _pop: Array[float] = []
 var _pluck: Synth
 var _sparkle: Synth
 
@@ -81,6 +89,10 @@ func _process(delta: float) -> void:
 	for i in _flip.size():
 		if _flip[i] > 0.0:
 			_flip[i] = maxf(0.0, _flip[i] - delta / FLIP_SECONDS)
+			animating = true
+	for i in _pop.size():
+		if _pop[i] > 0.0:
+			_pop[i] = maxf(0.0, _pop[i] - delta / POP_SECONDS)
 			animating = true
 	if animating or (_scale != null and _scale.is_scrolling()):
 		queue_redraw()
@@ -104,6 +116,10 @@ func build() -> void:
 	_flash.fill(0.0)
 	_flip.resize(_column_count)
 	_flip.fill(0.0)
+	_popped.resize(_positions.size())
+	_popped.fill(false)
+	_pop.resize(_positions.size())
+	_pop.fill(0.0)
 	var material := PhysicsMaterial.new()
 	material.bounce = bounce
 	material.friction = friction
@@ -193,6 +209,8 @@ func pin_at(world_position: Vector2, radius: float = 0.0) -> int:
 	var best := -1
 	var best_distance := pin_radius + radius
 	for i in _positions.size():
+		if _popped[i]:
+			continue
 		var distance := local.distance_to(_positions[i])
 		if distance <= best_distance:
 			best = i
@@ -212,7 +230,7 @@ func pin_for_body(body: Node) -> int:
 ## [member retrigger_seconds]. Returns whether it sounded.
 ## [param now_usec] is for tests; it defaults to the real clock.
 func hit(pin: int, strength: float, now_usec: int = -1) -> bool:
-	if pin < 0 or pin >= _positions.size() or _scale == null:
+	if pin < 0 or pin >= _positions.size() or _scale == null or _popped[pin]:
 		return false
 	var now := now_usec if now_usec >= 0 else Time.get_ticks_usec()
 	if now - _last_hit_usec[pin] < int(retrigger_seconds * 1_000_000.0):
@@ -225,6 +243,47 @@ func hit(pin: int, strength: float, now_usec: int = -1) -> bool:
 	pin_hit.emit(pin, note, velocity)
 	queue_redraw()
 	return true
+
+
+## Burst [param pin] and take it away until [method restore]: it stops
+## drawing and stops colliding. Safe to call from a physics callback.
+func pop(pin: int) -> void:
+	if pin < 0 or pin >= _positions.size() or _popped[pin]:
+		return
+	_popped[pin] = true
+	_pop[pin] = 1.0
+	_set_solid(pin, false)
+	queue_redraw()
+
+
+## Bring a popped [param pin] back.
+func restore(pin: int) -> void:
+	if pin < 0 or pin >= _positions.size() or not _popped[pin]:
+		return
+	_popped[pin] = false
+	_pop[pin] = 0.0
+	_set_solid(pin, true)
+	queue_redraw()
+
+
+## Bring every popped pin back.
+func restore_all() -> void:
+	for pin in _positions.size():
+		restore(pin)
+
+
+func is_popped(pin: int) -> bool:
+	return pin >= 0 and pin < _popped.size() and _popped[pin]
+
+
+func popped_count() -> int:
+	return _popped.count(true)
+
+
+func _set_solid(pin: int, solid: bool) -> void:
+	if pin < _bodies.size():
+		var shape := _bodies[pin].get_child(0) as CollisionShape2D
+		shape.set_deferred("disabled", not solid)
 
 
 static func note_name(note: int) -> String:
@@ -286,6 +345,9 @@ func _draw() -> void:
 		var at := _positions[i]
 		var note := note_for(i)
 		var color := note_color(note) if note >= 0 else ArtPalette.PIN_BLANK
+		if _popped[i]:
+			_draw_popped(at, color, _pop[i])
+			continue
 		var flash := _flash[i]
 		var pop := 1.0 + 0.45 * _flip[column]
 		if flash > 0.0:
@@ -314,3 +376,17 @@ func _draw() -> void:
 				12,
 				note_color(note, 1.0).lightened(0.3)
 			)
+
+
+## A popped pin: a ring bursting outward as it goes, then a faint dotted
+## mark where it will come back.
+func _draw_popped(at: Vector2, color: Color, burst: float) -> void:
+	if burst > 0.0:
+		var radius := pin_radius * (1.0 + 1.6 * (1.0 - burst))
+		draw_arc(
+			at, radius, 0.0, TAU, 24, Color(color.lerp(ArtPalette.LIGHT, 0.5), burst), 3.0, true
+		)
+	var ghost := Color(ArtPalette.LIGHT, 0.18)
+	for k in 8:
+		var angle := TAU * k / 8.0
+		draw_arc(at, pin_radius, angle, angle + TAU / 16.0, 3, ghost, 1.5, true)

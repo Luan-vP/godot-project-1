@@ -25,6 +25,16 @@ func test_the_steps_are_the_bar_subdivisions_asked_for() -> void:
 	assert_eq(SpoutFlow.STEPS, [8, 12, 16, 20, 24] as Array[int])
 
 
+func test_a_version_can_bring_its_own_steps() -> void:
+	var steps: Array[int] = [2, 4, 6, 8]
+	assert_eq(SpoutFlow.per_bar(SpoutFlow.step_for_depth(0.1, steps), steps), 2)
+	assert_eq(SpoutFlow.per_bar(SpoutFlow.step_for_depth(1.0, steps), steps), 8)
+	assert_eq(SpoutFlow.step_for_distance(900.0, 100.0, 700.0, steps), 3, "Past reach: fullest")
+	for step in steps.size():
+		var outer := SpoutFlow.band_outer(step, 100.0, 700.0, steps)
+		assert_eq(SpoutFlow.step_for_distance(outer - 1.0, 100.0, 700.0, steps), step)
+
+
 func test_trigger_depth_climbs_the_steps() -> void:
 	assert_eq(SpoutFlow.step_for_depth(0.0), -1, "Released: closed")
 	assert_eq(SpoutFlow.step_for_depth(SpoutFlow.DEADZONE), -1, "Inside the deadzone")

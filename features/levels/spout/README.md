@@ -7,14 +7,17 @@ laid out **low to high, left to right**, so sweeping the spout plays a phrase
 that rises and falls with your aim. Behind it the eye band's songs play in
 full.
 
-There are two versions, differing only in what comes out of the spout:
+There are three versions, differing only in what comes out of the spout:
 
 - **A** (`a_fluid/`) pours the eye tank's fluid.
 - **B** (`b_balls/`) fires billiard-like balls, with a haptic tick per ball.
+- **C** (`c_sticky/`) fires B's balls, but each sticks to the first free pin
+  it hits; the pin plays on the next sixteenth and pops until the next bar.
 
 Both pour in **steps of the bar** (see [Pouring in bar subdivisions](#pouring-in-bar-subdivisions)):
 2 drops a bar up to 16, each on the bar's grid, set by RT or by which ring
-round the spout you touch. In the carousel the spout slot plays A or B, 50:50.
+round the spout you touch (C on its own steps, 2–8). In the carousel the
+spout slot plays A or B, 50:50; C is in the demo menu only for now.
 
 `spout_level.tscn` is the shell both build on, with a debug emitter in place
 of either: Space plucks the pin you are aiming at.
@@ -59,7 +62,7 @@ already means "back to the menu".
 | `pin_field.gd` | `PinField` — staggered pins with bodies; `hit(pin, strength)` plucks. |
 | `peg_scale.gd` | `PegScale` — pure: which note each column plays, and the scroll. |
 | `spout_emitter.gd` | `SpoutEmitter` — the slot an emitter fills, and the stepped pour both versions share. |
-| `spout_flow.gd` | `SpoutFlow` — pure: trigger depth and touch distance to a step, drops due on the bar's grid. |
+| `spout_flow.gd` | `SpoutFlow` — pure: trigger depth and touch distance to a step, drops due on the bar's grid. An emitter can bring its own steps (`flow_steps()`). |
 | `spout_flow_overlay.gd` | `SpoutFlowOverlay` — the rings round the spout, one per step. |
 | `debug_spout_emitter.gd` | `DebugSpoutEmitter` — the shell's stand-in: Space plucks. |
 
@@ -91,7 +94,8 @@ and the `scale ▸` button are stand-ins.
 
 **Pins.** Each is a `StaticBody2D` on physics layer 3 with some bounce, so
 balls clack off it; anything that is not a physics body looks pins up with
-`PinField.pin_at`. A hit plays a short sine pluck with an octave sparkle on
+`PinField.pin_at`. A pin can `pop()` — gone, drawn as a faint dotted mark,
+not collided with — until `restore()` (version C). A hit plays a short sine pluck with an octave sparkle on
 top, immediately, not quantised to the grid, and a pin hit again within 60 ms
 stays quiet.
 
@@ -140,6 +144,26 @@ is felt.
 it — the part of its speed along the line to the pin, taken from the step
 before the bounce — so a straight drop plays loud and a glancing roll plays
 soft or not at all (under 45 px/s stays quiet).
+
+## Version C: sticky balls
+
+`c_sticky/level_three_c.tscn` (`scripts/run.sh spout-c`).
+[`StickyBallEmitter`](c_sticky/sticky_ball_emitter.gd) fires version B's
+balls, slower — **2, 4, 6 or 8 a bar** (halves, quarters, quarter triplets,
+eighths), on the same RT or rings.
+
+**A ball sticks to the first free pin it hits** and stays there, frozen.
+One ball to a pin: a ball hitting a pin that already holds one bounces off
+without a sound, and can go on to stick lower down.
+
+**A pin with a ball plays on the next sixteenth**, not on the hit, at the
+strength the ball struck it with (never quieter than a quarter, so every
+stuck ball is heard). One pin a sixteenth, in the order the balls stuck, so
+two that stick together play on two sixteenths running.
+
+**Then it pops.** The pin and its ball burst and are gone — balls fall
+through where it was — until the start of the next bar, when every popped
+pin comes back at once. A pin played on a downbeat is gone the whole bar.
 
 ## Pouring in bar subdivisions
 
