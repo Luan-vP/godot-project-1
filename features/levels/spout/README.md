@@ -88,8 +88,9 @@ Every string and fret is a *site* with its own note, the open string plus
 the fret (C#3 at the low E's 9th fret up to C#6 at the high e's 21st), and a
 pin stands at the sites in the scale; roots are ringed. A pentatonic puts
 about 33 pins on the neck, the major scale about 46. The fretboard takes a
-taller strip than the staggered rows (`SpoutLevel.fretboard_area`, 45-80% of
-the height) so the strings sit about as far apart as the rows did. The field draws the strings, the fret wires, the
+slightly taller strip than the staggered rows (`SpoutLevel.fretboard_area`,
+60-80% of the height), so the strings sit close together but the drop from
+the spout stays long. The field draws the strings, the fret wires, the
 inlay dots and the fret numbers behind them. `PinField.strings`,
 `first_fret` and `frets` change the neck.
 
@@ -239,7 +240,7 @@ do the job alone — repeated fourths still reach all twelve keys.
 ## Tuning so far
 
 All first guesses, waiting on a play on real hardware: six strings by 13
-frets (9–21) over 45-80% of the height, or 4 rows of 7/6 pins on the
+frets (9–21) over 60-80% of the height, or 4 rows of 7/6 pins on the
 staggered layout over 65-80%, both across the middle 80% of the width; the spout hung at 7% of the height; ±90° of aim (horizontal either
 way); 1.6 rad/s at full stick, 0.9 on the keys; pluck level 0.11, release 0.9
 s.

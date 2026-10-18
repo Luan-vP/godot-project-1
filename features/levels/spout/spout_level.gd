@@ -40,9 +40,10 @@ const TOUCH_BUTTON_SIZE := Vector2(116, 52)
 ## The pin field's rectangle, as fractions of the screen, the bottom row at
 ## 80%.
 @export var pin_area: Rect2 = Rect2(0.1, 0.65, 0.8, 0.15)
-## The same for the fretboard, taller so its six strings sit as far apart as
-## the staggered rows: 45% to 80% of the height.
-@export var fretboard_area: Rect2 = Rect2(0.1, 0.45, 0.8, 0.35)
+## The same for the fretboard: a little taller, 60% to 80% of the height, so
+## its six strings sit close together but clear of each other, and the drop
+## from the spout stays long.
+@export var fretboard_area: Rect2 = Rect2(0.1, 0.6, 0.8, 0.2)
 ## How the pins lay the scale out: a scale diagram on the guitar's six
 ## strings, frets 9 to 21 (the default), or the older staggered rows, pitch
 ## rising left to right. See [PinField].
