@@ -72,6 +72,9 @@ var _pressure: Array[RID] = []
 # to stay intact for every iteration, so it cannot relax in place.
 var _viscous: Array[RID] = []
 var _dye: Array[RID] = []
+## Pigment to add on top of the field this step, all zero but on a frame that
+## prints something into the water.
+var _dye_addition := RID()
 var _divergence := RID()
 var _obstacle := RID()
 var _obstacle_walls := PackedByteArray()
@@ -184,6 +187,7 @@ func _build_resources() -> void:
 	_velocity = [_make_texture(_size, rgba), _make_texture(_size, rgba)]
 	if _pigment_enabled:
 		_dye = [_make_texture(_size, rgba), _make_texture(_size, rgba)]
+		_dye_addition = _make_texture(_size, rgba)
 	_pressure = [_make_texture(_size, scalar), _make_texture(_size, scalar)]
 	_viscous = [_make_texture(_size, rgba), _make_texture(_size, rgba)]
 	_divergence = _make_texture(_size, scalar)
@@ -261,6 +265,7 @@ func _build_resources() -> void:
 				_image_uniform(1, _dye[1]),
 				_sampler_uniform(2, _velocity[0]),
 				_buffer_uniform(3, _dye_splat_buffer),
+				_sampler_uniform(4, _dye_addition),
 			]
 		)
 	_sets["downsample"] = _make_set(
@@ -333,6 +338,12 @@ func _run_step(frame: Dictionary) -> void:
 	var stamp: PackedByteArray = frame.get("dye_stamp", PackedByteArray())
 	if _pigment_enabled and not stamp.is_empty():
 		_rd.texture_update(_dye[0], 0, stamp)
+	# A printed picture added over the pigment rides in on the dye pass, which
+	# adds the whole texture; it is cleared again once the step has read it.
+	var addition: PackedByteArray = frame.get("dye_addition", PackedByteArray())
+	var adding := _pigment_enabled and not addition.is_empty()
+	if adding:
+		_rd.texture_update(_dye_addition, 0, addition)
 
 	_rd.buffer_update(_velocity_splat_buffer, 0, MAX_SPLATS * SPLAT_BYTES, frame["velocity_splats"])
 	if _pigment_enabled:
@@ -374,6 +385,8 @@ func _run_step(frame: Dictionary) -> void:
 		_rd.texture_copy(
 			_dye[1], _dye[0], Vector3.ZERO, Vector3.ZERO, Vector3(_size.x, _size.y, 1), 0, 0, 0, 0
 		)
+	if adding:
+		_rd.texture_clear(_dye_addition, Color(0.0, 0.0, 0.0, 0.0), 0, 1, 0, 1)
 
 	if frame.get("readback", false):
 		# The one place the CPU waits on the GPU, which is why it runs over the
@@ -398,8 +411,11 @@ func _free_resources() -> void:
 		_free(pipeline)
 	for shader in _shaders:
 		_free(shader)
-	for texture in _velocity + _dye + _pressure + _viscous + [_divergence, _obstacle, _readback]:
+	for texture in (
+		_velocity + _dye + _pressure + _viscous + [_divergence, _obstacle, _readback, _dye_addition]
+	):
 		_free(texture)
+	_dye_addition = RID()
 	_free(_velocity_splat_buffer)
 	_free(_dye_splat_buffer)
 	_free(_sampler)

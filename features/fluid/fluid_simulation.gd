@@ -52,6 +52,9 @@ var _current_bias: Vector2 = Vector2.ZERO
 var _pending_nudge: Vector2 = Vector2.ZERO
 var _clear_requested: bool = false
 var _dye_stamp := PackedByteArray()
+## Pigment waiting to be added over the field on the next step, the whole
+## grid, or null when nothing is.
+var _dye_addition: Image
 var _frames_to_readback: int = 1
 var _configured: bool = false
 
@@ -183,6 +186,30 @@ func stamp_dye(dye: Image) -> void:
 	_dye_stamp = copy.get_data()
 
 
+## Add [param dye] over the pigment field on the next step, its top-left
+## corner at grid cell [param cell]: a picture printed into the water on top
+## of whatever is already there, which then moves with it like any other
+## pigment. Premultiplied like [method stamp_dye], but any size; whatever
+## falls outside the grid is cut off, and several in one frame add up.
+## One-shot; a no-op without pigment.
+func add_dye(dye: Image, cell: Vector2i) -> void:
+	if not _configured or not config.pigment_enabled or dye == null or dye.is_empty():
+		return
+	var grid := config.simulation_size()
+	if _dye_addition == null:
+		_dye_addition = Image.create_empty(grid.x, grid.y, false, Image.FORMAT_RGBAF)
+	var source := dye
+	if source.get_format() != Image.FORMAT_RGBAF:
+		source = dye.duplicate() as Image
+		source.convert(Image.FORMAT_RGBAF)
+	var from := cell.max(Vector2i.ZERO)
+	var to := (cell + source.get_size()).min(grid)
+	for y in range(from.y, to.y):
+		for x in range(from.x, to.x):
+			var added := source.get_pixel(x - cell.x, y - cell.y)
+			_dye_addition.set_pixel(x, y, _dye_addition.get_pixel(x, y) + added)
+
+
 ## Lean the whole current one way, in pixels/second^2, until changed. This is
 ## a bias on the ambient drift rather than gravity: the tank leans, it does not
 ## pour, so what floats in it stays floating.
@@ -248,6 +275,7 @@ func _frame(step: float) -> Dictionary:
 		"dye_splat_count": _dye_slots.size(),
 		"clear": _clear_requested,
 		"dye_stamp": _dye_stamp,
+		"dye_addition": _addition_bytes(),
 		"readback": wants_readback,
 	}
 
@@ -258,12 +286,23 @@ func _consume_queues() -> void:
 	_pending_nudge = Vector2.ZERO
 	_clear_requested = false
 	_dye_stamp = PackedByteArray()
+	_dye_addition = null
 	_velocity_slots.clear()
 	_velocity_shapes.clear()
 	_velocity_weights.clear()
 	_dye_slots.clear()
 	_dye_paints.clear()
 	_dye_weights.clear()
+
+
+## The pending addition as the device takes it, half floats; empty when
+## there is none.
+func _addition_bytes() -> PackedByteArray:
+	if _dye_addition == null:
+		return PackedByteArray()
+	var copy := _dye_addition.duplicate() as Image
+	copy.convert(Image.FORMAT_RGBAH)
+	return copy.get_data()
 
 
 func _should_read_back() -> bool:

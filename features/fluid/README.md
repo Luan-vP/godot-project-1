@@ -18,6 +18,7 @@ wakes that push each other around. Nothing in here knows what an eye is.
 | `fluid_config.gd` | `FluidConfig` — how the water moves. |
 | `painterly_style.gd` | `PainterlyStyle` — how it looks. |
 | `fluid_gpu.gd` | `FluidGPU` — the device resources and the compute dispatch. |
+| `dye_print.gd` | `DyePrint` — pictures to print into a running tank: a tinted shape, a constellation, a line of text. |
 
 `FluidConfig` and `PainterlyStyle` are separate resources on purpose:
 retuning the look should never be able to change the physics.
@@ -172,6 +173,20 @@ joins each edge to the opposite one for that: no wall ring in the obstacle
 mask, neighbour reads and advection wrap round, splats reach across the seam,
 and the CPU mirror samples the same way. A uniform push then keeps flowing
 until something damps it, such as `velocity_dissipation`.
+
+## Printing into the tank
+
+Two ways to put a picture into the pigment, which then moves with the water:
+
+- `stamp_dye(image)` replaces the whole field with a grid-sized picture. The
+  splash prints its logo this way, into a wiped tank.
+- `add_dye(image, cell)` adds a picture of any size over what is already
+  there, its top-left corner at a grid cell; several in a frame add up. The
+  dye pass adds a whole-grid texture that is zero except on the frame
+  something is printed. The spout prints key names and version C's
+  constellations this way; `DyePrint` builds the pictures.
+
+Both are premultiplied, like the field.
 
 ## Emptying the tank
 
