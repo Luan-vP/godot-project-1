@@ -1,9 +1,9 @@
 class_name KeyPrint
 extends Node
-## Prints the band's key into the middle of the tank whenever it moves, the
-## way the splash prints its logo: the name ("F# minor"), in the menus'
-## inscription face and the root's pin colour, to drift and swirl away with
-## the water.
+## Prints the band's key into the middle of the tank when a song starts and
+## whenever the key moves, the way the splash prints its logo: the name
+## ("F# minor"), in the menus' inscription face and the root's pin colour, to
+## drift and swirl away with the water.
 ##
 ## [SharedLayers] keeps one, so it happens in every level, whichever of them
 ## moved the key.
@@ -23,6 +23,7 @@ var fluid: FluidSimulation
 
 func _ready() -> void:
 	if band != null:
+		band.song_started.connect(_on_song_started)
 		band.key_changed.connect(_on_key_changed)
 
 
@@ -57,6 +58,10 @@ func print_key() -> void:
 	var cells := DyePrint.cells_for(rect, world.size, fluid.config.simulation_size())
 	var color := PinField.note_color(root, 1.0).lightened(0.2)
 	fluid.add_dye(DyePrint.tinted(mask, cells.size, color, DENSITY), cells.position)
+
+
+func _on_song_started(_title: String) -> void:
+	print_key()
 
 
 func _on_key_changed(_offset: int) -> void:

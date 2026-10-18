@@ -22,8 +22,8 @@ extends Node2D
 ##
 ## A level finds its host with [method host_of] in [method Node._ready].
 ##
-## Whichever level moves the band's key, a [KeyPrint] here prints the new
-## key's name into the tank.
+## When the song starts, and whichever level moves the band's key, a
+## [KeyPrint] here prints the key's name into the tank.
 
 const SEED_BLOBS := 5
 ## Pigment density dropped in at the start, as a one-shot rather than a rate.
@@ -48,14 +48,14 @@ func _ready() -> void:
 	band = Band.new()
 	band.name = "Band"
 	add_child(band)
-	band.start()
-
-	# Every key move, from any level, prints the key's name into the water.
+	# The song starting, and every key move from any level, prints the key's
+	# name into the water. Before the band starts, so it hears the song begin.
 	var key_print := KeyPrint.new()
 	key_print.name = "KeyPrint"
 	key_print.band = band
 	key_print.fluid = fluid
 	add_child(key_print)
+	band.start()
 
 	# A tank that starts as flat colour looks like a bug. Seed it, once, when
 	# it starts here: after the splash it already holds the logo, and every

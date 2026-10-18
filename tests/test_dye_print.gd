@@ -75,3 +75,6 @@ func test_every_level_shares_one_key_print_on_the_band() -> void:
 	assert_not_null(key_print, "The host keeps one")
 	assert_eq(key_print.band, shared.band)
 	assert_true(shared.band.key_changed.is_connected(key_print._on_key_changed), "Follows the key")
+	assert_true(
+		shared.band.song_started.is_connected(key_print._on_song_started), "And each new song"
+	)

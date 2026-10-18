@@ -41,11 +41,11 @@ instanced under `SharedLayers.stage`, and in `_ready` it calls
   follows `key_changed` and `stepped`, and plays its own notes over the top in
   the band's key.
 
-**Every key move prints the key into the tank**, whichever level made it:
-the host's `KeyPrint` follows the band's `key_changed` and prints the new
-key's name ("F# minor", in the menus' inscription face and the root's pin
-colour) into the middle of the water, the way the splash prints its logo,
-to drift and swirl away with it. A level does nothing for this.
+**A new song and every key move print the key into the tank**, whichever
+level made the move: the host's `KeyPrint` follows the band's `song_started`
+and `key_changed` and prints the key's name ("F# minor", in the menus'
+inscription face and the root's pin colour) into the middle of the water,
+the way the splash prints its logo, to drift and swirl away with it. A level does nothing for this.
 
 `host_of` is an ancestor walk, not a group lookup, so a level can never adopt
 a tank from a demo still being freed. With no host it reports an error and
