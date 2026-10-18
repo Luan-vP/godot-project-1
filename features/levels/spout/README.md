@@ -242,7 +242,7 @@ do the job alone — repeated fourths still reach all twelve keys.
 All first guesses, waiting on a play on real hardware: six strings by 13
 frets (9–21) over 60-80% of the height, or 4 rows of 7/6 pins on the
 staggered layout over 65-80%, both across the middle 80% of the width; the spout hung at 7% of the height; ±90° of aim (horizontal either
-way); 1.6 rad/s at full stick, 0.9 on the keys; pluck level 0.11, release 0.9
+way); 1.6 rad/s at full stick, 0.9 on the keys; pluck level 0.2 (sparkle 0.065), up from 0.11 to sit well over the band; release 0.9
 s.
 
 Version A: jet 2800–6400 px/s² from the gentlest step to the fullest (twice

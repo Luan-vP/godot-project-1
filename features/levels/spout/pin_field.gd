@@ -77,6 +77,10 @@ const POP_SECONDS := 0.25
 
 @export_group("Sound")
 @export var voices: int = 16
+## Levels of the sine pluck and its octave sparkle: well up in the band's mix
+## (its parts sit at 0.05-0.16), so every pin a player strikes reads over it.
+@export var pluck_level: float = 0.2
+@export var sparkle_level: float = 0.065
 ## Seconds a pluck is held before it starts to ring out over the patch's
 ## release.
 @export var hold_seconds: float = 0.04
@@ -107,8 +111,8 @@ var _sparkle: Synth
 func _ready() -> void:
 	if _positions.is_empty():
 		build()
-	_pluck = _make_synth(0.003, 0.9, 0.11)
-	_sparkle = _make_synth(0.002, 0.35, 0.035)
+	_pluck = _make_synth(0.003, 0.9, pluck_level)
+	_sparkle = _make_synth(0.002, 0.35, sparkle_level)
 
 
 func _process(delta: float) -> void:
