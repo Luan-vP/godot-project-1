@@ -1,13 +1,15 @@
 extends GutTest
-## Covers the carousel's A/B slots: the spout (fluid or balls) and the flock
-## (waterboatmen or birds), each picked 50:50 on arrival, while the eye band
-## and a carousel of one always play their own level.
+## Covers the carousel's variant slots: the spout (fluid, balls or sticky
+## balls, a third each) and the flock (waterboatmen or birds, 50:50), picked
+## on arrival, while the eye band and a carousel of one always play their own
+## level.
 
 
-func test_the_spout_and_the_flock_are_each_an_ab_pair() -> void:
-	assert_eq(FluidCarousel.VARIANTS.size(), 2, "Two pairs")
+func test_the_spout_has_three_variants_and_the_flock_two() -> void:
+	assert_eq(FluidCarousel.VARIANTS.size(), 2, "Two variant slots")
+	assert_eq(FluidCarousel.VARIANTS[0].size(), 3, "Spout A, B and C")
+	assert_eq(FluidCarousel.VARIANTS[1].size(), 2, "Waterboatmen and birds")
 	for group in FluidCarousel.VARIANTS:
-		assert_eq(group.size(), 2, "A and B")
 		for path in group:
 			assert_true(ResourceLoader.exists(path), path)
 	assert_true(FluidCarousel.VARIANTS[0].has(FluidCarousel.LEVELS[1]), "The spout slot")
@@ -16,19 +18,23 @@ func test_the_spout_and_the_flock_are_each_an_ab_pair() -> void:
 		assert_false(group.has(FluidCarousel.LEVELS[0]), "The eye band stands alone")
 
 
-func test_arriving_at_a_pair_picks_either_about_half_the_time() -> void:
+func test_arriving_at_a_slot_picks_each_variant_about_as_often() -> void:
 	var carousel := FluidCarousel.new()
 	carousel.rng.seed = 7
 	autofree(carousel)
+	var draws := 600
 	for slot in [1, 2]:
 		var group := FluidCarousel.VARIANTS[slot - 1]
 		var counts := {}
-		for i in 400:
+		for i in draws:
 			var path := carousel.path_for(slot)
-			assert_true(group.has(path), "One of the pair")
+			assert_true(group.has(path), "One of the group")
 			counts[path] = counts.get(path, 0) + 1
+		var share := float(draws) / group.size()
 		for path in group:
-			assert_between(counts.get(path, 0), 160, 240, "%s about half" % path)
+			assert_between(
+				counts.get(path, 0), int(share * 0.8), int(share * 1.2), "%s its share" % path
+			)
 	for i in 20:
 		assert_eq(carousel.path_for(0), FluidCarousel.LEVELS[0], "The eye band every time")
 

@@ -68,6 +68,15 @@ const DEMOS: Array[Dictionary] = [
 		"blurb": "Level 3, B: RT or a touch fires billiard balls at the pins. Stick or touch aims.",
 	},
 	{
+		"name": "Spout C: sticky",
+		"path": "res://features/levels/carousel/solo/spout_c.tscn",
+		"blurb":
+		(
+			"Level 3, C: balls stick to the pins they hit; each plays on the next "
+			+ "sixteenth and pops until the bar."
+		),
+	},
+	{
 		"name": "Spout (shell)",
 		"path": "res://features/levels/carousel/solo/spout_shell.tscn",
 		"blurb":
@@ -96,7 +105,7 @@ const DEMOS: Array[Dictionary] = [
 		"path": "res://features/levels/carousel/fluid_carousel.tscn",
 		"blurb":
 		(
-			"Eye band, a spout (A or B) and a flock (boatmen or birds) over one tank. "
+			"Eye band, a spout (A, B or C) and a flock (boatmen or birds) over one tank. "
 			+ "Swipe along the bottom to change level."
 		),
 	},

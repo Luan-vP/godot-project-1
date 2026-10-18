@@ -57,6 +57,7 @@ scripts/run.sh carousel    # the levels in turn over one tank and one band
 scripts/run.sh band        # the eye tank as a band: eyes off the walls play parts
 scripts/run.sh spout-a     # level 3, A: pour the eye tank's fluid over the pins
 scripts/run.sh spout-b     # level 3, B: RT fires billiard balls at the pins
+scripts/run.sh spout-c     # level 3, C: balls stick to pins, play on the 16th, pop
 scripts/run.sh spout       # level 3's shell: spout, pins, band (Space plucks)
 scripts/run.sh birds       # flocks singing 3-against-4, played with a snare (B)
 scripts/run.sh synth       # play the synth voices from the keyboard

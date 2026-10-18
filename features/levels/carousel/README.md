@@ -9,14 +9,15 @@ Select or the `‹ menu` button).
 Swipe along the bottom of the screen to change level: left for the next,
 right for the previous. A mouse drag works the same on a desktop.
 
-The spout and the flock are A/B pairs (`FluidCarousel.VARIANTS`): spout A (the
-fluid) or B (the balls), and the waterboatmen or the birds. Each time the
-carousel arrives at one of those slots it picks one of the pair 50:50
-(`path_for`), so swiping round again may bring the other.
+The spout and the flock hold variants (`FluidCarousel.VARIANTS`): spout A (the
+fluid), B (the balls) or C (the sticky balls), a third each, and the
+waterboatmen or the birds, 50:50. Each time the carousel arrives at one of
+those slots it picks one of the group, each as likely (`path_for`), so swiping
+round again may bring another.
 
 `level_paths` is exported, so every other way in is just a scene that sets
 it. `solo/` has a carousel of one for each level played on its own: the eye
-band, spouts A and B, the spout shell, the birds and the waterboatmen. A
+band, spouts A, B and C, the spout shell, the birds and the waterboatmen. A
 carousel of one never advances and always plays exactly its level. The demo menu's level entries and
 `run.sh`'s level names open these.
 

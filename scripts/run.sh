@@ -38,6 +38,9 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
              Space or a click fires at full rate, 1-5 at fixed depths. Stick
              or A/D aims, Q/E move the key, Enter or Y swaps scale;
              touch aims, top-right buttons move key/scale.
+  spout-c    Level 3, version C: balls stick to the pins they hit, one to a
+             pin; a pin with a ball plays on the next sixteenth and pops
+             until the next bar. RT or touch fires 8-20 balls a bar.
   spout      Level 3's common shell: a spout over a field of pins, the eye
              band playing behind. Stick or A/D aims, Space plucks the pin
              aimed at, Q/E and Z/X move the key, Enter or Y swaps scale;
@@ -47,9 +50,9 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
   boatmen    The same, as waterboatmen rowing in strokes and glides
              (also: waterboatmen, boids).
   carousel   The eye band, a spout and a flock in turn, sliding over one
-             shared tank and one continuous band. The spout is A (fluid) or B
-             (balls) and the flock waterboatmen or birds, picked 50:50 each
-             time you arrive. Swipe (or drag) along the bottom to change level.
+             shared tank and one continuous band. The spout is A (fluid), B
+             (balls) or C (sticky balls), a third each, and the flock
+             waterboatmen or birds, 50:50, picked each time you arrive. Swipe (or drag) along the bottom to change level.
   synth      Synth voices. A-K hold notes, Up/Down glide, 1/2/3 waveform,
              R plays a phrase, Space holds a high note.
   groove     Floaty synthwave loop at 70 bpm: rendered drums plus live bass and
@@ -80,6 +83,7 @@ scene_for() {
 		band | eye-band | eyes) echo "res://features/levels/carousel/solo/eye_band.tscn" ;;
 		spout-a | level3a) echo "res://features/levels/carousel/solo/spout_a.tscn" ;;
 		spout-b | level3b) echo "res://features/levels/carousel/solo/spout_b.tscn" ;;
+		spout-c | level3c) echo "res://features/levels/carousel/solo/spout_c.tscn" ;;
 		spout | level3) echo "res://features/levels/carousel/solo/spout_shell.tscn" ;;
 		birds) echo "res://features/levels/carousel/solo/birds.tscn" ;;
 		waterboatmen | boatmen | boids) echo "res://features/levels/carousel/solo/waterboatmen.tscn" ;;

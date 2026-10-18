@@ -27,10 +27,11 @@ extends Node2D
 ##
 ## It never advances on its own unless [member dwell_seconds] is set.
 ##
-## Two of the slots are A/B pairs ([constant VARIANTS]): spout A (the fluid)
-## or B (the balls), and the waterboatmen or the birds. Every time the
-## carousel arrives at one of those slots it picks one of the pair, each as
-## likely, so swiping round again may bring the other.
+## Two of the slots hold variants ([constant VARIANTS]): spout A (the
+## fluid), B (the balls) or C (the sticky balls), and the waterboatmen or
+## the birds. Every time the carousel arrives at one of those slots it picks
+## one of the group, each as likely, so swiping round again may bring
+## another.
 ##
 ## [member level_paths] is exported, so a variant is just a scene that sets it:
 ## a carousel of one for each level played on its own
@@ -48,12 +49,13 @@ const LEVELS: Array[String] = [
 	"res://features/levels/boids/boids_level.tscn",
 ]
 
-## Levels that share a slot, A/B: arriving at a slot holding any of them,
+## Levels that share a slot: arriving at a slot holding any of them,
 ## one of the group is played, picked at random.
 const VARIANTS: Array[Array] = [
 	[
 		"res://features/levels/spout/a_fluid/level_three_a.tscn",
 		"res://features/levels/spout/b_balls/level_three_b.tscn",
+		"res://features/levels/spout/c_sticky/level_three_c.tscn",
 	],
 	[
 		"res://features/levels/boids/boids_level.tscn",

@@ -18,7 +18,9 @@ extends RefCounted
 ## triplets, 16 sixteenths, 24 sixteenth triplets — the stream plays in
 ## time with the band. [SpoutEmitter] runs all of this for both spouts.
 
-## Drops per bar at each step, gentlest first.
+## Drops per bar at each step, gentlest first. An emitter can pour on its
+## own steps instead ([method SpoutEmitter.flow_steps]); every rule below
+## takes them as [code]steps[/code], defaulting to these.
 const STEPS: Array[int] = [8, 12, 16, 20, 24]
 ## Trigger travel ignored before the first step.
 const DEADZONE := 0.06
@@ -28,33 +30,35 @@ const MAX_DUE := 2
 
 
 ## The step for trigger [param depth] (0..1), or -1 for closed.
-static func step_for_depth(depth: float) -> int:
+static func step_for_depth(depth: float, steps: Array[int] = STEPS) -> int:
 	if depth <= DEADZONE:
 		return -1
 	var past := clampf((depth - DEADZONE) / (1.0 - DEADZONE), 0.0, 1.0)
-	return mini(floori(past * STEPS.size()), STEPS.size() - 1)
+	return mini(floori(past * steps.size()), steps.size() - 1)
 
 
 ## The step for a touch [param distance] from the spout, with bands running
 ## evenly from [param inner] to [param reach]. Never closed: any touch pours,
 ## inside [param inner] at the gentlest step, past [param reach] at the
 ## fullest.
-static func step_for_distance(distance: float, inner: float, reach: float) -> int:
+static func step_for_distance(
+	distance: float, inner: float, reach: float, steps: Array[int] = STEPS
+) -> int:
 	if reach <= inner:
-		return STEPS.size() - 1
+		return steps.size() - 1
 	var past := clampf((distance - inner) / (reach - inner), 0.0, 1.0)
-	return mini(floori(past * STEPS.size()), STEPS.size() - 1)
+	return mini(floori(past * steps.size()), steps.size() - 1)
 
 
 ## Droplets a bar at [param step]; 0 for closed (-1).
-static func per_bar(step: int) -> int:
-	return STEPS[step] if step >= 0 and step < STEPS.size() else 0
+static func per_bar(step: int, steps: Array[int] = STEPS) -> int:
+	return steps[step] if step >= 0 and step < steps.size() else 0
 
 
 ## The outer radius of [param step]'s band, between [param inner] and
 ## [param reach].
-static func band_outer(step: int, inner: float, reach: float) -> float:
-	return inner + (reach - inner) * float(step + 1) / STEPS.size()
+static func band_outer(step: int, inner: float, reach: float, steps: Array[int] = STEPS) -> float:
+	return inner + (reach - inner) * float(step + 1) / steps.size()
 
 
 ## Droplets falling due as the music moves from [param from_bars] to
