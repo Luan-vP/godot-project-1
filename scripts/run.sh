@@ -27,8 +27,8 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
              then the fluid carousel. Backspace goes to the demo menu.
   splash     Just the splash: the logo printed in the tank and swirled away.
   menu       Click into any of the demos below; Backspace comes back.
-  band       The eye tank as a band: each eye plays one part of a 70 bpm loop
-             while it floats clear of the walls. WASD tilts, drag stirs.
+  band       The eye tank as a band: each eye plays one part of a song
+             (78-92 bpm) while it floats clear of the walls. WASD tilts, drag stirs.
   spout-a    Level 3, version A: the spout pours the eye tank's fluid over
              the pins; droplets riding it play the notes they strike. Stick
              or A/D aims, Q/E and Z/X move the key, Enter or Y swaps scale;

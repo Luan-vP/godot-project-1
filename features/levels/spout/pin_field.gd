@@ -535,16 +535,18 @@ func _draw_neck() -> void:
 	for wire in frets + 1:
 		var x := left + gap * wire
 		draw_line(Vector2(x, top), Vector2(x, bottom), Color(ArtPalette.LIGHT, 0.14), 2.0, true)
-	var dot_y := bottom + 8.0
+	# Inlays as on a real neck: one dot at 3, 5, 7 and 9 (and an octave on),
+	# two at 12 and 24.
+	var dot_y := bottom + 9.0
 	for column in frets:
 		var fret := first_fret + column
 		var x := area.position.x + gap * column
-		var dot := Color(ArtPalette.LIGHT, 0.3)
+		var dot := Color(ArtPalette.LIGHT, 0.5)
 		if posmod(fret, 12) == 0 and fret > 0:
-			draw_circle(Vector2(x - 4.0, dot_y), 2.5, dot)
-			draw_circle(Vector2(x + 4.0, dot_y), 2.5, dot)
+			draw_circle(Vector2(x - 6.0, dot_y), 3.5, dot)
+			draw_circle(Vector2(x + 6.0, dot_y), 3.5, dot)
 		elif posmod(fret, 12) in [3, 5, 7, 9]:
-			draw_circle(Vector2(x, dot_y), 2.5, dot)
+			draw_circle(Vector2(x, dot_y), 3.5, dot)
 
 
 ## Fret numbers under the columns and string names left of the strings.
@@ -552,7 +554,7 @@ func _draw_fretboard_labels() -> void:
 	var font := UiTheme.hud_font()
 	var gap := _fret_gap()
 	var ink := Color(ArtPalette.LIGHT, 0.55)
-	var bottom := area.end.y + pin_radius + 30.0
+	var bottom := area.end.y + pin_radius + 32.0
 	for column in frets:
 		var x := area.position.x + gap * column
 		var label := str(first_fret + column)
