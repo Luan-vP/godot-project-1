@@ -67,6 +67,7 @@ func _ready() -> void:
 	stage = Node2D.new()
 	stage.name = "Stage"
 	add_child(stage)
+	key_print.stage = stage
 
 
 ## The [SharedLayers] hosting [param node], which every level needs. Reports

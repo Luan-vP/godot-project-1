@@ -6,7 +6,9 @@ extends Node
 ## drift and swirl away with the water.
 ##
 ## [SharedLayers] keeps one, so it happens in every level, whichever of them
-## moved the key.
+## moved the key. The name goes in the middle, unless the level on the stage
+## has a [code]prints_key_anywhere()[/code] that says true (the eye tank's
+## does): then it lands at a random spot, wholly on the screen.
 
 ## How wide the name is printed, as a share of the screen, and the most of
 ## its height it may take.
@@ -16,12 +18,19 @@ const MAX_HEIGHT := 0.2
 ## it is scaled into the tank.
 const DENSITY := 1.5
 const FONT_SIZE := 96
+## Pixels a name printed anywhere keeps clear of the screen's edges.
+const MARGIN := 24.0
 
 var band: Band
 var fluid: FluidSimulation
+## Where the levels are, to ask the newest where it wants the name.
+var stage: Node
+
+var _rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
+	_rng.randomize()
 	if band != null:
 		band.song_started.connect(_on_song_started)
 		band.key_changed.connect(_on_key_changed)
@@ -41,7 +50,26 @@ static func rect_for(screen: Vector2, aspect: float) -> Rect2:
 	return Rect2((screen - size) * 0.5, size)
 
 
-## Print the band's key into the middle of the tank. Takes a frame to render
+## [param rect] moved to a random spot on a [param screen]-sized tank, all of
+## it on the screen and clear of its edges by [constant MARGIN] where the
+## screen has room.
+static func anywhere(rect: Rect2, screen: Vector2, rng: RandomNumberGenerator) -> Rect2:
+	var room := (screen - rect.size - Vector2.ONE * MARGIN * 2.0).max(Vector2.ZERO)
+	var spot := Vector2(rng.randf() * room.x, rng.randf() * room.y)
+	var inset := ((screen - rect.size) * 0.5).min(Vector2.ONE * MARGIN).max(Vector2.ZERO)
+	return Rect2(inset + spot, rect.size)
+
+
+## Whether the level on the stage wants the name anywhere rather than in the
+## middle. The newest level is the one arriving.
+func wants_anywhere() -> bool:
+	if stage == null or stage.get_child_count() == 0:
+		return false
+	var level := stage.get_child(stage.get_child_count() - 1)
+	return level.has_method("prints_key_anywhere") and level.prints_key_anywhere()
+
+
+## Print the band's key into the tank, in the middle or anywhere. Takes a frame to render
 ## the name; a no-op without a tank to print into.
 func print_key() -> void:
 	if band == null or fluid == null or not FluidGPU.is_available():
@@ -53,7 +81,10 @@ func print_key() -> void:
 		return
 	var world := fluid.get_world_rect()
 	var aspect := float(mask.get_height()) / mask.get_width()
-	var rect := rect_for(get_viewport().get_visible_rect().size, aspect)
+	var screen := get_viewport().get_visible_rect().size
+	var rect := rect_for(screen, aspect)
+	if wants_anywhere():
+		rect = anywhere(rect, screen, _rng)
 	rect.position -= world.position
 	var cells := DyePrint.cells_for(rect, world.size, fluid.config.simulation_size())
 	var color := PinField.note_color(root, 1.0).lightened(0.2)

@@ -45,7 +45,10 @@ instanced under `SharedLayers.stage`, and in `_ready` it calls
 level made the move: the host's `KeyPrint` follows the band's `song_started`
 and `key_changed` and prints the key's name ("F# minor", in the menus'
 inscription face and the root's pin colour) into the middle of the water,
-the way the splash prints its logo, to drift and swirl away with it. A level does nothing for this.
+the way the splash prints its logo, to drift and swirl away with it.
+A level does nothing for this, unless it wants the name somewhere else: one
+with a `prints_key_anywhere()` that returns true gets it at a random spot,
+wholly on the screen. The eye tank does.
 
 `host_of` is an ancestor walk, not a group lookup, so a level can never adopt
 a tank from a demo still being freed. With no host it reports an error and

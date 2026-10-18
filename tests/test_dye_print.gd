@@ -78,3 +78,32 @@ func test_every_level_shares_one_key_print_on_the_band() -> void:
 	assert_true(
 		shared.band.song_started.is_connected(key_print._on_song_started), "And each new song"
 	)
+
+
+func test_anywhere_keeps_the_name_wholly_on_the_screen() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var screen := Vector2(1152, 648)
+	var name_rect := Rect2(Vector2.ZERO, Vector2(400, 60))
+	var lefts: Array[float] = []
+	for i in 200:
+		var rect := KeyPrint.anywhere(name_rect, screen, rng)
+		assert_eq(rect.size, name_rect.size, "Same size")
+		assert_true(Rect2(Vector2.ZERO, screen).grow(-KeyPrint.MARGIN).encloses(rect), "On screen")
+		lefts.append(rect.position.x)
+	assert_gt(lefts.max() - lefts.min(), 500.0, "All over, not just the middle")
+
+
+func test_the_eye_tank_asks_for_the_name_anywhere_and_the_spout_does_not() -> void:
+	var key_print := KeyPrint.new()
+	# Out of the tree, so the levels never look for a host.
+	var stage: Node = autofree(Node.new())
+	key_print.stage = stage
+	autofree(key_print)
+	assert_false(key_print.wants_anywhere(), "No level: the middle")
+	var spout: Node = SpoutLevel.new()
+	stage.add_child(spout)
+	assert_false(key_print.wants_anywhere(), "The spout: the middle")
+	var eyes: Node = load("res://features/levels/secret_eyes/eye_band_demo.gd").new()
+	stage.add_child(eyes)
+	assert_true(key_print.wants_anywhere(), "The eye tank, arriving: anywhere")
