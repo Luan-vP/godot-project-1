@@ -105,7 +105,7 @@ const DEMOS: Array[Dictionary] = [
 		"path": "res://features/levels/carousel/fluid_carousel.tscn",
 		"blurb":
 		(
-			"Eye band, a spout (A or B) and a flock (boatmen or birds) over one tank. "
+			"Eye band, a spout (A, B or C) and a flock (boatmen or birds) over one tank. "
 			+ "Swipe along the bottom to change level."
 		),
 	},

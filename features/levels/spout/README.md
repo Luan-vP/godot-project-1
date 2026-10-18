@@ -18,7 +18,7 @@ There are three versions, differing only in what comes out of the spout:
 Both pour in **steps of the bar** (see [Pouring in bar subdivisions](#pouring-in-bar-subdivisions)):
 2 drops a bar up to 16, each on the bar's grid, set by RT or by which ring
 round the spout you touch (C on its own steps, 8–20). In the carousel the
-spout slot plays A or B, 50:50; C is in the demo menu only for now.
+spout slot plays A, B or C, a third each.
 
 `spout_level.tscn` is the shell both build on, with a debug emitter in place
 of either: Space plucks the pin you are aiming at.

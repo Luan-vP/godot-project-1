@@ -50,9 +50,9 @@ Usage: scripts/run.sh <name> [--fresh] [-- <godot args>]
   boatmen    The same, as waterboatmen rowing in strokes and glides
              (also: waterboatmen, boids).
   carousel   The eye band, a spout and a flock in turn, sliding over one
-             shared tank and one continuous band. The spout is A (fluid) or B
-             (balls) and the flock waterboatmen or birds, picked 50:50 each
-             time you arrive. Swipe (or drag) along the bottom to change level.
+             shared tank and one continuous band. The spout is A (fluid), B
+             (balls) or C (sticky balls), a third each, and the flock
+             waterboatmen or birds, 50:50, picked each time you arrive. Swipe (or drag) along the bottom to change level.
   synth      Synth voices. A-K hold notes, Up/Down glide, 1/2/3 waveform,
              R plays a phrase, Space holds a high note.
   groove     Floaty synthwave loop at 70 bpm: rendered drums plus live bass and
