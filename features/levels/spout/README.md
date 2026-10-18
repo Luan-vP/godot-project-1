@@ -118,10 +118,8 @@ notes: every pin sits in one of 13 distinct columns across the field (7 full
 columns and 6 set in between them); the scale gives each column a note, low
 to high left to right from D4 up, and pins in the same column share it.
 
-**A key change is printed into the tank.** In all three versions, the
-new key's name ("F# minor", in the menus' inscription face and the root's
-pin colour) is printed into the middle of the water, the way the splash
-prints its logo, and drifts and swirls away with it.
+**A key change is printed into the tank**, as in every level: see
+[the carousel](../carousel/README.md#the-level-format).
 
 **Changing key or scale scrolls.** Nothing snaps. On the fretboard the pins
 move: fret by fret, lowest first, one per sixteenth of the music, the old

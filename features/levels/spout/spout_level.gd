@@ -29,15 +29,6 @@ extends Node2D
 
 ## Big enough for a thumb on the Deck's screen.
 const TOUCH_BUTTON_SIZE := Vector2(116, 52)
-## A key change prints the key's name into the middle of the tank, as the
-## splash prints its logo, to swirl away with the water: this wide, as a
-## share of the screen, and never taller than this share of it.
-const KEY_PRINT_WIDTH := 0.42
-const KEY_PRINT_MAX_HEIGHT := 0.2
-## Pigment the name is printed with, and the size it is rendered at before
-## it is scaled into the tank.
-const KEY_PRINT_DENSITY := 1.5
-const KEY_PRINT_FONT_SIZE := 96
 
 ## The [SpoutEmitter] script to put in the slot. Left empty, the level uses
 ## [DebugSpoutEmitter].
@@ -178,44 +169,6 @@ func cycle_scale() -> void:
 
 func _on_key_changed(_offset: int) -> void:
 	peg_scale.set_key(band.key_root(), band.is_minor())
-	print_key_name()
-
-
-## The key as it is printed into the tank: "F# minor".
-static func key_name(root: int, minor: bool) -> String:
-	return "%s %s" % [PinField.NOTE_NAMES[posmod(root, 12)], "minor" if minor else "major"]
-
-
-## Where a printed name of [param aspect] (height over width) sits on a
-## [param screen]-sized tank: centred, a share of the width, but never taller
-## than a share of the height.
-static func key_print_rect(screen: Vector2, aspect: float) -> Rect2:
-	var width := minf(screen.x * KEY_PRINT_WIDTH, screen.y * KEY_PRINT_MAX_HEIGHT / aspect)
-	var size := Vector2(width, width * aspect)
-	return Rect2((screen - size) * 0.5, size)
-
-
-## Print the band's key into the middle of the tank, in the root's pin
-## colour, to drift and swirl with the water. Takes a frame to render the
-## name; a no-op without a tank to print into.
-func print_key_name() -> void:
-	if _shared == null or _shared.fluid == null or not FluidGPU.is_available():
-		return
-	var fluid := _shared.fluid
-	var root := band.key_root()
-	var text := key_name(root, band.is_minor())
-	var mask: Image = await DyePrint.render_text(
-		self, text, UiTheme.display_font(), KEY_PRINT_FONT_SIZE
-	)
-	if mask == null or not is_instance_valid(fluid):
-		return
-	var world := fluid.get_world_rect()
-	var aspect := float(mask.get_height()) / mask.get_width()
-	var rect := key_print_rect(get_viewport_rect().size, aspect)
-	rect.position -= world.position
-	var cells := DyePrint.cells_for(rect, world.size, fluid.config.simulation_size())
-	var color := PinField.note_color(root, 1.0).lightened(0.2)
-	fluid.add_dye(DyePrint.tinted(mask, cells.size, color, KEY_PRINT_DENSITY), cells.position)
 
 
 func _on_band_stepped(_bar: int, _step_in_bar: int) -> void:

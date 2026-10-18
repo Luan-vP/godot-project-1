@@ -21,6 +21,9 @@ extends Node2D
 ## [code]features/levels/carousel/solo/[/code].
 ##
 ## A level finds its host with [method host_of] in [method Node._ready].
+##
+## Whichever level moves the band's key, a [KeyPrint] here prints the new
+## key's name into the tank.
 
 const SEED_BLOBS := 5
 ## Pigment density dropped in at the start, as a one-shot rather than a rate.
@@ -46,6 +49,13 @@ func _ready() -> void:
 	band.name = "Band"
 	add_child(band)
 	band.start()
+
+	# Every key move, from any level, prints the key's name into the water.
+	var key_print := KeyPrint.new()
+	key_print.name = "KeyPrint"
+	key_print.band = band
+	key_print.fluid = fluid
+	add_child(key_print)
 
 	# A tank that starts as flat colour looks like a bug. Seed it, once, when
 	# it starts here: after the splash it already holds the logo, and every

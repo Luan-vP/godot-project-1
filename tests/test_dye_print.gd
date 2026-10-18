@@ -58,11 +58,20 @@ func test_added_dye_goes_over_the_field_with_the_next_step_only() -> void:
 
 
 func test_the_key_is_printed_by_name_in_the_middle() -> void:
-	assert_eq(SpoutLevel.key_name(6, true), "F# minor")
-	assert_eq(SpoutLevel.key_name(3, false), "Eb major")
-	var rect := SpoutLevel.key_print_rect(Vector2(1000, 500), 0.1)
+	assert_eq(KeyPrint.key_name(6, true), "F# minor")
+	assert_eq(KeyPrint.key_name(3, false), "Eb major")
+	var rect := KeyPrint.rect_for(Vector2(1000, 500), 0.1)
 	assert_almost_eq(rect.get_center().x, 500.0, 0.01, "Centred")
 	assert_almost_eq(rect.get_center().y, 250.0, 0.01)
-	assert_almost_eq(rect.size.x, 1000 * SpoutLevel.KEY_PRINT_WIDTH, 0.01)
-	var tall := SpoutLevel.key_print_rect(Vector2(1000, 500), 1.0)
-	assert_almost_eq(tall.size.y, 500 * SpoutLevel.KEY_PRINT_MAX_HEIGHT, 0.01, "Never too tall")
+	assert_almost_eq(rect.size.x, 1000 * KeyPrint.WIDTH, 0.01)
+	var tall := KeyPrint.rect_for(Vector2(1000, 500), 1.0)
+	assert_almost_eq(tall.size.y, 500 * KeyPrint.MAX_HEIGHT, 0.01, "Never too tall")
+
+
+func test_every_level_shares_one_key_print_on_the_band() -> void:
+	var shared := SharedLayers.new()
+	add_child_autofree(shared)
+	var key_print := shared.get_node("KeyPrint") as KeyPrint
+	assert_not_null(key_print, "The host keeps one")
+	assert_eq(key_print.band, shared.band)
+	assert_true(shared.band.key_changed.is_connected(key_print._on_key_changed), "Follows the key")
