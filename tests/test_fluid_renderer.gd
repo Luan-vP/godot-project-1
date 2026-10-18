@@ -20,6 +20,6 @@ func test_a_sleeping_tank_draws_nothing_offscreen() -> void:
 	var renderer: FluidRenderer = add_child_autofree(FluidRenderer.new())
 	assert_eq(
 		renderer.get_buffer().render_target_update_mode,
-		SubViewport.UPDATE_WHEN_PARENT_VISIBLE,
-		"Only while shown"
+		SubViewport.UPDATE_WHEN_VISIBLE,
+		"Only while shown: WHEN_PARENT_VISIBLE follows the root viewport, which never hides"
 	)

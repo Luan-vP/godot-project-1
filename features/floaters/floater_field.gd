@@ -14,7 +14,7 @@ extends Node2D
 ## true of a screen-space overlay, which is what floaters are.
 ##
 ## Both offscreen passes draw at the resolution [RenderScale] gives — on a
-## phone, a sixteenth of the screen's pixels — and only the cheap glass
+## phone, a quarter of the screen's pixels — and only the cheap glass
 ## composite runs at the screen's own.
 
 const BOKEH_SHADER := preload("res://features/floaters/shaders/bokeh.gdshader")

@@ -126,7 +126,7 @@ Each band is two offscreen passes and a composite. Floaters draw into the
 band's layer; a blur pass around it (`bokeh.gdshader`) runs the 64-tap disc
 and packs the coverage and its lean into a texture; and `bokeh_glass.gdshader`
 composites that over the screen. Both offscreen passes run at the resolution
-`RenderScale` gives — the screen's own on a desktop, a quarter of it along each
+`RenderScale` gives — the screen's own on a desktop, half of it along each
 axis on a phone — and the blur radius is scaled to match, so a band looks the
 same size everywhere. Only the composite, one tap and a screen read, runs at
 the screen's resolution. It still costs one full-screen copy per band

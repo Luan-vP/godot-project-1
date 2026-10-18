@@ -9,7 +9,7 @@ extends TextureRect
 ##
 ## The shader runs offscreen, in a [SubViewport] sized by [RenderScale], and
 ## this shows the result stretched over the tank: on a phone that is a
-## sixteenth of the screen's pixels, upscaled.
+## quarter of the screen's pixels, upscaled.
 
 const PAINTERLY_SHADER := preload("res://features/fluid/shaders/painterly.gdshader")
 
@@ -38,7 +38,10 @@ func _ready() -> void:
 	style.apply_to(_material)
 
 	# Drawn only while the tank is on screen; a sleeping tank costs nothing.
-	_buffer.render_target_update_mode = SubViewport.UPDATE_WHEN_PARENT_VISIBLE
+	# WHEN_VISIBLE follows whether this rect drew the buffer last frame, so it
+	# stops when the Tank's layer hides. WHEN_PARENT_VISIBLE would not: its
+	# "parent" is the root viewport, which is always drawn.
+	_buffer.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 	_buffer.add_child(_paint)
 	add_child(_buffer)
 	texture = _buffer.get_texture()

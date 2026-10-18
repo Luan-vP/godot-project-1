@@ -203,9 +203,10 @@ so the desktop window is untouched:
   splash included; tanks size themselves from the viewport.
 - **Upscaled fluid.** The canvas stretches, but the screen's every pixel is
   still drawn — 2796x1290 on that iPhone. The two heavy passes, the painterly
-  fluid and the floaters' depth-band blur, draw offscreen at a quarter of the
+  fluid and the floaters' depth-band blur, draw offscreen at half the
   screen's resolution along each axis (`RenderScale.MOBILE_UPSCALE`, one
-  pixel in sixteen) and are stretched back up; text and UI stay sharp.
+  pixel in four) and are stretched back up; text and UI stay sharp. A factor
+  of 4 (one in sixteen) is cheaper still but softens the brushwork's edges.
 - **Mobile renderer.** Forward+ does not exist on iOS. The Mobile renderer
   still has a `RenderingDevice` on Metal, which is what the fluid's compute
   solve needs.

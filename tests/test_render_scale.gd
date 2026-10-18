@@ -13,6 +13,11 @@ func test_a_phone_draws_a_quarter_of_its_pixels_along_each_axis() -> void:
 	assert_eq(size, Vector2i(699, 323), "The screen's pixels over four, rounded up")
 
 
+func test_a_phone_at_the_default_draws_about_the_canvas_resolution() -> void:
+	var size := RenderScale.buffer_size(Vector2(1398.0, 645.0), 2.0, RenderScale.MOBILE_UPSCALE)
+	assert_eq(size, Vector2i(1398, 645), "Half the screen along each axis: one pixel in four")
+
+
 func test_a_part_pixel_rounds_up_so_the_edge_is_covered() -> void:
 	var size := RenderScale.buffer_size(Vector2(10.0, 10.0), 1.0, 4)
 	assert_eq(size, Vector2i(3, 3), "2.5 pixels needs 3")

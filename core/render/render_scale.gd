@@ -9,9 +9,11 @@ extends RefCounted
 ## Those draw offscreen at a fraction of the screen's resolution and are
 ## stretched back up with linear filtering.
 
-## Screen pixels per offscreen pixel along each axis, on a phone. 4 draws one
-## pixel in sixteen.
-const MOBILE_UPSCALE := 4
+## Screen pixels per offscreen pixel along each axis, on a phone. 2 draws one
+## pixel in four: about the canvas's own resolution, still 2-5 pixels per fluid
+## cell. 4 (one in sixteen) brings the buffer down to about the fluid grid's
+## size, which softens the brushwork's edges; use it only if 2 measures too slow.
+const MOBILE_UPSCALE := 2
 
 
 ## The upscale in effect: [constant MOBILE_UPSCALE] on a phone, 1 elsewhere.
