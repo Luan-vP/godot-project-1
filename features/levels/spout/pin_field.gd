@@ -1,13 +1,25 @@
 class_name PinField
 extends Node2D
-## The pins at the bottom of the spout level, in staggered rows like a
-## falling-balls board, each playing its note when something hits it.
+## The pins at the bottom of the spout level, each playing its note when
+## something hits it. Two layouts ([member layout]):
 ##
-## Pitch rises left to right across the whole field, not row by row: pins are
-## grouped into [i]columns[/i] by x, the staggered rows interleaving so that
-## every column is a distinct x, and a [PegScale] gives each column one note.
-## Pins in the same column share it. Pins are indexed left to right by x,
-## ties broken top to bottom, so pin 0 is the leftmost.
+## [b]Staggered[/b]: rows like a falling-balls board. Pitch rises left to
+## right across the whole field, not row by row: pins are grouped into
+## [i]columns[/i] by x, the staggered rows interleaving so that every column
+## is a distinct x, and a [PegScale] gives each column one note. Pins in the
+## same column share it.
+##
+## [b]Fretboard[/b]: a scale diagram on a guitar's [member strings] strings
+## (all six by default, counting down from the high e), highest on top as in
+## tab, from [member first_fret] for
+## [member frets] frets. Every string and fret is a [i]site[/i] with its own
+## fixed note, and a [FretboardScale] says which sites hold a pin: those in
+## the scale. A change of key or scale moves pins rather than retuning them.
+## The columns are the frets.
+##
+## Either way, pins are indexed left to right by x, ties broken top to
+## bottom, so pin 0 is the leftmost. In the fretboard layout a site with no
+## pin is still indexed; [method is_live] says whether a pin is there.
 ##
 ## What hits a pin is not this field's business. Version B's balls bounce off
 ## the [StaticBody2D] every pin carries; version A's droplets look pins up with
@@ -21,6 +33,8 @@ extends Node2D
 ## Emitted for every hit that sounds (not those inside a pin's cooldown).
 signal pin_hit(pin: int, note: int, strength: float)
 
+enum Layout { STAGGERED, FRETBOARD }
+
 const NOTE_NAMES: Array[String] = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"]
 ## Seconds a hit's glow takes to fade, and a flip's pop.
 const FLASH_SECONDS := 0.45
@@ -29,17 +43,31 @@ const POP_SECONDS := 0.25
 
 ## The rectangle the field fills, in local coordinates.
 @export var area: Rect2 = Rect2(0, 0, 1000, 300)
+## Staggered rows, or a scale diagram on a guitar's strings. Set before the
+## field enters the tree, or call [method build] after.
+@export var layout: Layout = Layout.STAGGERED
+@export var pin_radius: float = 9.0
+## A pin hit again within this many seconds stays quiet, so a stream of fluid
+## or a ball rattling on it does not machine-gun.
+@export var retrigger_seconds: float = 0.06
+
+@export_group("Staggered")
 ## Rows of pins, top to bottom. Even rows hold [member pins_per_row], odd rows
 ## one fewer, set in by half a gap.
 @export var rows: int = 4
 @export var pins_per_row: int = 7
-@export var pin_radius: float = 9.0
 ## The lowest note the leftmost column may play, as MIDI: D4, so the field
 ## sits in the middle of the range rather than down in the bass.
 @export var low_note: int = 62
-## A pin hit again within this many seconds stays quiet, so a stream of fluid
-## or a ball rattling on it does not machine-gun.
-@export var retrigger_seconds: float = 0.06
+
+@export_group("Fretboard")
+## How many strings, counting down from the high e of standard tuning: all
+## six by default.
+@export_range(1, 6) var strings: int = 6
+## The fret of the leftmost column, and how many frets: 9 to 21, as many
+## columns as the staggered layout has.
+@export var first_fret: int = 9
+@export var frets: int = 13
 
 @export_group("Physics")
 ## Physics layer the pins' bodies sit on.
@@ -49,6 +77,10 @@ const POP_SECONDS := 0.25
 
 @export_group("Sound")
 @export var voices: int = 16
+## Levels of the sine pluck and its octave sparkle: well up in the band's mix
+## (its parts sit at 0.05-0.16), so every pin a player strikes reads over it.
+@export var pluck_level: float = 0.2
+@export var sparkle_level: float = 0.065
 ## Seconds a pluck is held before it starts to ring out over the patch's
 ## release.
 @export var hold_seconds: float = 0.04
@@ -66,6 +98,9 @@ var _flash: Array[float] = []
 ## Per column, how far through its flip animation it is (1 just flipped).
 var _flip: Array[float] = []
 var _bodies: Array[StaticBody2D] = []
+## Whether each pin is there at all: always, staggered; on a fretboard, only
+## at sites in the scale.
+var _present: Array[bool] = []
 var _popped: Array[bool] = []
 ## Per pin, how far through its burst it is (1 just popped).
 var _pop: Array[float] = []
@@ -76,8 +111,8 @@ var _sparkle: Synth
 func _ready() -> void:
 	if _positions.is_empty():
 		build()
-	_pluck = _make_synth(0.003, 0.9, 0.11)
-	_sparkle = _make_synth(0.002, 0.35, 0.035)
+	_pluck = _make_synth(0.003, 0.9, pluck_level)
+	_sparkle = _make_synth(0.002, 0.35, sparkle_level)
 
 
 func _process(delta: float) -> void:
@@ -104,9 +139,13 @@ func build() -> void:
 	for body in _bodies:
 		body.queue_free()
 	_bodies.clear()
-	var layout := layout_pins(area, rows, pins_per_row)
-	_positions = layout[0]
-	_columns = layout[1]
+	var laid_out := (
+		layout_fretboard(area, strings, frets)
+		if layout == Layout.FRETBOARD
+		else layout_pins(area, rows, pins_per_row)
+	)
+	_positions = laid_out[0]
+	_columns = laid_out[1]
 	_column_count = 0
 	for column in _columns:
 		_column_count = maxi(_column_count, column + 1)
@@ -116,6 +155,8 @@ func build() -> void:
 	_flash.fill(0.0)
 	_flip.resize(_column_count)
 	_flip.fill(0.0)
+	_present.resize(_positions.size())
+	_present.fill(true)
 	_popped.resize(_positions.size())
 	_popped.fill(false)
 	_pop.resize(_positions.size())
@@ -139,19 +180,41 @@ func build() -> void:
 		add_child(body)
 		_bodies.append(body)
 	if _scale != null:
-		_scale.configure(_column_count, low_note)
+		_configure_scale()
 	queue_redraw()
 
 
-## Follow [param peg_scale] for every pin's note, configuring it for this field's
-## columns.
+## A scale of the right kind for [member layout], for [method bind_scale]: a
+## [FretboardScale] for the fretboard, a [PegScale] otherwise.
+func new_scale() -> PegScale:
+	return FretboardScale.new() if layout == Layout.FRETBOARD else PegScale.new()
+
+
+## Follow [param peg_scale] for every pin's note, configuring it for this
+## field's columns (or, on a fretboard, its strings and frets).
 func bind_scale(peg_scale: PegScale) -> void:
 	if _scale != null and _scale.pin_changed.is_connected(_on_pin_changed):
 		_scale.pin_changed.disconnect(_on_pin_changed)
 	_scale = peg_scale
-	_scale.configure(_column_count, low_note)
+	_configure_scale()
 	_scale.pin_changed.connect(_on_pin_changed)
 	queue_redraw()
+
+
+func _configure_scale() -> void:
+	var fretboard := _scale as FretboardScale
+	if layout == Layout.FRETBOARD and fretboard != null:
+		fretboard.configure_fretboard(strings, first_fret, frets)
+	else:
+		_scale.configure(_column_count, low_note)
+	_sync_presence()
+
+
+## Match every pin's presence, and its body, to the scale.
+func _sync_presence() -> void:
+	for pin in _positions.size():
+		_present[pin] = layout != Layout.FRETBOARD or note_for(pin) >= 0
+		_refresh_body(pin)
 
 
 ## Pins' positions and columns for a field of [param row_count] rows over
@@ -181,6 +244,22 @@ static func layout_pins(rect: Rect2, row_count: int, per_row: int) -> Array:
 	return [positions, columns]
 
 
+## Sites' positions and columns for a fretboard of [param string_count]
+## strings and [param fret_count] frets over [param rect]:
+## [code][positions, columns][/code], fret by fret left to right, the top
+## string first in each — the order [FretboardScale] indexes them in.
+static func layout_fretboard(rect: Rect2, string_count: int, fret_count: int) -> Array:
+	var gap := rect.size.x / maxf(1.0, fret_count - 1)
+	var string_gap := rect.size.y / maxf(1.0, string_count - 1)
+	var positions: Array[Vector2] = []
+	var columns: Array[int] = []
+	for column in fret_count:
+		for row in string_count:
+			positions.append(rect.position + Vector2(gap * column, string_gap * row))
+			columns.append(column)
+	return [positions, columns]
+
+
 func pin_count() -> int:
 	return _positions.size()
 
@@ -198,8 +277,27 @@ func pin_position(pin: int) -> Vector2:
 	return _positions[pin]
 
 
+## The note [param pin] plays: its column's on the staggered layout, its
+## site's on a fretboard (-1 there for a site with no pin).
 func note_for(pin: int) -> int:
-	return _scale.note_for(_columns[pin]) if _scale != null else -1
+	if _scale == null:
+		return -1
+	return _scale.note_for(pin if layout == Layout.FRETBOARD else _columns[pin])
+
+
+## Whether [param pin] is there to be hit: present in the layout (on a
+## fretboard, in the scale) and not popped.
+func is_live(pin: int) -> bool:
+	return pin >= 0 and pin < _present.size() and _present[pin] and not _popped[pin]
+
+
+## Pins there to be hit right now, by index.
+func live_pins() -> Array[int]:
+	var live: Array[int] = []
+	for pin in _positions.size():
+		if is_live(pin):
+			live.append(pin)
+	return live
 
 
 ## The pin a circle of [param radius] at [param world_position] overlaps, the
@@ -209,7 +307,7 @@ func pin_at(world_position: Vector2, radius: float = 0.0) -> int:
 	var best := -1
 	var best_distance := pin_radius + radius
 	for i in _positions.size():
-		if _popped[i]:
+		if not is_live(i):
 			continue
 		var distance := local.distance_to(_positions[i])
 		if distance <= best_distance:
@@ -230,7 +328,7 @@ func pin_for_body(body: Node) -> int:
 ## [member retrigger_seconds]. Returns whether it sounded.
 ## [param now_usec] is for tests; it defaults to the real clock.
 func hit(pin: int, strength: float, now_usec: int = -1) -> bool:
-	if pin < 0 or pin >= _positions.size() or _scale == null or _popped[pin]:
+	if not is_live(pin) or _scale == null:
 		return false
 	var now := now_usec if now_usec >= 0 else Time.get_ticks_usec()
 	if now - _last_hit_usec[pin] < int(retrigger_seconds * 1_000_000.0):
@@ -252,7 +350,7 @@ func pop(pin: int) -> void:
 		return
 	_popped[pin] = true
 	_pop[pin] = 1.0
-	_set_solid(pin, false)
+	_refresh_body(pin)
 	queue_redraw()
 
 
@@ -262,7 +360,7 @@ func restore(pin: int) -> void:
 		return
 	_popped[pin] = false
 	_pop[pin] = 0.0
-	_set_solid(pin, true)
+	_refresh_body(pin)
 	queue_redraw()
 
 
@@ -280,10 +378,12 @@ func popped_count() -> int:
 	return _popped.count(true)
 
 
-func _set_solid(pin: int, solid: bool) -> void:
+## Collide only while the pin is live. Deferred, so safe from a physics
+## callback.
+func _refresh_body(pin: int) -> void:
 	if pin < _bodies.size():
 		var shape := _bodies[pin].get_child(0) as CollisionShape2D
-		shape.set_deferred("disabled", not solid)
+		shape.set_deferred("disabled", not is_live(pin))
 
 
 static func note_name(note: int) -> String:
@@ -328,7 +428,16 @@ func _make_synth(attack: float, release: float, level: float) -> Synth:
 	return synth
 
 
-func _on_pin_changed(column: int, _old_note: int, _new_note: int) -> void:
+## [param index] is a column on the staggered layout, a site on a fretboard,
+## where a note of -1 is a site losing its pin.
+func _on_pin_changed(index: int, _old_note: int, new_note: int) -> void:
+	var column := index
+	if layout == Layout.FRETBOARD:
+		if index >= _present.size():
+			return
+		column = _columns[index]
+		_present[index] = new_note >= 0
+		_refresh_body(index)
 	if column < _flip.size():
 		_flip[column] = 1.0
 	queue_redraw()
@@ -337,7 +446,9 @@ func _on_pin_changed(column: int, _old_note: int, _new_note: int) -> void:
 func _draw() -> void:
 	if _positions.is_empty():
 		return
-	var font := UiTheme.hud_font()
+	var fretboard := layout == Layout.FRETBOARD
+	if fretboard:
+		_draw_neck()
 	var scrolling_at := _scale.scroll_position() if _scale != null else -1
 	var shimmer := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 90.0)
 	for i in _positions.size():
@@ -345,6 +456,13 @@ func _draw() -> void:
 		var at := _positions[i]
 		var note := note_for(i)
 		var color := note_color(note) if note >= 0 else ArtPalette.PIN_BLANK
+		if not _present[i]:
+			# A site the scroll is about to give a pin shimmers in its note.
+			if fretboard and _scale != null and _scale.will_change(i):
+				var coming := note_color(_scale.pending_for(i))
+				var ring := pin_radius * (0.6 + 0.3 * shimmer)
+				draw_arc(at, ring, 0.0, TAU, 24, Color(coming, 0.4 + 0.4 * shimmer), 2.0, true)
+			continue
 		if _popped[i]:
 			_draw_popped(at, color, _pop[i])
 			continue
@@ -355,27 +473,42 @@ func _draw() -> void:
 		draw_circle(at, pin_radius * pop, color.lerp(ArtPalette.LIGHT, flash * 0.6))
 		var outline := Color(ArtPalette.LIGHT, 0.45)
 		draw_arc(at, pin_radius * pop, 0.0, TAU, 24, outline, 1.5, true)
-		if _scale != null and _scale.pending_for(column) >= 0:
+		if fretboard:
+			# Roots ringed, as a scale diagram marks them.
+			if _scale != null and posmod(note - _scale.root(), 12) == 0:
+				draw_arc(at, pin_radius + 3.5, 0.0, TAU, 24, Color(color, 0.85), 2.0, true)
+			# A pin the scroll is about to take away flickers.
+			if _scale != null and _scale.will_change(i):
+				var fading := Color(ArtPalette.LIGHT, 0.3 + 0.4 * shimmer)
+				draw_arc(at, pin_radius + 4.0 + 2.0 * shimmer, 0.0, TAU, 24, fading, 1.5, true)
+		elif _scale != null and _scale.pending_for(column) >= 0:
 			var waiting := note_color(_scale.pending_for(column))
 			var ring := pin_radius + 4.0 + 2.0 * shimmer
 			draw_arc(at, ring, 0.0, TAU, 24, Color(waiting, 0.5 + 0.4 * shimmer), 2.0, true)
 		if column == scrolling_at:
 			draw_arc(at, pin_radius + 9.0, 0.0, TAU, 24, Color(ArtPalette.LIGHT, 0.5), 1.5, true)
-	if show_note_names and _scale != null:
-		var bottom := area.end.y + pin_radius + 22.0
-		var gap := area.size.x / maxf(1.0, pins_per_row - 1) * 0.5
-		for column in _column_count:
-			var note := _scale.note_for(column)
-			var x := area.position.x + gap * column
-			draw_string(
-				font,
-				Vector2(x - 20.0, bottom),
-				note_name(note),
-				HORIZONTAL_ALIGNMENT_CENTER,
-				40.0,
-				12,
-				note_color(note, 1.0).lightened(0.3)
-			)
+	if fretboard:
+		_draw_fretboard_labels()
+	elif show_note_names and _scale != null:
+		_draw_note_names()
+
+
+func _draw_note_names() -> void:
+	var font := UiTheme.hud_font()
+	var bottom := area.end.y + pin_radius + 22.0
+	var gap := area.size.x / maxf(1.0, pins_per_row - 1) * 0.5
+	for column in _column_count:
+		var note := _scale.note_for(column)
+		var x := area.position.x + gap * column
+		draw_string(
+			font,
+			Vector2(x - 20.0, bottom),
+			note_name(note),
+			HORIZONTAL_ALIGNMENT_CENTER,
+			40.0,
+			12,
+			note_color(note, 1.0).lightened(0.3)
+		)
 
 
 ## A popped pin: a ring bursting outward as it goes, then a faint dotted
@@ -390,3 +523,57 @@ func _draw_popped(at: Vector2, color: Color, burst: float) -> void:
 	for k in 8:
 		var angle := TAU * k / 8.0
 		draw_arc(at, pin_radius, angle, angle + TAU / 16.0, 3, ghost, 1.5, true)
+
+
+## The neck behind a fretboard: a line per string, heavier for the lower
+## ones, a fret wire between every column, and the inlay dots below.
+func _draw_neck() -> void:
+	var gap := _fret_gap()
+	var left := area.position.x - gap * 0.5
+	var right := area.end.x + gap * 0.5
+	var string_gap := area.size.y / maxf(1.0, strings - 1)
+	for row in strings:
+		var y := area.position.y + string_gap * row
+		var width := 1.0 + 0.5 * row
+		draw_line(Vector2(left, y), Vector2(right, y), Color(ArtPalette.LIGHT, 0.28), width, true)
+	var top := area.position.y - pin_radius
+	var bottom := area.end.y + pin_radius
+	for wire in frets + 1:
+		var x := left + gap * wire
+		draw_line(Vector2(x, top), Vector2(x, bottom), Color(ArtPalette.LIGHT, 0.14), 2.0, true)
+	# Inlays as on a real neck: one dot at 3, 5, 7 and 9 (and an octave on),
+	# two at 12 and 24.
+	var dot_y := bottom + 9.0
+	for column in frets:
+		var fret := first_fret + column
+		var x := area.position.x + gap * column
+		var dot := Color(ArtPalette.LIGHT, 0.5)
+		if posmod(fret, 12) == 0 and fret > 0:
+			draw_circle(Vector2(x - 6.0, dot_y), 3.5, dot)
+			draw_circle(Vector2(x + 6.0, dot_y), 3.5, dot)
+		elif posmod(fret, 12) in [3, 5, 7, 9]:
+			draw_circle(Vector2(x, dot_y), 3.5, dot)
+
+
+## Fret numbers under the columns and string names left of the strings.
+func _draw_fretboard_labels() -> void:
+	var font := UiTheme.hud_font()
+	var gap := _fret_gap()
+	var ink := Color(ArtPalette.LIGHT, 0.55)
+	var bottom := area.end.y + pin_radius + 32.0
+	for column in frets:
+		var x := area.position.x + gap * column
+		var label := str(first_fret + column)
+		draw_string(
+			font, Vector2(x - 20.0, bottom), label, HORIZONTAL_ALIGNMENT_CENTER, 40.0, 12, ink
+		)
+	var string_gap := area.size.y / maxf(1.0, strings - 1)
+	for row in strings:
+		var y := area.position.y + string_gap * row
+		var label := GuitarDiagrams.STRING_NAMES[row]
+		var at := Vector2(area.position.x - gap * 0.5 - 22.0, y + 5.0)
+		draw_string(font, at, label, HORIZONTAL_ALIGNMENT_RIGHT, 14.0, 13, ink)
+
+
+func _fret_gap() -> float:
+	return area.size.x / maxf(1.0, frets - 1)

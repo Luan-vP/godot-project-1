@@ -18,7 +18,7 @@ extends Node
 const SMALL_STEP := 2.0
 const BIG_STEP := 10.0
 
-## The songs sit at 60-90 bpm; this leaves room to play either side, and
+## The songs sit at 78-92 bpm; this leaves room to play either side, and
 ## keeps [MusicClock] well clear of a tempo at or below zero.
 const MIN_BPM := 30.0
 const MAX_BPM := 180.0

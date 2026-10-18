@@ -102,7 +102,7 @@ func play_waiting() -> Array[int]:
 ## Stick [param ball] to [param pin], struck at [param closing_speed], if
 ## the pin is free. Returns whether it stuck.
 func stick(ball: SpoutBall, pin: int, closing_speed: float) -> bool:
-	if ball.is_stuck() or _stuck.has(pin) or pins.is_popped(pin):
+	if ball.is_stuck() or _stuck.has(pin) or not pins.is_live(pin):
 		return false
 	_stuck[pin] = ball
 	_strengths[pin] = clampf(closing_speed / full_strength_speed(), MIN_STRENGTH, 1.0)

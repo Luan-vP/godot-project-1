@@ -37,9 +37,9 @@ the beat, then bass, pads, melody, arp, ghost drums, and the smallest the
 shimmer — and a part plays only while its eye floats clear of the tank walls.
 
 Each time the band starts it picks one of four songs from
-[`EyeBandSongs`](eye_band_songs.gd) at random: *Glass Tide* (A minor, 70 bpm),
-*Low Sun* (D dorian, 64 bpm, half-time), *Night Pool* (F major, 74 bpm, running
-arp) and *Slow Orbit* (E minor, 60 bpm). A song is sections of chords that
+[`EyeBandSongs`](eye_band_songs.gd) at random: *Glass Tide* (A minor, 88 bpm),
+*Low Sun* (D dorian, 82 bpm, half-time), *Night Pool* (F major, 92 bpm, running
+arp) and *Slow Orbit* (E minor, 78 bpm) — either side of 85. A song is sections of chords that
 branch into one another as it plays, so the progression wanders instead of
 looping four bars; a fill plays over the beat on the last bar of each section.
 The arrows move the tempo, as in every scene; the live parts follow at once,

@@ -7,7 +7,8 @@ extends RefCounted
 ## differ in key, tempo, groove and branching, so two sessions rarely sound
 ## alike: see [Song] for the notation and [SongWalker] for the branching.
 ##
-## All of them stay slow (60-74 bpm) and low: melodies top out at A4.
+## Their tempos sit either side of 85 bpm (78-92), and they stay low:
+## melodies top out at A4.
 
 const MINOR: Array[int] = [0, 2, 3, 5, 7, 8, 10]
 const DORIAN: Array[int] = [0, 2, 3, 5, 7, 9, 10]
@@ -23,13 +24,13 @@ static func pick_random(rng: RandomNumberGenerator) -> Song:
 	return songs[rng.randi() % songs.size()]
 
 
-## A minor, 70 bpm. The band's original loop, grown into four sections that
+## A minor, 88 bpm. The band's original loop, grown into four sections that
 ## wander between the home progression, a longer answer, a turn to the iv and
 ## a lift.
 static func glass_tide() -> Song:
 	var song := Song.new()
 	song.title = "Glass Tide"
-	song.tempo_bpm = 70.0
+	song.tempo_bpm = 88.0
 	song.key_root = 9
 	song.scale = MINOR
 	song.start_section = "A"
@@ -58,12 +59,12 @@ static func glass_tide() -> Song:
 	return song
 
 
-## D dorian, 64 bpm, half-time. A two-chord vamp that opens out into a
+## D dorian, 82 bpm, half-time. A two-chord vamp that opens out into a
 ## descending turn and a suspended pull home; long bass notes and a sparse arp.
 static func low_sun() -> Song:
 	var song := Song.new()
 	song.title = "Low Sun"
-	song.tempo_bpm = 64.0
+	song.tempo_bpm = 82.0
 	song.key_root = 2
 	song.scale = DORIAN
 	song.start_section = "A"
@@ -94,12 +95,12 @@ static func low_sun() -> Song:
 	return song
 
 
-## F major, 74 bpm. Soft four-on-the-floor under a running sixteenth arp; the
+## F major, 92 bpm. Soft four-on-the-floor under a running sixteenth arp; the
 ## long C section takes the scenic way round before it lands.
 static func night_pool() -> Song:
 	var song := Song.new()
 	song.title = "Night Pool"
-	song.tempo_bpm = 74.0
+	song.tempo_bpm = 92.0
 	song.key_root = 5
 	song.scale = MAJOR
 	song.start_section = "A"
@@ -134,12 +135,12 @@ static func night_pool() -> Song:
 	return song
 
 
-## E minor, 60 bpm. The slowest and most spacious: a kick that drifts behind
+## E minor, 78 bpm. The slowest and most spacious: a kick that drifts behind
 ## the beat, and a borrowed B7 that leans back towards home.
 static func slow_orbit() -> Song:
 	var song := Song.new()
 	song.title = "Slow Orbit"
-	song.tempo_bpm = 60.0
+	song.tempo_bpm = 78.0
 	song.key_root = 4
 	song.scale = MINOR
 	song.start_section = "A"

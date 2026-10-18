@@ -28,10 +28,17 @@ func test_every_section_can_be_reached_from_the_start() -> void:
 		assert_eq(reached.size(), song.sections.size(), "%s: every section plays" % song.title)
 
 
-func test_songs_are_slow_and_have_room_to_branch() -> void:
+func test_songs_sit_either_side_of_85_and_have_room_to_branch() -> void:
+	var slowest := INF
+	var fastest := -INF
 	for song in EyeBandSongs.all():
-		assert_between(song.tempo_bpm, 55.0, 80.0, "%s tempo" % song.title)
+		assert_between(song.tempo_bpm, 75.0, 95.0, "%s tempo" % song.title)
+		slowest = minf(slowest, song.tempo_bpm)
+		fastest = maxf(fastest, song.tempo_bpm)
 		assert_gt(song.sections.size(), 2, "%s has at least three sections" % song.title)
+	assert_lt(slowest, 85.0, "Some slower than 85")
+	assert_gt(fastest, 85.0, "Some faster")
+	assert_almost_eq((slowest + fastest) / 2.0, 85.0, 0.001, "Centred on 85")
 
 
 func test_songs_carry_every_drum_part_and_a_fill() -> void:
