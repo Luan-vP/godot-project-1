@@ -1,11 +1,15 @@
 class_name FluidRenderer
-extends ColorRect
+extends TextureRect
 ## Paints a [FluidSimulation]'s pigment field.
 ##
 ## Sits over the tank rect and runs `painterly.gdshader` on the dye and
 ## velocity textures. Nothing about the look lives here — it is all in the
 ## assigned [PainterlyStyle], so the same tank can be re-dressed without
 ## touching the solve.
+##
+## The shader runs offscreen, in a [SubViewport] sized by [RenderScale], and
+## this shows the result stretched over the tank: on a phone that is a
+## quarter of the screen's pixels, upscaled.
 
 const PAINTERLY_SHADER := preload("res://features/fluid/shaders/painterly.gdshader")
 
@@ -18,16 +22,36 @@ const PAINTERLY_SHADER := preload("res://features/fluid/shaders/painterly.gdshad
 
 var _simulation: FluidSimulation
 var _material := ShaderMaterial.new()
+var _buffer := SubViewport.new()
+var _paint := ColorRect.new()
 
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	stretch_mode = TextureRect.STRETCH_SCALE
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	if style == null:
 		style = PainterlyStyle.new()
 	_material.shader = PAINTERLY_SHADER
-	material = _material
+	_paint.material = _material
 	style.apply_to(_material)
+
+	# Drawn only while the tank is on screen; a sleeping tank costs nothing.
+	# WHEN_VISIBLE follows whether this rect drew the buffer last frame, so it
+	# stops when the Tank's layer hides. WHEN_PARENT_VISIBLE would not: its
+	# "parent" is the root viewport, which is always drawn.
+	_buffer.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
+	_buffer.add_child(_paint)
+	add_child(_buffer)
+	texture = _buffer.get_texture()
+	get_viewport().size_changed.connect(_fit_buffer)
 	_bind()
+
+
+## The offscreen buffer the shader draws into.
+func get_buffer() -> SubViewport:
+	return _buffer
 
 
 func _process(_delta: float) -> void:
@@ -59,12 +83,18 @@ func _bind() -> void:
 	var rect := _simulation.get_world_rect()
 	global_position = rect.position
 	size = rect.size
+	_fit_buffer()
 
 	_material.set_shader_parameter("dye_tex", dye)
 	_material.set_shader_parameter("velocity_tex", velocity)
 	_material.set_shader_parameter(
 		"texel_size", Vector2.ONE / Vector2(_simulation.config.simulation_size())
 	)
+
+
+func _fit_buffer() -> void:
+	_buffer.size = RenderScale.buffer_size_for(get_viewport(), size)
+	_paint.size = Vector2(_buffer.size)
 
 
 func _resolve_simulation() -> FluidSimulation:

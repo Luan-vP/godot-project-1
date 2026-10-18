@@ -154,8 +154,8 @@ func test_turning_defocus_off_shows_bands_sharp() -> void:
 			f.count = 10
 			f.depths = FloaterDepth.vitreous_bands()
 	)
-	var composites := field.find_children("*", "Sprite2D", false, false)
-	var near: ShaderMaterial = composites[2].material
+	var blurred: Sprite2D = field.get_blur(2).find_children("*", "Sprite2D", false, false)[0]
+	var near: ShaderMaterial = blurred.material
 	assert_almost_eq(near.get_shader_parameter("radius_px"), 16.0, 0.001, "Near band blurred")
 	field.defocus_enabled = false
 	assert_eq(near.get_shader_parameter("radius_px"), 0.0, "Sharp with defocus off")
@@ -191,6 +191,23 @@ func test_refraction_reaches_every_band_and_can_be_turned_off() -> void:
 	for composite in composites:
 		var material: ShaderMaterial = composite.material
 		assert_eq(material.get_shader_parameter("refraction_px"), 0.0, "Bend off")
+
+
+func test_a_band_blurs_its_own_layer_at_the_buffer_resolution() -> void:
+	var field := _populate(func(f: FloaterField): f.depths = FloaterDepth.vitreous_bands())
+	var canvas := field.get_viewport_rect().size
+	var buffer := RenderScale.buffer_size_for(field.get_viewport(), canvas)
+	var layer := field.get_layer(0)
+	var blur := field.get_blur(0)
+	assert_eq(layer.get_parent(), blur, "The layer draws before the blur that reads it")
+	assert_eq(layer.size, buffer, "Layer at the buffer resolution")
+	assert_eq(layer.size_2d_override, Vector2i(canvas.round()), "Laid out in canvas units")
+	assert_eq(blur.size, buffer, "Blur at the buffer resolution")
+	var composite: Sprite2D = field.find_children("*", "Sprite2D", false, false)[0]
+	assert_eq(composite.texture, blur.get_texture(), "The glass shows the blur")
+	assert_almost_eq(
+		Vector2(buffer) * composite.scale, canvas, Vector2.ONE * 0.001, "Stretched over the canvas"
+	)
 
 
 func test_every_vitreous_band_is_out_of_focus() -> void:

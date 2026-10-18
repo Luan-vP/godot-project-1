@@ -12,7 +12,7 @@ wakes that push each other around. Nothing in here knows what an eye is.
 | Script | What it is |
 | --- | --- |
 | `fluid_simulation.gd` | `FluidSimulation` — the tank. Owns the solve, hands out impulses and paint. |
-| `fluid_renderer.gd` | `FluidRenderer` — paints the tank's pigment field. |
+| `fluid_renderer.gd` | `FluidRenderer` — paints the tank's pigment field, offscreen at `RenderScale`'s resolution, then stretched over the tank. |
 | `fluid_field.gd` | `FluidField` — the CPU mirror gameplay samples. |
 | `fluid_body.gd` | `FluidBody` — something that floats, and stirs. |
 | `fluid_config.gd` | `FluidConfig` — how the water moves. |

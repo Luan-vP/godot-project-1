@@ -13,6 +13,7 @@ vitreous humour that drift across your vision. This is their behaviour in the
 | `floater_field.gd` | `FloaterField` — drops a configurable population of floaters into a tank. |
 | `floater_depth.gd` | `FloaterDepth` — one depth band: its share of the population and how out of focus it is. |
 | `shaders/bokeh.gdshader` | The disc blur a depth band is shown through. |
+| `shaders/bokeh_glass.gdshader` | Composites a blurred band over the screen as glass. |
 
 ## Using it
 
@@ -121,12 +122,17 @@ A band is composited as glass rather than paint:
 Floaters in a field with no `depths` are drawn straight into the scene, sharp
 and without either of these.
 
-Cost is 64 texture taps per pixel per blurred band, plus one full-screen copy
-per band: each composite reads the screen behind it, and without a fresh copy
-(`BackBufferCopy`) a nearer band would read a screen missing the farther bands
-and paint over them. Three full-window bands are fine on a desktop GPU; for a
-phone, render the bands at half resolution, which softens them further for
-free, and drop the per-band copies if overlapping bands are rare enough not to
+Each band is two offscreen passes and a composite. Floaters draw into the
+band's layer; a blur pass around it (`bokeh.gdshader`) runs the 64-tap disc
+and packs the coverage and its lean into a texture; and `bokeh_glass.gdshader`
+composites that over the screen. Both offscreen passes run at the resolution
+`RenderScale` gives — the screen's own on a desktop, half of it along each
+axis on a phone — and the blur radius is scaled to match, so a band looks the
+same size everywhere. Only the composite, one tap and a screen read, runs at
+the screen's resolution. It still costs one full-screen copy per band
+(`BackBufferCopy`): each composite reads the screen behind it, and without a
+fresh copy a nearer band would read a screen missing the farther bands and
+paint over them. Drop the copies if overlapping bands are rare enough not to
 matter.
 
 ## Size distribution
