@@ -1,7 +1,7 @@
 extends GutTest
-## Covers version C: balls fired on its own steps (2-8 a bar), one ball
-## sticking to a pin, a stuck pin playing on the next sixteenth and popping
-## until the next bar.
+## Covers version C: balls fired on its own steps (8-20 a bar) at twice B's
+## speed, one ball sticking to a pin, stuck pins playing together on the next
+## sixteenth and popping until the next bar.
 
 const Hosting := preload("res://tests/hosting.gd")
 
@@ -33,22 +33,29 @@ func _level() -> SpoutLevel:
 	return level
 
 
-func test_version_c_fires_two_to_eight_a_bar() -> void:
+func test_version_c_fires_eight_to_twenty_a_bar() -> void:
 	var level := _level()
 	var emitter: StickyBallEmitter = level.emitter
-	assert_eq(emitter.flow_steps(), [2, 4, 6, 8] as Array[int])
+	assert_eq(emitter.flow_steps(), [8, 12, 16, 20] as Array[int])
 	emitter.set_depth(SpoutFlow.DEADZONE + 0.01)
 	emitter.set_step(emitter.current_step())
-	assert_eq(emitter.flow_per_bar(), 2, "A gentle press: 2 a bar")
+	assert_eq(emitter.flow_per_bar(), 8, "A gentle press: 8 a bar")
 	emitter.set_depth(1.0)
 	emitter.set_step(emitter.current_step())
-	assert_eq(emitter.flow_per_bar(), 8, "Fully pressed: 8")
-	assert_eq(emitter.overlay.steps, [2, 4, 6, 8] as Array[int], "The rings show C's steps")
+	assert_eq(emitter.flow_per_bar(), 20, "Fully pressed: 20")
+	assert_eq(emitter.overlay.steps, [8, 12, 16, 20] as Array[int], "The rings show C's steps")
+
+
+func test_balls_leave_at_twice_version_bs_speed() -> void:
+	var level := _level()
+	var emitter: StickyBallEmitter = level.emitter
+	var ball := emitter.fire()
+	assert_almost_eq(ball.linear_velocity.length(), BallEmitter.MUZZLE_SPEED * 2.0, 0.01)
 
 
 func test_the_other_versions_keep_the_shared_steps() -> void:
 	assert_eq(SpoutFlow.per_bar(4), 24)
-	assert_eq(SpoutFlow.per_bar(3, StickyBallEmitter.STEPS), 8)
+	assert_eq(SpoutFlow.per_bar(3, StickyBallEmitter.STEPS), 20)
 	assert_eq(SpoutFlow.per_bar(4, StickyBallEmitter.STEPS), 0, "No fifth step in C")
 
 
@@ -87,7 +94,7 @@ func test_a_stuck_pin_waits_for_the_next_sixteenth_then_pops() -> void:
 	assert_false(level.pins.hit(2, 1.0), "A popped pin is silent")
 
 
-func test_one_pin_a_sixteenth_in_the_order_they_stuck() -> void:
+func test_pins_stuck_together_play_together_on_the_next_sixteenth() -> void:
 	var level := _level()
 	var emitter: StickyBallEmitter = level.emitter
 	var heard: Array[int] = []
@@ -97,9 +104,10 @@ func test_one_pin_a_sixteenth_in_the_order_they_stuck() -> void:
 	emitter.stick(emitter.fire(), 6, 400.0)
 	emitter.stick(emitter.fire(), 1, 400.0)
 	emitter.tick_clock(sixteenth + 0.001)
-	assert_eq(heard, [6] as Array[int])
+	assert_eq(heard, [6, 1] as Array[int], "Both on the one sixteenth")
+	assert_true(level.pins.is_popped(6) and level.pins.is_popped(1), "Both pop")
 	emitter.tick_clock(2.0 * sixteenth + 0.001)
-	assert_eq(heard, [6, 1] as Array[int])
+	assert_eq(heard.size(), 2, "Nothing left for the next")
 
 
 func test_popped_pins_come_back_at_the_next_bar() -> void:
@@ -137,7 +145,7 @@ func test_retiring_a_stuck_ball_frees_its_pin() -> void:
 	emitter.stick(ball, 3, 400.0)
 	emitter._retire(ball)
 	assert_eq(emitter.stuck_count(), 0)
-	assert_eq(emitter.play_next(), -1, "Nothing left waiting")
+	assert_eq(emitter.play_waiting(), [] as Array[int], "Nothing left waiting")
 	assert_true(emitter.stick(emitter.fire(), 3, 400.0), "The pin is free again")
 
 

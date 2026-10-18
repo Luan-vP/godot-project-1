@@ -11,12 +11,13 @@ There are three versions, differing only in what comes out of the spout:
 
 - **A** (`a_fluid/`) pours the eye tank's fluid.
 - **B** (`b_balls/`) fires billiard-like balls, with a haptic tick per ball.
-- **C** (`c_sticky/`) fires B's balls, but each sticks to the first free pin
-  it hits; the pin plays on the next sixteenth and pops until the next bar.
+- **C** (`c_sticky/`) fires B's balls twice as fast, and each sticks to the
+  first free pin it hits; the pin plays on the next sixteenth and pops until
+  the next bar.
 
 Both pour in **steps of the bar** (see [Pouring in bar subdivisions](#pouring-in-bar-subdivisions)):
 2 drops a bar up to 16, each on the bar's grid, set by RT or by which ring
-round the spout you touch (C on its own steps, 2–8). In the carousel the
+round the spout you touch (C on its own steps, 8–20). In the carousel the
 spout slot plays A or B, 50:50; C is in the demo menu only for now.
 
 `spout_level.tscn` is the shell both build on, with a debug emitter in place
@@ -149,17 +150,18 @@ soft or not at all (under 45 px/s stays quiet).
 
 `c_sticky/level_three_c.tscn` (`scripts/run.sh spout-c`).
 [`StickyBallEmitter`](c_sticky/sticky_ball_emitter.gd) fires version B's
-balls, slower — **2, 4, 6 or 8 a bar** (halves, quarters, quarter triplets,
-eighths), on the same RT or rings.
+balls at twice the muzzle speed (1040 px/s) — **8, 12, 16 or 20 a bar**,
+on the same RT or rings.
 
 **A ball sticks to the first free pin it hits** and stays there, frozen.
 One ball to a pin: a ball hitting a pin that already holds one bounces off
 without a sound, and can go on to stick lower down.
 
 **A pin with a ball plays on the next sixteenth**, not on the hit, at the
-strength the ball struck it with (never quieter than a quarter, so every
-stuck ball is heard). One pin a sixteenth, in the order the balls stuck, so
-two that stick together play on two sixteenths running.
+strength the ball struck it with (full strength at 1300 px/s closing, B's
+650 scaled with the speed; never quieter than a quarter, so every stuck ball
+is heard). Every pin waiting plays on that sixteenth together, so balls that
+stick at once sound as a chord.
 
 **Then it pops.** The pin and its ball burst and are gone — balls fall
 through where it was — until the start of the next bar, when every popped

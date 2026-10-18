@@ -75,13 +75,18 @@ func fire() -> SpoutBall:
 	add_child(ball)
 	var dir := spout.direction().rotated(_rng.randf_range(-SPREAD, SPREAD))
 	ball.global_position = spout.muzzle_position()
-	ball.linear_velocity = dir * MUZZLE_SPEED
+	ball.linear_velocity = dir * muzzle_speed()
 	_balls.append(ball)
 	_fired += 1
 	var haptics: Haptics = level.get("haptics") if level != null else null
 	if haptics != null:
 		haptics.pulse(0.35 + 0.45 * flow_fraction(), 0.025)
 	return ball
+
+
+## How fast a ball leaves the nozzle, pixels/second.
+func muzzle_speed() -> float:
+	return MUZZLE_SPEED
 
 
 func in_play() -> int:
