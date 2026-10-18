@@ -75,15 +75,28 @@ func test_the_clock_runs_ahead_by_the_lookahead_like_the_bands() -> void:
 func test_only_one_ball_sticks_to_a_pin() -> void:
 	var level := _level()
 	var emitter: StickyBallEmitter = level.emitter
+	var live := level.pins.live_pins()
 	var first := emitter.fire()
 	var second := emitter.fire()
-	assert_true(emitter.stick(first, 3, 300.0), "A free pin takes the ball")
-	assert_false(emitter.stick(second, 3, 300.0), "A pin holds one ball")
-	assert_true(emitter.stick(second, 5, 300.0), "It can stick elsewhere")
-	assert_false(emitter.stick(first, 7, 300.0), "A stuck ball stays where it is")
+	assert_true(emitter.stick(first, live[0], 300.0), "A free pin takes the ball")
+	assert_false(emitter.stick(second, live[0], 300.0), "A pin holds one ball")
+	assert_true(emitter.stick(second, live[1], 300.0), "It can stick elsewhere")
+	assert_false(emitter.stick(first, live[2], 300.0), "A stuck ball stays where it is")
 	assert_eq(emitter.stuck_count(), 2)
-	assert_eq(emitter.ball_on(3), first)
+	assert_eq(emitter.ball_on(live[0]), first)
 	assert_true(first.is_stuck())
+
+
+func test_nothing_sticks_where_the_scale_has_no_pin() -> void:
+	var level := _level()
+	var emitter: StickyBallEmitter = level.emitter
+	var empty := -1
+	for pin in level.pins.pin_count():
+		if not level.pins.is_live(pin):
+			empty = pin
+			break
+	assert_gte(empty, 0, "The fretboard has empty sites")
+	assert_false(emitter.stick(emitter.fire(), empty, 300.0))
 
 
 func test_a_stuck_pin_waits_for_the_next_sixteenth_then_pops() -> void:
@@ -92,19 +105,20 @@ func test_a_stuck_pin_waits_for_the_next_sixteenth_then_pops() -> void:
 	var heard: Array[int] = []
 	level.pins.pin_hit.connect(func(pin: int, _note: int, _strength: float): heard.append(pin))
 	var sixteenth := 1.0 / StickyBallEmitter.sixteenths_per_bar()
+	var pin := level.pins.live_pins()[2]
 	emitter.tick_clock(0.01)
-	emitter.stick(emitter.fire(), 2, 400.0)
+	emitter.stick(emitter.fire(), pin, 400.0)
 	assert_eq(heard.size(), 0, "Sticking does not sound")
 	emitter.tick_clock(sixteenth - 0.001)
 	assert_eq(heard.size(), 0, "Not before the sixteenth")
 	emitter.tick_clock(sixteenth + 0.001)
-	assert_eq(heard, [2] as Array[int], "On the sixteenth")
-	assert_true(level.pins.is_popped(2), "Then it pops")
+	assert_eq(heard, [pin] as Array[int], "On the sixteenth")
+	assert_true(level.pins.is_popped(pin), "Then it pops")
 	assert_eq(emitter.stuck_count(), 0)
 	assert_eq(emitter.in_play(), 0, "Its ball goes with it")
-	var where := level.pins.to_global(level.pins.pin_position(2))
-	assert_ne(level.pins.pin_at(where), 2, "Not found where it was")
-	assert_false(level.pins.hit(2, 1.0), "A popped pin is silent")
+	var where := level.pins.to_global(level.pins.pin_position(pin))
+	assert_ne(level.pins.pin_at(where), pin, "Not found where it was")
+	assert_false(level.pins.hit(pin, 1.0), "A popped pin is silent")
 
 
 func test_pins_stuck_together_play_together_on_the_next_sixteenth() -> void:
@@ -113,12 +127,13 @@ func test_pins_stuck_together_play_together_on_the_next_sixteenth() -> void:
 	var heard: Array[int] = []
 	level.pins.pin_hit.connect(func(pin: int, _note: int, _strength: float): heard.append(pin))
 	var sixteenth := 1.0 / StickyBallEmitter.sixteenths_per_bar()
+	var live := level.pins.live_pins()
 	emitter.tick_clock(0.01)
-	emitter.stick(emitter.fire(), 6, 400.0)
-	emitter.stick(emitter.fire(), 1, 400.0)
+	emitter.stick(emitter.fire(), live[4], 400.0)
+	emitter.stick(emitter.fire(), live[1], 400.0)
 	emitter.tick_clock(sixteenth + 0.001)
-	assert_eq(heard, [6, 1] as Array[int], "Both on the one sixteenth")
-	assert_true(level.pins.is_popped(6) and level.pins.is_popped(1), "Both pop")
+	assert_eq(heard, [live[4], live[1]] as Array[int], "Both on the one sixteenth")
+	assert_true(level.pins.is_popped(live[4]) and level.pins.is_popped(live[1]), "Both pop")
 	emitter.tick_clock(2.0 * sixteenth + 0.001)
 	assert_eq(heard.size(), 2, "Nothing left for the next")
 
@@ -126,49 +141,54 @@ func test_pins_stuck_together_play_together_on_the_next_sixteenth() -> void:
 func test_popped_pins_come_back_at_the_next_bar() -> void:
 	var level := _level()
 	var emitter: StickyBallEmitter = level.emitter
+	var pin := level.pins.live_pins()[3]
 	emitter.tick_clock(0.5)
-	emitter.stick(emitter.fire(), 4, 400.0)
+	emitter.stick(emitter.fire(), pin, 400.0)
 	emitter.tick_clock(0.5 + 1.0 / StickyBallEmitter.sixteenths_per_bar())
-	assert_true(level.pins.is_popped(4))
+	assert_true(level.pins.is_popped(pin))
 	emitter.tick_clock(0.99)
-	assert_true(level.pins.is_popped(4), "Gone for the rest of the bar")
-	assert_false(emitter.stick(emitter.fire(), 4, 400.0), "Nothing sticks to a popped pin")
+	assert_true(level.pins.is_popped(pin), "Gone for the rest of the bar")
+	assert_false(emitter.stick(emitter.fire(), pin, 400.0), "Nothing sticks to a popped pin")
 	emitter.tick_clock(1.01)
-	assert_false(level.pins.is_popped(4), "Back on the bar line")
+	assert_false(level.pins.is_popped(pin), "Back on the bar line")
+	assert_true(level.pins.is_live(pin))
 	assert_eq(level.pins.popped_count(), 0)
 
 
 func test_a_pin_played_on_the_downbeat_stays_gone_that_bar() -> void:
 	var level := _level()
 	var emitter: StickyBallEmitter = level.emitter
+	var pin := level.pins.live_pins()[0]
 	emitter.tick_clock(0.97)
-	emitter.stick(emitter.fire(), 0, 400.0)
+	emitter.stick(emitter.fire(), pin, 400.0)
 	emitter.tick_clock(1.001)
-	assert_true(level.pins.is_popped(0), "Played on the downbeat, then popped")
+	assert_true(level.pins.is_popped(pin), "Played on the downbeat, then popped")
 	emitter.tick_clock(1.9)
-	assert_true(level.pins.is_popped(0))
+	assert_true(level.pins.is_popped(pin))
 	emitter.tick_clock(2.001)
-	assert_false(level.pins.is_popped(0))
+	assert_false(level.pins.is_popped(pin))
 
 
 func test_retiring_a_stuck_ball_frees_its_pin() -> void:
 	var level := _level()
 	var emitter: StickyBallEmitter = level.emitter
+	var pin := level.pins.live_pins()[3]
 	var ball := emitter.fire()
-	emitter.stick(ball, 3, 400.0)
+	emitter.stick(ball, pin, 400.0)
 	emitter._retire(ball)
 	assert_eq(emitter.stuck_count(), 0)
 	assert_eq(emitter.play_waiting(), [] as Array[int], "Nothing left waiting")
-	assert_true(emitter.stick(emitter.fire(), 3, 400.0), "The pin is free again")
+	assert_true(emitter.stick(emitter.fire(), pin, 400.0), "The pin is free again")
 
 
 func test_a_ball_settles_frozen_against_its_pin() -> void:
 	var level := _level()
 	var emitter: StickyBallEmitter = level.emitter
+	var pin := level.pins.live_pins()[3]
 	var ball := emitter.fire()
-	var centre := level.pins.to_global(level.pins.pin_position(3))
+	var centre := level.pins.to_global(level.pins.pin_position(pin))
 	ball.global_position = centre + Vector2(0, -30)
-	emitter.stick(ball, 3, 400.0)
+	emitter.stick(ball, pin, 400.0)
 	await wait_physics_frames(2)
 	assert_true(ball.freeze, "Frozen in place")
 	var touching := level.pins.pin_radius + SpoutBall.RADIUS

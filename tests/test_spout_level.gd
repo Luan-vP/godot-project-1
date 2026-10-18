@@ -1,6 +1,7 @@
 extends GutTest
 ## Covers #114: the spout level's shell — it loads, binds an emitter through
-## its slot, and a key move scrolls the pins over to the new key's pentatonic.
+## its slot, lays the pins out on a fretboard (or the staggered rows), and a
+## key move scrolls the pins over to the new key's pentatonic.
 
 const Hosting := preload("res://tests/hosting.gd")
 
@@ -25,27 +26,52 @@ func test_the_shell_builds_its_pieces() -> void:
 	assert_eq(_level.emitter.spout, _level.spout, "And the spout")
 
 
+func test_the_shell_lays_the_pins_out_on_a_fretboard() -> void:
+	assert_eq(_level.pins.layout, PinField.Layout.FRETBOARD, "The guitar layout by default")
+	assert_true(_level.peg_scale is FretboardScale)
+	assert_eq(_level.pins.pin_count(), 3 * 13, "Three strings by thirteen frets of sites")
+
+
 func test_pins_start_on_the_songs_pentatonic() -> void:
 	var intervals := PegScale.pentatonic_for(_level.band.is_minor())
-	for column in _level.peg_scale.pin_count():
-		var degree := posmod(_level.peg_scale.note_for(column) - _level.band.key_root(), 12)
-		assert_has(intervals, degree, "Column %d" % column)
+	assert_gt(_level.pins.live_pins().size(), 0, "Some pins")
+	for pin in _level.pins.live_pins():
+		var degree := posmod(_level.pins.note_for(pin) - _level.band.key_root(), 12)
+		assert_has(intervals, degree, "Pin %d" % pin)
 
 
-func test_a_key_move_scrolls_the_pins_to_the_new_key() -> void:
+func test_a_key_move_moves_the_pins_to_the_new_key() -> void:
+	var before := _level.pins.live_pins()
 	_level.band.set_key_offset(5)
 	assert_true(_level.peg_scale.is_scrolling(), "The new key scrolls in")
-	for i in _level.peg_scale.pin_count():
+	var frets := _level.pins.frets
+	for i in frets:
 		_level._on_band_stepped(0, i)
-	assert_false(_level.peg_scale.is_scrolling(), "One column per step")
+	assert_false(_level.peg_scale.is_scrolling(), "One fret per step")
+	var intervals := PegScale.pentatonic_for(_level.band.is_minor())
+	for pin in _level.pins.live_pins():
+		var degree := posmod(_level.pins.note_for(pin) - _level.band.key_root(), 12)
+		assert_has(intervals, degree, "Pin %d" % pin)
+	assert_ne(_level.pins.live_pins(), before, "The pins moved on the neck")
+
+
+func test_the_staggered_layout_still_scrolls_column_by_column() -> void:
+	var level: SpoutLevel = SpoutLevel.new()
+	level.pin_layout = PinField.Layout.STAGGERED
+	Hosting.host(self, level)
+	assert_false(level.peg_scale is FretboardScale)
+	level.band.set_key_offset(5)
+	for i in level.peg_scale.pin_count():
+		level._on_band_stepped(0, i)
+	assert_false(level.peg_scale.is_scrolling(), "One column per step")
 	var expected := PegScale.notes_for(
-		_level.band.key_root(),
-		PegScale.pentatonic_for(_level.band.is_minor()),
-		_level.pins.low_note,
-		_level.peg_scale.pin_count()
+		level.band.key_root(),
+		PegScale.pentatonic_for(level.band.is_minor()),
+		level.pins.low_note,
+		level.peg_scale.pin_count()
 	)
-	for column in _level.peg_scale.pin_count():
-		assert_eq(_level.peg_scale.note_for(column), expected[column], "Column %d" % column)
+	for column in level.peg_scale.pin_count():
+		assert_eq(level.peg_scale.note_for(column), expected[column], "Column %d" % column)
 
 
 func test_cycle_scale_swaps_and_scrolls() -> void:

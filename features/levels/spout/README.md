@@ -2,10 +2,12 @@
 
 A spout hangs at the top of the screen, pointing down. Swing it left and right
 — that is the whole input — and whatever comes out of it falls through a field
-of pins at the bottom. Every pin it hits plays a note. The pins carry a scale
-laid out **low to high, left to right**, so sweeping the spout plays a phrase
-that rises and falls with your aim. Behind it the eye band's songs play in
-full.
+of pins at the bottom. Every pin it hits plays a note. The pins are laid out
+as a **scale diagram on a guitar's top three strings** — the high e on top,
+frets 9 to 21 left to right — so pitch climbs along each string, and sweeping
+the spout plays a phrase that rises and falls with your aim. Behind it the
+eye band's songs play in full. (The older layout, staggered rows rising low
+to high left to right, is still there: see [Layouts](#layouts).)
 
 There are three versions, differing only in what comes out of the spout:
 
@@ -60,8 +62,10 @@ already means "back to the menu".
 | `spout.gd` | `Spout` — the nozzle: `aim`, `direction()`, `muzzle_position()`. |
 | `spout_aim_input.gd` | `SpoutAimInput` — pure: sticks and keys to a turn rate, a pointer to an aim. |
 | `spout_pointer.gd` | `SpoutPointer` — a touch or held click, aiming the spout while it is down. |
-| `pin_field.gd` | `PinField` — staggered pins with bodies; `hit(pin, strength)` plucks. |
+| `pin_field.gd` | `PinField` — pins with bodies, on a fretboard or in staggered rows; `hit(pin, strength)` plucks. |
 | `peg_scale.gd` | `PegScale` — pure: which note each column plays, and the scroll. |
+| `fretboard_scale.gd` | `FretboardScale` — pure: which fretboard sites hold a pin, and the fret-by-fret scroll. |
+| `guitar_diagrams.gd` | `GuitarDiagrams` — every scale as a full six-string scale diagram, frets 0–24. |
 | `spout_emitter.gd` | `SpoutEmitter` — the slot an emitter fills, and the stepped pour both versions share. |
 | `spout_flow.gd` | `SpoutFlow` — pure: trigger depth and touch distance to a step, drops due on the bar's grid. An emitter can bring its own steps (`flow_steps()`). |
 | `spout_flow_overlay.gd` | `SpoutFlowOverlay` — the rings round the spout, one per step. |
@@ -72,19 +76,51 @@ The music is the host's [`Band`](../../../core/audio/band.gd) (see
 plays, on whichever of the eye band's songs comes up. Its `key_changed` keeps the
 `PegScale` on the band's key, and its `stepped` signal advances the scroll.
 
-**Columns, not pins, carry notes.** The rows are staggered, so every pin sits
-in one of 13 distinct columns across the field (7 full columns and 6 set in
-between them); the scale gives each column a note, and pins in the same column
-share it. A pentatonic over 13 columns spans about two and a half octaves,
-from D4 up (the lowest scale tone at or above it) — enough range to feel
-like a melody, few enough that neighbouring pins are still neighbouring
-notes.
+### Layouts
 
-**Changing key or scale scrolls.** The new notes don't snap in. They flip
-column by column, leftmost first, one per sixteenth of the music, so a change
-sweeps across the field in time with the band. A pin waiting to flip shimmers
-in its next note's colour; a white ring marks the column about to flip. A
-second change mid-scroll restarts the sweep from the left.
+`SpoutLevel.pin_layout` picks one per scene; all three versions use the
+fretboard.
+
+**Fretboard (the default).** The pins are a scale diagram on the top three
+strings of a guitar in standard tuning: e (E4), B (B3) and G (G3) as rows,
+the high e on top as in tab, and frets 9 to 21 as 13 columns — as many as
+the staggered layout has. Every string and fret is a *site* with its own
+note, the open string plus the fret, and a pin stands at the sites in the
+scale; roots are ringed. A pentatonic puts about 16 pins on the neck, the
+major scale about 22. The field draws the strings, the fret wires, the
+inlay dots and the fret numbers behind them. `PinField.strings`,
+`first_fret` and `frets` change the neck.
+
+**The diagrams are stored whole.** [`GuitarDiagrams`](guitar_diagrams.gd)
+holds every scale in `PegScale.SCALES` as a full scale diagram for all six
+strings, frets 0–24, drawn in E — one line a string, `R` a root, `o` a
+scale tone, `-` nothing:
+
+```
+"minor pentatonic":
+[
+	#  0    5    10   15   20  24
+	"e R--o-o-o--o-R--o-o-o--o-R",
+	"B o--o-R--o-o-o--o-R--o-o-o",
+	"G o-o-o--o-R--o-o-o--o-R--o",
+	...
+```
+
+The game reads the top `strings` lines; another key is the same diagram slid
+along the neck. A test checks every diagram against its scale's intervals.
+
+**Staggered.** Rows like a falling-balls board. Columns, not pins, carry
+notes: every pin sits in one of 13 distinct columns across the field (7 full
+columns and 6 set in between them); the scale gives each column a note, low
+to high left to right from D4 up, and pins in the same column share it.
+
+**Changing key or scale scrolls.** Nothing snaps. On the fretboard the pins
+move: fret by fret, lowest first, one per sixteenth of the music, the old
+scale's pins leave and the new one's arrive, so the shape slides along the
+neck in time with the band. A site about to gain a pin shimmers in its note's
+colour, a pin about to go flickers, and a white ring marks the fret about to
+change. On the staggered layout the notes flip column by column the same
+way. A second change mid-scroll restarts the sweep from the left.
 
 **Scales.** The pins start on the pentatonic matching the song — major for
 *Night Pool*, minor for the rest — and follow a mode change if the key moves.
@@ -200,9 +236,9 @@ do the job alone — repeated fourths still reach all twelve keys.
 
 ## Tuning so far
 
-All first guesses, waiting on a play on real hardware: 4 rows of 7/6 pins (two
-pins to each note) over the middle 80% of the screen width, 65-80% of its
-height; the spout hung at 7% of the height; ±90° of aim (horizontal either
+All first guesses, waiting on a play on real hardware: three strings by 13
+frets (9–21), or 4 rows of 7/6 pins on the staggered layout, over the middle
+80% of the screen width, 65-80% of its height; the spout hung at 7% of the height; ±90° of aim (horizontal either
 way); 1.6 rad/s at full stick, 0.9 on the keys; pluck level 0.11, release 0.9
 s.
 

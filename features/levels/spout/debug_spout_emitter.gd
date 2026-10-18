@@ -28,7 +28,7 @@ func aimed_pin() -> int:
 	var target := origin + dir * along
 	var best := -1
 	var best_distance := INF
-	for pin in pins.pin_count():
+	for pin in pins.live_pins():
 		var distance := pins.to_global(pins.pin_position(pin)).distance_to(target)
 		if distance < best_distance:
 			best = pin

@@ -7,8 +7,9 @@ extends Node2D
 ## the mouse button) where you want it to point; whatever comes out of it —
 ## the [SpoutEmitter] in [member emitter_script] — falls through the
 ## [PinField], and every pin it hits plays its note. The pins carry a scale
-## laid out low to high, left to right ([PegScale]), starting on the
-## pentatonic that matches the song.
+## laid out as a scale diagram on a guitar's top strings ([FretboardScale]),
+## or low to high, left to right ([PegScale]) — [member pin_layout] — starting
+## on the pentatonic that matches the song.
 ##
 ## Behind it the host's band plays its song in full, with the eye band's
 ## key moves: L1/R1 (Q/E) a fourth, L2/R2 (Z/X) a fifth — unless the emitter
@@ -36,9 +37,13 @@ const TOUCH_BUTTON_SIZE := Vector2(116, 52)
 @export var title: String = "Level 3"
 ## Fraction of the screen height the spout's pivot hangs at.
 @export var spout_height: float = 0.07
-## The pin field's rectangle, as fractions of the screen: its rows a twentieth
-## of the height apart, the bottom row at 80%.
+## The pin field's rectangle, as fractions of the screen, the bottom row at
+## 80%.
 @export var pin_area: Rect2 = Rect2(0.1, 0.65, 0.8, 0.15)
+## How the pins lay the scale out: a scale diagram on the guitar's top three
+## strings, frets 9 to 21 (the default), or the older staggered rows, pitch
+## rising left to right. See [PinField].
+@export var pin_layout: PinField.Layout = PinField.Layout.FRETBOARD
 
 var band: Band
 var peg_scale: PegScale
@@ -69,8 +74,9 @@ func _ready() -> void:
 	pins = PinField.new()
 	pins.name = "Pins"
 	pins.area = Rect2(pin_area.position * extent, pin_area.size * extent)
+	pins.layout = pin_layout
 	add_child(pins)
-	peg_scale = PegScale.new()
+	peg_scale = pins.new_scale()
 	pins.bind_scale(peg_scale)
 
 	pointer = SpoutPointer.new()

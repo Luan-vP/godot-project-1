@@ -140,6 +140,12 @@ func pending_for(pin: int) -> int:
 	return _targets[pin] if _targets[pin] != _notes[pin] else -1
 
 
+## Whether [param pin] is still to flip, to a new note or (on a fretboard)
+## to no pin at all.
+func will_change(pin: int) -> bool:
+	return _targets[pin] != _notes[pin]
+
+
 func is_scrolling() -> bool:
 	return _cursor >= 0
 

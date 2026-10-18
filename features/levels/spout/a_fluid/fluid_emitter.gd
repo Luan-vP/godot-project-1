@@ -186,7 +186,7 @@ func collide_droplets() -> void:
 ## Each pin leans against the current running through it, so the stream
 ## parts around the pins rather than passing through them.
 func _resist_at_pins(delta: float) -> void:
-	for pin in pins.pin_count():
+	for pin in pins.live_pins():
 		var centre := pins.to_global(pins.pin_position(pin))
 		var current := simulation.sample_velocity(centre)
 		if current.length_squared() > 400.0:
