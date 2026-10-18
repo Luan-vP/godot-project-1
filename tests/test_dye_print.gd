@@ -107,3 +107,16 @@ func test_the_eye_tank_asks_for_the_name_anywhere_and_the_spout_does_not() -> vo
 	var eyes: Node = load("res://features/levels/secret_eyes/eye_band_demo.gd").new()
 	stage.add_child(eyes)
 	assert_true(key_print.wants_anywhere(), "The eye tank, arriving: anywhere")
+
+
+func test_a_scales_name_goes_smaller_and_above_the_key() -> void:
+	var screen := Vector2(1000, 500)
+	# A key's name is short ("A minor"), a scale's long ("minor pentatonic").
+	var key := KeyPrint.rect_for(screen, 0.2)
+	var scale_rect := KeyPrint.rect_for(
+		screen, 0.12, KeyPrint.SCALE_WIDTH, KeyPrint.SCALE_MAX_HEIGHT, KeyPrint.SCALE_HEIGHT
+	)
+	assert_almost_eq(scale_rect.get_center().x, 500.0, 0.01, "Centred across")
+	assert_almost_eq(scale_rect.get_center().y, 500 * KeyPrint.SCALE_HEIGHT, 0.01)
+	assert_lt(scale_rect.size.y, key.size.y, "Smaller letters")
+	assert_lt(scale_rect.end.y, key.position.y, "Clear above the key")

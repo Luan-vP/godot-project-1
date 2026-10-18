@@ -119,7 +119,10 @@ columns and 6 set in between them); the scale gives each column a note, low
 to high left to right from D4 up, and pins in the same column share it.
 
 **A key change is printed into the tank**, as in every level: see
-[the carousel](../carousel/README.md#the-level-format).
+[the carousel](../carousel/README.md#the-level-format). **So is the scale's
+name**, smaller and above where the key goes: when a spout level arrives,
+and whenever the scale changes — the scale button, or a key move into the
+other mode, which swaps the pentatonic.
 
 **Changing key or scale scrolls.** Nothing snaps. On the fretboard the pins
 move: fret by fret, lowest first, one per sixteenth of the music, the old

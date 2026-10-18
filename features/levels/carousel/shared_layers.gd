@@ -36,6 +36,9 @@ var fluid: FluidSimulation
 var band: Band
 ## Where the levels are instanced, drawn above the tank.
 var stage: Node2D
+## Prints the key's name into the tank on every new song and key move; a
+## level can print other names with it too.
+var key_print: KeyPrint
 
 
 func _ready() -> void:
@@ -50,7 +53,7 @@ func _ready() -> void:
 	add_child(band)
 	# The song starting, and every key move from any level, prints the key's
 	# name into the water. Before the band starts, so it hears the song begin.
-	var key_print := KeyPrint.new()
+	key_print = KeyPrint.new()
 	key_print.name = "KeyPrint"
 	key_print.band = band
 	key_print.fluid = fluid
