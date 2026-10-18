@@ -29,7 +29,7 @@ func test_the_shell_builds_its_pieces() -> void:
 func test_the_shell_lays_the_pins_out_on_a_fretboard() -> void:
 	assert_eq(_level.pins.layout, PinField.Layout.FRETBOARD, "The guitar layout by default")
 	assert_true(_level.peg_scale is FretboardScale)
-	assert_eq(_level.pins.pin_count(), 3 * 13, "Three strings by thirteen frets of sites")
+	assert_eq(_level.pins.pin_count(), 6 * 13, "Six strings by thirteen frets of sites")
 
 
 func test_pins_start_on_the_songs_pentatonic() -> void:

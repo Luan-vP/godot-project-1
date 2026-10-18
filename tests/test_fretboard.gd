@@ -63,13 +63,14 @@ func test_a_minor_pentatonic_box_at_the_fifth_fret() -> void:
 	assert_false(GuitarDiagrams.in_scale("minor pentatonic", 0, 6, 9))
 
 
-func test_three_strings_from_the_ninth_fret_thirteen_frets_wide() -> void:
-	assert_eq(_scale.string_count(), 3)
+func test_six_strings_from_the_ninth_fret_thirteen_frets_wide() -> void:
+	assert_eq(_scale.string_count(), 6)
 	assert_eq(_scale.fret_count(), 13)
-	assert_eq(_scale.pin_count(), 39)
+	assert_eq(_scale.pin_count(), 78)
 	assert_eq(_scale.site_note(_scale.site(0, 0)), 64 + 9, "High e, fret 9: C#5")
 	assert_eq(_scale.site_note(_scale.site(0, 2)), 55 + 9, "G string, fret 9: E4")
 	assert_eq(_scale.site_note(_scale.site(12, 0)), 64 + 21, "High e, fret 21")
+	assert_eq(_scale.site_note(_scale.site(0, 5)), 40 + 9, "Low E, fret 9: C#3")
 
 
 func test_pins_sit_only_where_the_scale_is() -> void:
@@ -135,8 +136,8 @@ func test_a_scale_with_no_diagram_is_worked_out_from_its_intervals() -> void:
 		assert_eq(_field.is_live(pin), whole_tone.has(posmod(note - 9, 12)))
 
 
-func test_the_layout_takes_more_strings() -> void:
-	var six := FretboardScale.new()
-	six.configure_fretboard(6, 0, 13)
-	assert_eq(six.string_count(), 6)
-	assert_eq(six.site_note(six.site(0, 5)), 40, "Open low E")
+func test_the_layout_takes_fewer_strings() -> void:
+	var three := FretboardScale.new()
+	three.configure_fretboard(3, 0, 13)
+	assert_eq(three.string_count(), 3)
+	assert_eq(three.site_note(three.site(0, 2)), 55, "Open G, the third string down")

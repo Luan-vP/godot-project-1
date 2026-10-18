@@ -3,7 +3,7 @@
 A spout hangs at the top of the screen, pointing down. Swing it left and right
 — that is the whole input — and whatever comes out of it falls through a field
 of pins at the bottom. Every pin it hits plays a note. The pins are laid out
-as a **scale diagram on a guitar's top three strings** — the high e on top,
+as a **scale diagram on all six strings of a guitar** — the high e on top,
 frets 9 to 21 left to right — so pitch climbs along each string, and sweeping
 the spout plays a phrase that rises and falls with your aim. Behind it the
 eye band's songs play in full. (The older layout, staggered rows rising low
@@ -81,13 +81,15 @@ plays, on whichever of the eye band's songs comes up. Its `key_changed` keeps th
 `SpoutLevel.pin_layout` picks one per scene; all three versions use the
 fretboard.
 
-**Fretboard (the default).** The pins are a scale diagram on the top three
-strings of a guitar in standard tuning: e (E4), B (B3) and G (G3) as rows,
-the high e on top as in tab, and frets 9 to 21 as 13 columns — as many as
-the staggered layout has. Every string and fret is a *site* with its own
-note, the open string plus the fret, and a pin stands at the sites in the
-scale; roots are ringed. A pentatonic puts about 16 pins on the neck, the
-major scale about 22. The field draws the strings, the fret wires, the
+**Fretboard (the default).** The pins are a scale diagram on all six strings
+of a guitar in standard tuning — e B G D A E as rows, the high e on top as in
+tab — and frets 9 to 21 as 13 columns, as many as the staggered layout has.
+Every string and fret is a *site* with its own note, the open string plus
+the fret (C#3 at the low E's 9th fret up to C#6 at the high e's 21st), and a
+pin stands at the sites in the scale; roots are ringed. A pentatonic puts
+about 33 pins on the neck, the major scale about 46. The fretboard takes a
+taller strip than the staggered rows (`SpoutLevel.fretboard_area`, 45-80% of
+the height) so the strings sit about as far apart as the rows did. The field draws the strings, the fret wires, the
 inlay dots and the fret numbers behind them. `PinField.strings`,
 `first_fret` and `frets` change the neck.
 
@@ -236,9 +238,9 @@ do the job alone — repeated fourths still reach all twelve keys.
 
 ## Tuning so far
 
-All first guesses, waiting on a play on real hardware: three strings by 13
-frets (9–21), or 4 rows of 7/6 pins on the staggered layout, over the middle
-80% of the screen width, 65-80% of its height; the spout hung at 7% of the height; ±90° of aim (horizontal either
+All first guesses, waiting on a play on real hardware: six strings by 13
+frets (9–21) over 45-80% of the height, or 4 rows of 7/6 pins on the
+staggered layout over 65-80%, both across the middle 80% of the width; the spout hung at 7% of the height; ±90° of aim (horizontal either
 way); 1.6 rad/s at full stick, 0.9 on the keys; pluck level 0.11, release 0.9
 s.
 

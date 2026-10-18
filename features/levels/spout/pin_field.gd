@@ -9,8 +9,9 @@ extends Node2D
 ## is a distinct x, and a [PegScale] gives each column one note. Pins in the
 ## same column share it.
 ##
-## [b]Fretboard[/b]: a scale diagram on a guitar's top [member strings]
-## strings, highest on top as in tab, from [member first_fret] for
+## [b]Fretboard[/b]: a scale diagram on a guitar's [member strings] strings
+## (all six by default, counting down from the high e), highest on top as in
+## tab, from [member first_fret] for
 ## [member frets] frets. Every string and fret is a [i]site[/i] with its own
 ## fixed note, and a [FretboardScale] says which sites hold a pin: those in
 ## the scale. A change of key or scale moves pins rather than retuning them.
@@ -60,8 +61,9 @@ const POP_SECONDS := 0.25
 @export var low_note: int = 62
 
 @export_group("Fretboard")
-## How many strings, counting down from the high e of standard tuning.
-@export_range(1, 6) var strings: int = 3
+## How many strings, counting down from the high e of standard tuning: all
+## six by default.
+@export_range(1, 6) var strings: int = 6
 ## The fret of the leftmost column, and how many frets: 9 to 21, as many
 ## columns as the staggered layout has.
 @export var first_fret: int = 9
