@@ -59,6 +59,19 @@ func test_the_other_versions_keep_the_shared_steps() -> void:
 	assert_eq(SpoutFlow.per_bar(4, StickyBallEmitter.STEPS), 0, "No fifth step in C")
 
 
+func test_the_clock_runs_ahead_by_the_lookahead_like_the_bands() -> void:
+	var scripted := ScriptedMusicTime.new()
+	AudioManager.set_music_time_source(scripted)
+	scripted.start()
+	scripted.set_beats(2.0)
+	var clock := AudioManager.get_music_clock()
+	assert_almost_eq(StickyBallEmitter.heard_bars(), 2.0 / clock.beats_per_bar, 0.0001)
+	scripted.lookahead = clock.seconds_per_beat()
+	assert_almost_eq(
+		StickyBallEmitter.heard_bars(), 3.0 / clock.beats_per_bar, 0.0001, "A beat ahead"
+	)
+
+
 func test_only_one_ball_sticks_to_a_pin() -> void:
 	var level := _level()
 	var emitter: StickyBallEmitter = level.emitter

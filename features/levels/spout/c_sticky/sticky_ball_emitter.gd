@@ -45,7 +45,19 @@ func _physics_process(delta: float) -> void:
 	super(delta)
 	if spout == null:
 		return
-	tick_clock(SpoutFlow.music_bars())
+	tick_clock(heard_bars())
+
+
+## Where the music is, in bars, as the band schedules it: ahead of the raw
+## position by the source's lookahead, as [StepClock] reads it, so a stuck
+## pin sounds on the same sixteenth as the band rather than a mix late.
+static func heard_bars() -> float:
+	var source := AudioManager.get_music_time_source()
+	if not source.is_running():
+		return 0.0
+	var clock := AudioManager.get_music_clock()
+	var lookahead := clock.beats_from_seconds(source.get_lookahead())
+	return SpoutFlow.music_bars() + lookahead / maxi(1, clock.beats_per_bar)
 
 
 ## Move the music on to [param now_bars] (bars from the start): a bar line
