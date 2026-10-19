@@ -126,7 +126,11 @@ func print_name(
 
 
 func _on_song_started(_title: String) -> void:
-	print_key()
+	# The first song starts while the carousel is still being built, before the
+	# stage or its first level exists. Wait a frame so wants_anywhere() sees it.
+	await get_tree().process_frame
+	if is_inside_tree():
+		print_key()
 
 
 func _on_key_changed(_offset: int) -> void:
