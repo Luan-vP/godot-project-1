@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="godot-project-1"
+config/name="eyeMusic"
 config/version="0.1.0"
 run/main_scene="res://features/splash/splash.tscn"
 config/features=PackedStringArray("4.4", "Forward Plus")
@@ -20,6 +20,7 @@ boot_splash/minimum_display_time=1500
 [audio]
 
 buses/default_bus_layout="res://resources/audio/default_bus_layout.tres"
+general/ios/session_category=3
 
 [autoload]
 
@@ -34,11 +35,11 @@ Tank="*res://autoload/Tank.gd"
 
 [display]
 
+window/handheld/orientation=4
 window/size/viewport_width.mobile=1152
 window/size/viewport_height.mobile=648
 window/stretch/mode.mobile="canvas_items"
 window/stretch/aspect.mobile="expand"
-window/handheld/orientation=4
 
 [editor_plugins]
 
@@ -60,6 +61,4 @@ sensors/enable_gravity=true
 
 [rendering]
 
-renderer/rendering_method="forward_plus"
-renderer/rendering_method.mobile="mobile"
 textures/vram_compression/import_etc2_astc=true

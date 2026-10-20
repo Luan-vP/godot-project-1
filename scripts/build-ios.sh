@@ -8,15 +8,21 @@
 #   scripts/build-ios.sh --simulator        the "iPhone 16 Pro" simulator
 #   scripts/build-ios.sh --simulator "iPhone 16e"
 #   scripts/build-ios.sh --export-only      just write the Xcode project
+#   scripts/build-ios.sh --release          release archive: install and launch it on
+#                                           the connected iPhone, upload to TestFlight
+#   scripts/build-ios.sh --release --no-upload
 #   scripts/build-ios.sh -- --open=eyes     anything after -- is passed to the game
 #
 # Output goes under builds/ (ignored by git): builds/ios is the exported Xcode
 # project, builds/ios-derived the device build, builds/ios-sim and
-# builds/ios-derived-sim the simulator's.
+# builds/ios-derived-sim the simulator's. A release goes to builds/ios-release
+# (the archive, and the uploaded .ipa under upload/) and builds/ios-release-derived.
 #
 # Signing is automatic, for team $IOS_TEAM (default BJS3Z2X97R). Xcode must be
 # signed in to an Apple account on that team (Xcode > Settings > Accounts) so it
-# can create the development certificate and profile; nothing is committed.
+# can create the development certificate and profile; nothing is committed. The
+# release upload uses that account too, and its build number is the time, so
+# every upload gets a new one. The app must already exist in App Store Connect.
 #
 # The simulator is only good for layout. Godot 4.4 runs it on the OpenGL
 # Compatibility renderer, which has no RenderingDevice, so the fluid's compute
@@ -30,7 +36,7 @@ BUILDS="$ROOT/builds"
 EXPORT_DIR="$BUILDS/ios"
 PROJECT_NAME="godot_project_1"
 PRESET="iOS"
-BUNDLE_ID="com.luanvanpletsen.godotproject1"
+BUNDLE_ID="com.goldenruleengineering.eyemusic"
 TEAM="${IOS_TEAM:-BJS3Z2X97R}"
 IMPORTED="$ROOT/.godot/imported"
 SHADER_DIR="$ROOT/features/fluid/shaders/compute"
@@ -38,13 +44,14 @@ TEMPLATES="$HOME/Library/Application Support/Godot/export_templates/4.4.stable"
 DEFAULT_SIMULATOR="iPhone 16 Pro"
 
 usage() {
-	sed -n '2,24p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+	sed -n '2,30p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 target="device"
 device="${IOS_DEVICE:-}"
 simulator="$DEFAULT_SIMULATOR"
 launch=1
+upload=1
 game_args=()
 while [ $# -gt 0 ]; do
 	case "$1" in
@@ -56,6 +63,8 @@ while [ $# -gt 0 ]; do
 			target="simulator"
 			if [ $# -ge 2 ] && [ "${2#-}" = "$2" ]; then simulator="$2"; shift; fi ;;
 		--export-only) target="none" ;;
+		--release) target="release" ;;
+		--no-upload) upload=0 ;;
 		--no-launch) launch=0 ;;
 		--) shift; game_args=("$@"); break ;;
 		*) echo "Unknown option: $1" >&2; usage >&2; exit 2 ;;
@@ -119,14 +128,26 @@ if [ "$compiled" -lt "$expected" ]; then
 	fi
 fi
 
+export_mode="--export-debug"
+export_log="$BUILDS/ios-export.log"
+if [ "$target" = "release" ]; then
+	EXPORT_DIR="$BUILDS/ios-release"
+	export_mode="--export-release"
+	export_log="$BUILDS/ios-release-export.log"
+	# The last release's archive would otherwise sit under the new export.
+	rm -rf "$EXPORT_DIR"
+fi
+
 echo "Exporting the Xcode project to $EXPORT_DIR"
 mkdir -p "$EXPORT_DIR"
-"$GODOT_BIN" --headless --path "$ROOT" --export-debug "$PRESET" "$EXPORT_DIR/$PROJECT_NAME.ipa" \
-	>"$BUILDS/ios-export.log" 2>&1 || true
+"$GODOT_BIN" --headless --path "$ROOT" "$export_mode" "$PRESET" "$EXPORT_DIR/$PROJECT_NAME.ipa" \
+	>"$export_log" 2>&1 || true
 # Godot's exit code is not reliable here; judge the export by what it wrote.
-if grep -q "ERROR" "$BUILDS/ios-export.log" || [ ! -d "$EXPORT_DIR/$PROJECT_NAME.xcodeproj" ]; then
-	grep -A1 "ERROR" "$BUILDS/ios-export.log" >&2 || true
-	echo "Export failed; full log in builds/ios-export.log" >&2
+# The leak reports at exit are noise.
+if grep "ERROR" "$export_log" | grep -qv "leaked\|still in use" \
+	|| [ ! -d "$EXPORT_DIR/$PROJECT_NAME.xcodeproj" ]; then
+	grep -A1 "ERROR" "$export_log" >&2 || true
+	echo "Export failed; full log in ${export_log#"$ROOT"/}" >&2
 	exit 1
 fi
 
@@ -163,8 +184,8 @@ if [ "$target" = "simulator" ]; then
 	exit 0
 fi
 
-if [ -z "$device" ]; then
-	devices_json="$BUILDS/ios-devices.json"
+find_device() {
+	local devices_json="$BUILDS/ios-devices.json"
 	xcrun devicectl list devices --json-output "$devices_json" >/dev/null 2>&1 || true
 	device="$(/usr/bin/python3 - "$devices_json" <<'PY'
 import json, sys
@@ -182,8 +203,68 @@ PY
 )"
 	if [ -z "$device" ]; then
 		echo "No paired iPhone found. Connect one, or pass --device <id> (xcrun devicectl list devices)." >&2
+		return 1
+	fi
+	echo "$device"
+}
+
+install_and_launch() {
+	echo "Installing on $device"
+	xcrun devicectl device install app --device "$device" "$1"
+	if [ "$launch" -eq 1 ]; then
+		echo "Launching (unlock the phone if this fails; the first run may need"
+		echo "Settings > General > VPN & Device Management > trust the developer)"
+		if ! xcrun devicectl device process launch --device "$device" --terminate-existing \
+			"$BUNDLE_ID" ${game_args[@]+"${game_args[@]}"}; then
+			# A locked phone is no reason to skip a release's upload.
+			[ "$target" = "release" ] || return 1
+			echo "Could not launch it; it is installed, open it from the home screen." >&2
+		fi
+	fi
+}
+
+if [ "$target" = "release" ]; then
+	build_number="$(date +%Y%m%d%H%M)"
+	archive="$EXPORT_DIR/$PROJECT_NAME.xcarchive"
+	echo "Archiving build $build_number (team $TEAM)"
+	# The archive is signed for development so it installs on the phone as is;
+	# the upload re-signs it for the App Store.
+	xcodebuild -quiet \
+		-project "$EXPORT_DIR/$PROJECT_NAME.xcodeproj" -scheme "$PROJECT_NAME" -configuration Release \
+		-destination "generic/platform=iOS" -archivePath "$archive" \
+		-derivedDataPath "$BUILDS/ios-release-derived" -allowProvisioningUpdates \
+		DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic CODE_SIGN_IDENTITY="Apple Development" \
+		CURRENT_PROJECT_VERSION="$build_number" archive
+	if [ -n "$device" ] || device="$(find_device)"; then
+		install_and_launch "$archive/Products/Applications/$PROJECT_NAME.app"
+	else
+		echo "Not installing on a phone."
+	fi
+	[ "$upload" -eq 1 ] || exit 0
+	options="$EXPORT_DIR/UploadOptions.plist"
+	cat >"$options" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+	<key>method</key><string>app-store-connect</string>
+	<key>destination</key><string>upload</string>
+	<key>teamID</key><string>$TEAM</string>
+	<key>signingStyle</key><string>automatic</string>
+	<key>uploadSymbols</key><true/>
+</dict></plist>
+PLIST
+	echo "Uploading build $build_number to App Store Connect"
+	if ! xcodebuild -exportArchive -archivePath "$archive" -exportPath "$EXPORT_DIR/upload" \
+		-exportOptionsPlist "$options" -allowProvisioningUpdates 2>&1 | { grep -v "Progress" || true; }; then
+		echo "Upload failed." >&2
 		exit 1
 	fi
+	echo "Uploaded; TestFlight shows build $build_number once Apple has processed it."
+	exit 0
+fi
+
+if [ -z "$device" ]; then
+	device="$(find_device)"
 fi
 
 echo "Building for device (team $TEAM)"
@@ -196,13 +277,4 @@ if ! xcodebuild -quiet \
 	echo "(Xcode > Settings > Accounts) with an Apple ID on team $TEAM, then run this again." >&2
 	exit 1
 fi
-app="$BUILDS/ios-derived/Build/Products/Debug-iphoneos/$PROJECT_NAME.app"
-
-echo "Installing on $device"
-xcrun devicectl device install app --device "$device" "$app"
-if [ "$launch" -eq 1 ]; then
-	echo "Launching (unlock the phone if this fails; the first run may need"
-	echo "Settings > General > VPN & Device Management > trust the developer)"
-	xcrun devicectl device process launch --device "$device" --terminate-existing \
-		"$BUNDLE_ID" ${game_args[@]+"${game_args[@]}"}
-fi
+install_and_launch "$BUILDS/ios-derived/Build/Products/Debug-iphoneos/$PROJECT_NAME.app"

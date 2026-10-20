@@ -60,6 +60,8 @@ func test_added_dye_goes_over_the_field_with_the_next_step_only() -> void:
 func test_the_key_is_printed_by_name_in_the_middle() -> void:
 	assert_eq(KeyPrint.key_name(6, true), "F# minor")
 	assert_eq(KeyPrint.key_name(3, false), "Eb major")
+	assert_eq(KeyPrint.scale_title(9, "minor pentatonic"), "A minor pentatonic")
+	assert_eq(KeyPrint.scale_title(-2, "dorian"), "Bb dorian")
 	var rect := KeyPrint.rect_for(Vector2(1000, 500), 0.1)
 	assert_almost_eq(rect.get_center().x, 500.0, 0.01, "Centred")
 	assert_almost_eq(rect.get_center().y, 250.0, 0.01)
@@ -120,3 +122,19 @@ func test_a_scales_name_goes_smaller_and_above_the_key() -> void:
 	assert_almost_eq(scale_rect.get_center().y, 500 * KeyPrint.SCALE_HEIGHT, 0.01)
 	assert_lt(scale_rect.size.y, key.size.y, "Smaller letters")
 	assert_lt(scale_rect.end.y, key.position.y, "Clear above the key")
+
+
+func test_a_hovering_name_floats_until_the_next_cuts_it_short() -> void:
+	var key_print := KeyPrint.new()
+	add_child_autofree(key_print)
+	var mask := Image.create_empty(40, 10, false, Image.FORMAT_RGBA8)
+	var overlay := key_print.get_node("Hover") as CanvasLayer
+	key_print._hover(mask, Color.RED, Rect2(10, 20, 200, 50), 60.0)
+	assert_eq(overlay.get_child_count(), 1, "Floats over the water")
+	var first := overlay.get_child(0) as TextureRect
+	assert_eq(first.position, Vector2(10, 20))
+	assert_eq(first.size, Vector2(200, 50))
+	key_print._hover(mask, Color.BLUE, Rect2(10, 20, 200, 50), 60.0)
+	await wait_seconds(KeyPrint.HOVER_FADE + 0.2)
+	assert_false(is_instance_valid(first), "The newer name cut it short, and it faded")
+	assert_eq(overlay.get_child_count(), 1, "The newer one still floats")
