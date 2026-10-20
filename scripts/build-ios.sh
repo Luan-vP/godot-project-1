@@ -214,8 +214,10 @@ install_and_launch() {
 	if [ "$launch" -eq 1 ]; then
 		echo "Launching (unlock the phone if this fails; the first run may need"
 		echo "Settings > General > VPN & Device Management > trust the developer)"
+		# A locked phone is no reason to skip a release's upload.
 		xcrun devicectl device process launch --device "$device" --terminate-existing \
-			"$BUNDLE_ID" ${game_args[@]+"${game_args[@]}"}
+			"$BUNDLE_ID" ${game_args[@]+"${game_args[@]}"} \
+			|| echo "Could not launch it; it is installed, open it from the home screen." >&2
 	fi
 }
 
