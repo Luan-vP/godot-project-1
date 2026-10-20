@@ -12,6 +12,10 @@ extends BallEmitter
 ##
 ## 8, 12, 16 or 20 balls a bar ([constant STEPS]), set by RT or a touch as in
 ## A and B, fired twice as fast as B's ([constant MUZZLE_SPEED_C]).
+##
+## Every pin played echoes ([PinEcho]): a bar later, as the popped pins come
+## back, and a bar after that, softer each time, while the bar's notes drift
+## up over the pins as a constellation and are printed into the water.
 
 ## Balls a bar at each step.
 const STEPS: Array[int] = [8, 12, 16, 20]
@@ -20,6 +24,12 @@ const MUZZLE_SPEED_C := MUZZLE_SPEED * 2.0
 ## Strength a stuck pin plays at for the softest of hits: every stuck ball
 ## sounds, so even a roll on to a pin is heard.
 const MIN_STRENGTH := 0.25
+## How far back the music has to jump, in bars, to count as starting over,
+## which drops every echo still waiting.
+const RESTART_BARS := 0.25
+
+## The delay on every pin played, and its constellations.
+var echo: PinEcho
 
 ## Pin to the ball stuck to it.
 var _stuck := {}
@@ -31,6 +41,17 @@ var _waiting: Array[int] = []
 var _played := 0
 ## Where the music was last frame, in bars; NAN until the first frame.
 var _clock_bars := NAN
+
+
+func bind(level_node: Node, the_spout: Spout, the_pins: PinField) -> void:
+	super(level_node, the_spout, the_pins)
+	echo = PinEcho.new()
+	echo.name = "Echo"
+	echo.pins = pins
+	var shared := SharedLayers.find(level_node)
+	if shared != null:
+		echo.fluid = shared.fluid
+	add_child(echo)
 
 
 func flow_steps() -> Array[int]:
@@ -63,15 +84,19 @@ static func heard_bars() -> float:
 ## Move the music on to [param now_bars] (bars from the start): a bar line
 ## crossed brings every popped pin back, then a sixteenth crossed plays
 ## every pin waiting. The bar comes first, so a pin played on a downbeat
-## stays gone that whole bar.
+## stays gone that whole bar. Echoes due by then sound too.
 func tick_clock(now_bars: float) -> void:
 	if is_nan(_clock_bars) or now_bars < _clock_bars:
+		# A clock that jitters back a hair is not the music starting over.
+		if not is_nan(_clock_bars) and now_bars < _clock_bars - RESTART_BARS:
+			echo.reset()
 		_clock_bars = now_bars
 		return
 	if floori(now_bars) > floori(_clock_bars):
 		pins.restore_all()
 	var due := SpoutFlow.due(_clock_bars, now_bars, sixteenths_per_bar())
 	_clock_bars = now_bars
+	echo.tick(now_bars, sixteenths_per_bar())
 	if due > 0:
 		play_waiting()
 
@@ -93,6 +118,13 @@ func play_waiting() -> Array[int]:
 		_strengths.erase(pin)
 		if pins.hit(pin, strength):
 			_hits += 1
+			echo.record(
+				pins.note_for(pin),
+				strength,
+				pins.to_global(pins.pin_position(pin)),
+				floori((0.0 if is_nan(_clock_bars) else _clock_bars) * sixteenths_per_bar()),
+				sixteenths_per_bar()
+			)
 		pins.pop(pin)
 		_played += 1
 		_retire(ball)
@@ -149,8 +181,15 @@ func _retire(ball: SpoutBall) -> void:
 
 func describe() -> String:
 	return (
-		"C: sticky balls · firing %s · %d in play · %d stuck · %d popped · %d played"
-		% [describe_flow(), in_play(), stuck_count(), pins.popped_count(), _played]
+		"C: sticky balls · firing %s · %d in play · %d stuck · %d popped · %d played · %d echoing"
+		% [
+			describe_flow(),
+			in_play(),
+			stuck_count(),
+			pins.popped_count(),
+			_played,
+			echo.pending_count(),
+		]
 	)
 
 

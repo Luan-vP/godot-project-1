@@ -69,6 +69,7 @@ already means "back to the menu".
 | `spout_emitter.gd` | `SpoutEmitter` — the slot an emitter fills, and the stepped pour both versions share. |
 | `spout_flow.gd` | `SpoutFlow` — pure: trigger depth and touch distance to a step, drops due on the bar's grid. An emitter can bring its own steps (`flow_steps()`). |
 | `spout_flow_overlay.gd` | `SpoutFlowOverlay` — the rings round the spout, one per step. |
+| `c_sticky/pin_echo.gd` | `PinEcho` — C's delay: every note again a bar later, twice, fading, drawn as a rising constellation that ends up in the water. |
 | `debug_spout_emitter.gd` | `DebugSpoutEmitter` — the shell's stand-in: Space plucks. |
 
 The music is the host's [`Band`](../../../core/audio/band.gd) (see
@@ -116,6 +117,12 @@ along the neck. A test checks every diagram against its scale's intervals.
 notes: every pin sits in one of 13 distinct columns across the field (7 full
 columns and 6 set in between them); the scale gives each column a note, low
 to high left to right from D4 up, and pins in the same column share it.
+
+**A key change is printed into the tank**, as in every level: see
+[the carousel](../carousel/README.md#the-level-format). **So is the scale's
+name**, smaller and above where the key goes: when a spout level arrives,
+and whenever the scale changes — the scale button, or a key move into the
+other mode, which swaps the pentatonic.
 
 **Changing key or scale scrolls.** Nothing snaps. On the fretboard the pins
 move: fret by fret, lowest first, one per sixteenth of the music, the old
@@ -205,6 +212,22 @@ stick at once sound as a chord.
 **Then it pops.** The pin and its ball burst and are gone — balls fall
 through where it was — until the start of the next bar, when every popped
 pin comes back at once. A pin played on a downbeat is gone the whole bar.
+
+**Every note echoes.** The pins recharge in a bar, so that is the delay:
+[`PinEcho`](c_sticky/pin_echo.gd) plays every note again a bar later, on the
+same sixteenth, and again a bar after that, at half and then a quarter of
+its strength — the bar's phrase loops twice, fading, in time with the band.
+An echo replays the note that sounded, even if the pins have since scrolled
+to a new key. Echoes are a softer sine with no octave sparkle, so they sit
+behind the live pins.
+
+**The phrase is a constellation.** Each bar's notes are drawn as stars where
+their pins were, joined in the order they played, glowing (added light) over
+the pins. When the bar ends the constellation lifts off and drifts up,
+carried a little by the current, each star twinkling as its echo sounds.
+After the second loop it is printed into the tank as pigment — dots and
+lines in the notes' colours — and the ghost fades over it, leaving the
+shape to swirl away with the water, the way the splash's logo does.
 
 ## Pouring in bar subdivisions
 

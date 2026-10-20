@@ -62,6 +62,8 @@ var _shared: SharedLayers
 var _key_shift := KeyShiftInput.new()
 var _hud: Label
 var _status: Label
+## The scale whose name was last printed into the tank.
+var _printed_scale := ""
 
 
 func _ready() -> void:
@@ -113,6 +115,7 @@ func _ready() -> void:
 	peg_scale.snap()
 
 	_build_hud()
+	print_scale_name(true)
 
 
 func _exit_tree() -> void:
@@ -160,15 +163,30 @@ func shift_key(semitones: int) -> void:
 ## Swap the pins to [param intervals]; it scrolls in from the left.
 func set_pin_scale(intervals: Array[int], scale_name: String = "") -> void:
 	peg_scale.set_scale(intervals, scale_name)
+	print_scale_name()
 
 
 ## Swap the pins to the next scale in [constant PegScale.CYCLE].
 func cycle_scale() -> void:
 	peg_scale.set_scale_named(peg_scale.next_scale_name())
+	print_scale_name()
+
+
+## Print the pins' scale's name into the tank (see [KeyPrint]), on arrival
+## and whenever it changes: a key move into the other mode changes it too.
+## Only when it differs from the last printed, unless [param again].
+func print_scale_name(again: bool = false) -> void:
+	var scale_name := peg_scale.scale_name()
+	if scale_name.is_empty() or (scale_name == _printed_scale and not again):
+		return
+	_printed_scale = scale_name
+	if _shared != null and _shared.key_print != null:
+		_shared.key_print.print_scale(scale_name)
 
 
 func _on_key_changed(_offset: int) -> void:
 	peg_scale.set_key(band.key_root(), band.is_minor())
+	print_scale_name()
 
 
 func _on_band_stepped(_bar: int, _step_in_bar: int) -> void:

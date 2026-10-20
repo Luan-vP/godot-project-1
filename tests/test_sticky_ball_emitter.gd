@@ -193,3 +193,90 @@ func test_a_ball_settles_frozen_against_its_pin() -> void:
 	assert_true(ball.freeze, "Frozen in place")
 	var touching := level.pins.pin_radius + SpoutBall.RADIUS
 	assert_almost_eq(ball.global_position.distance_to(centre), touching, 0.5)
+
+
+func test_a_played_pin_echoes_a_bar_later_and_again_softer() -> void:
+	var level := _level()
+	var emitter: StickyBallEmitter = level.emitter
+	var echoes: Array = []
+	emitter.echo.echoed.connect(
+		func(note: int, strength: float, repeat: int): echoes.append([note, strength, repeat])
+	)
+	var sixteenth := 1.0 / StickyBallEmitter.sixteenths_per_bar()
+	var pin := level.pins.live_pins()[2]
+	var note := level.pins.note_for(pin)
+	emitter.tick_clock(0.01)
+	emitter.stick(emitter.fire(), pin, BallEmitter.FULL_STRENGTH_SPEED * 2.0)
+	emitter.tick_clock(sixteenth + 0.001)
+	assert_eq(emitter.echo.pending_count(), 2, "Two repeats queued")
+	emitter.tick_clock(1.0 + sixteenth - 0.002)
+	assert_eq(echoes.size(), 0, "Not before the same sixteenth of the next bar")
+	emitter.tick_clock(1.0 + sixteenth + 0.001)
+	assert_eq(echoes.size(), 1, "A bar later: the pins' recharge")
+	assert_eq(echoes[0][0], note, "The same note")
+	assert_almost_eq(echoes[0][1], PinEcho.ECHO_LEVELS[0], 0.001, "Half as loud")
+	emitter.tick_clock(2.0 + sixteenth + 0.001)
+	assert_eq(echoes.size(), 2, "And again a bar after that")
+	assert_almost_eq(echoes[1][1], PinEcho.ECHO_LEVELS[1], 0.001, "Softer again")
+	assert_eq(echoes[1][2], 2)
+	emitter.tick_clock(4.0)
+	assert_eq(echoes.size(), 2, "Twice, then done")
+
+
+func test_an_echo_keeps_its_note_through_a_key_change() -> void:
+	var level := _level()
+	var emitter: StickyBallEmitter = level.emitter
+	var notes: Array[int] = []
+	emitter.echo.echoed.connect(func(note: int, _s: float, _r: int): notes.append(note))
+	var sixteenth := 1.0 / StickyBallEmitter.sixteenths_per_bar()
+	var pin := level.pins.live_pins()[2]
+	var note := level.pins.note_for(pin)
+	emitter.tick_clock(0.01)
+	emitter.stick(emitter.fire(), pin, 400.0)
+	emitter.tick_clock(sixteenth + 0.001)
+	level.shift_key(KeyShiftInput.FOURTH)
+	level.peg_scale.snap()
+	emitter.tick_clock(1.0 + sixteenth + 0.001)
+	assert_eq(notes, [note] as Array[int])
+
+
+func test_a_bars_notes_make_one_constellation_that_rises_then_prints() -> void:
+	var level := _level()
+	var emitter: StickyBallEmitter = level.emitter
+	var echo := emitter.echo
+	var sixteenth := 1.0 / StickyBallEmitter.sixteenths_per_bar()
+	var live := level.pins.live_pins()
+	emitter.tick_clock(0.01)
+	emitter.stick(emitter.fire(), live[1], 400.0)
+	emitter.tick_clock(sixteenth + 0.001)
+	emitter.stick(emitter.fire(), live[6], 400.0)
+	emitter.tick_clock(0.5 + 0.001)
+	assert_eq(echo.phrase_count(), 1, "One bar, one phrase")
+	var phrase: PinEcho.Phrase = echo.phrases()[0]
+	assert_eq(phrase.stars.size(), 2, "A star for each note")
+	echo._process(0.5)
+	assert_eq(phrase.drift, Vector2.ZERO, "On the pins while the bar plays")
+	emitter.tick_clock(1.2)
+	echo._process(0.5)
+	assert_lt(phrase.drift.y, 0.0, "Rising once the bar is over")
+	emitter.tick_clock(2.9)
+	assert_false(phrase.printed, "Not until both loops are over")
+	emitter.tick_clock(3.01)
+	assert_true(phrase.printed, "Into the water")
+	echo._process(PinEcho.FADE_SECONDS + 0.1)
+	assert_eq(echo.phrase_count(), 0, "And the ghost is gone")
+
+
+func test_a_restart_of_the_music_drops_waiting_echoes() -> void:
+	var level := _level()
+	var emitter: StickyBallEmitter = level.emitter
+	var sixteenth := 1.0 / StickyBallEmitter.sixteenths_per_bar()
+	emitter.tick_clock(0.01)
+	emitter.stick(emitter.fire(), level.pins.live_pins()[2], 400.0)
+	emitter.tick_clock(sixteenth + 0.001)
+	emitter.tick_clock(0.5)
+	emitter.tick_clock(0.49)
+	assert_eq(emitter.echo.pending_count(), 2, "A clock jittering back is not a restart")
+	emitter.tick_clock(0.0)
+	assert_eq(emitter.echo.pending_count(), 0)
+	assert_true(emitter.echo.phrases()[0].printed)

@@ -121,3 +121,14 @@ func test_touch_buttons_move_the_key_and_the_scale() -> void:
 
 func test_the_spout_follows_the_levels_pointer() -> void:
 	assert_eq(_level.spout.pointer, _level.pointer)
+
+
+func test_the_scales_name_is_printed_on_arrival_and_on_each_change() -> void:
+	assert_eq(_level._printed_scale, _level.peg_scale.scale_name(), "On arrival")
+	_level.cycle_scale()
+	assert_eq(_level._printed_scale, _level.peg_scale.scale_name(), "On a new scale")
+	var blues: Array[int] = []
+	blues.assign(PegScale.SCALES["blues"])
+	_level.set_pin_scale(blues, "blues")
+	assert_eq(_level._printed_scale, "blues", "Set by hand")
+	assert_eq(SharedLayers.find(_level).key_print.band, _level.band, "Through the host's printer")

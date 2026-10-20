@@ -109,6 +109,12 @@ func _ready() -> void:
 	_update_label()
 
 
+## A new key's name lands anywhere in this tank, not just the middle (see
+## [KeyPrint]).
+func prints_key_anywhere() -> bool:
+	return true
+
+
 ## The eyes, the tilt and jog that move the tank, the floaters, and the
 ## motion readout.
 func _build_tank_level() -> void:

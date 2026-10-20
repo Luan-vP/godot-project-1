@@ -1,7 +1,8 @@
 #[compute]
 #version 450
 
-// Pass 5: carry the pigment on the projected field and add this frame's dabs.
+// Pass 5: carry the pigment on the projected field and add this frame's dabs
+// and anything printed into it.
 // Density is premultiplied -- rgb is pigment * density and a is density -- so
 // the painterly pass can divide it back out to get the hue.
 
@@ -15,6 +16,8 @@ layout(set = 0, binding = 2) uniform sampler2D velocity_tex;
 layout(set = 0, binding = 3, std430) restrict readonly buffer Splats {
 	Splat splats[];
 } splat_buffer;
+// Pigment printed in this step on top of what is there; zero on most frames.
+layout(set = 0, binding = 4) uniform sampler2D addition_tex;
 
 void main() {
 	ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
@@ -25,7 +28,7 @@ void main() {
 
 	vec2 velocity = texture(velocity_tex, uv).xy;
 	vec2 source_uv = source_point(uv - velocity * params.time_step * params.texel_size);
-	vec4 dye = texture(dye_tex, source_uv) * params.dissipation;
+	vec4 dye = texture(dye_tex, source_uv) * params.dissipation + texelFetch(addition_tex, coord, 0);
 
 	for (int i = 0; i < params.splat_count; i++) {
 		vec2 offset = splat_offset(uv, splat_buffer.splats[i].slot.xy) * params.splat_aspect;

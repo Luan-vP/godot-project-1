@@ -21,6 +21,9 @@ extends Node2D
 ## [code]features/levels/carousel/solo/[/code].
 ##
 ## A level finds its host with [method host_of] in [method Node._ready].
+##
+## When the song starts, and whichever level moves the band's key, a
+## [KeyPrint] here prints the key's name into the tank.
 
 const SEED_BLOBS := 5
 ## Pigment density dropped in at the start, as a one-shot rather than a rate.
@@ -33,6 +36,9 @@ var fluid: FluidSimulation
 var band: Band
 ## Where the levels are instanced, drawn above the tank.
 var stage: Node2D
+## Prints the key's name into the tank on every new song and key move; a
+## level can print other names with it too.
+var key_print: KeyPrint
 
 
 func _ready() -> void:
@@ -45,6 +51,13 @@ func _ready() -> void:
 	band = Band.new()
 	band.name = "Band"
 	add_child(band)
+	# The song starting, and every key move from any level, prints the key's
+	# name into the water. Before the band starts, so it hears the song begin.
+	key_print = KeyPrint.new()
+	key_print.name = "KeyPrint"
+	key_print.band = band
+	key_print.fluid = fluid
+	add_child(key_print)
 	band.start()
 
 	# A tank that starts as flat colour looks like a bug. Seed it, once, when
@@ -57,6 +70,7 @@ func _ready() -> void:
 	stage = Node2D.new()
 	stage.name = "Stage"
 	add_child(stage)
+	key_print.stage = stage
 
 
 ## The [SharedLayers] hosting [param node], which every level needs. Reports
