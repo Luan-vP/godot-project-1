@@ -20,8 +20,11 @@ func test_the_tank_comes_up_holds_and_goes_back_to_black() -> void:
 func test_handing_the_tank_to_the_carousel_it_does_not_go_back_to_black() -> void:
 	var stir := 1.4
 	var handover := Splash.total_seconds(stir, false)
-	var stirred := Splash.LEAD_IN + Splash.REVEAL + Splash.HOLD + stir
-	assert_lt(handover - stirred, 1.0, "Soon after the stir, with the logo still in the water")
+	var stir_from := Splash.LEAD_IN + Splash.REVEAL + Splash.HOLD
+	assert_gt(handover, stir_from + stir * 0.5, "Past the swirl's peak")
+	assert_lt(
+		handover, stir_from + stir, "Before the stir ends, so the dissolve plays under the level"
+	)
 	assert_lt(handover, Splash.total_seconds(stir), "Sooner than going back to the menu")
 	assert_eq(Splash.visibility_at(handover - 0.01, stir), 1.0, "Still showing at the handover")
 

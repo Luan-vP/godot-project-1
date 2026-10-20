@@ -36,7 +36,9 @@ A 2D game about floaty eye thingies, in a painterly style. Godot 4.4.
 
 Pressing play opens on Godot's boot splash, then the studio logo
 (`features/splash/`; any key or tap skips it), then straight into the fluid
-carousel (swipe along the bottom to change level). `Backspace` (or `Select`
+carousel (swipe along the bottom to change level; the key and scale
+buttons are top right in every level, and shaking a phone moves on to the
+next song). `Backspace` (or `Select`
 on a gamepad) leaves it for `features/ui/demo_menu/`, the list of every level
 and demo (also `scripts/run.sh menu`): pick one with a click, `Enter`, or a
 gamepad, and press `Backspace` from inside one to come back. `Backspace` or `Select` at the list itself quits, as does its Quit

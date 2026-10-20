@@ -24,6 +24,10 @@ extends Node2D
 ##
 ## When the song starts, and whichever level moves the band's key, a
 ## [KeyPrint] here prints the key's name into the tank.
+##
+## The key and scale buttons ([KeyScaleButtons]) live here too, so they are
+## in the top-right corner in every level and stay put through a slide. So
+## does the shake that moves the band on to its next song ([SongShake]).
 
 const SEED_BLOBS := 5
 ## Pigment density dropped in at the start, as a one-shot rather than a rate.
@@ -39,6 +43,10 @@ var stage: Node2D
 ## Prints the key's name into the tank on every new song and key move; a
 ## level can print other names with it too.
 var key_print: KeyPrint
+## The key and scale buttons, top right.
+var key_scale_buttons: KeyScaleButtons
+## A shake of the device moves on to the next song.
+var song_shake: SongShake
 
 
 func _ready() -> void:
@@ -59,6 +67,16 @@ func _ready() -> void:
 	key_print.fluid = fluid
 	add_child(key_print)
 	band.start()
+
+	key_scale_buttons = KeyScaleButtons.new()
+	key_scale_buttons.name = "KeyScaleButtons"
+	key_scale_buttons.band = band
+	add_child(key_scale_buttons)
+
+	song_shake = SongShake.new()
+	song_shake.name = "SongShake"
+	song_shake.band = band
+	add_child(song_shake)
 
 	# A tank that starts as flat colour looks like a bug. Seed it, once, when
 	# it starts here: after the splash it already holds the logo, and every

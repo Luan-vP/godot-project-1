@@ -44,6 +44,9 @@ motion.tilt_changed.connect(_on_tilt)   # Vector2, length 1 = fully tilted
 motion.jogged.connect(_on_jog)          # Vector2, once per shake
 ```
 
+`SongShake` is one consumer: two hard jogs in a row move the band on to its
+next song (see [the carousel](../../features/levels/carousel/README.md#key-scale-and-song)).
+
 `FluidMotionDriver` joins it to a fluid tank, which is how tilting a device
 tilts the eye tank — see [the fluid README](../../features/fluid/README.md).
 
@@ -132,6 +135,13 @@ The dead zone rescales what survives it, so the control ramps from zero at the
 edge rather than jumping — a bare threshold reads as a broken sensor.
 
 ## Sensor availability
+
+**Godot leaves a phone's sensors off** unless the project turns them on:
+`input_devices/sensors/enable_accelerometer` and `enable_gravity` in
+`project.godot`, both `false` by default since Godot 4.3. Without them
+`Input.get_gravity()` and `get_accelerometer()` read zero on a phone,
+`DeviceMotionSource` never reports, and the probe falls back to the keyboard
+— tilt silently dead. Both are on.
 
 `DeviceMotionSource` reports availability from **observed readings**, not from
 a platform allow-list. A platform that reports works even though it could not

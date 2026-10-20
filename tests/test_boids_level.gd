@@ -127,10 +127,10 @@ func test_voices_sing_the_bands_pentatonic_in_one_register() -> void:
 	# A minor, as in Glass Tide: A C D E G.
 	var notes: Array[int] = []
 	for degree in FlockSim.VOICE_DEGREES:
-		notes.append(BoidsLevel.voice_note(degree, 9, true))
+		notes.append(BoidsLevel.voice_note(degree, 9, PegScale.pentatonic_for(true)))
 	assert_eq(notes.slice(0, 6), [57, 60, 62, 64, 67, 69] as Array[int], "A3 up the pentatonic")
 	for root in 12:
-		var tonic := BoidsLevel.voice_note(0, root, false)
+		var tonic := BoidsLevel.voice_note(0, root, PegScale.pentatonic_for(false))
 		assert_between(tonic, BoidsLevel.VOICE_FLOOR, BoidsLevel.VOICE_FLOOR + 11, "Register")
 		assert_eq(posmod(tonic - root, 12), 0, "On the tonic")
 

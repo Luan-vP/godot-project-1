@@ -54,6 +54,27 @@ wholly on the screen. The eye tank does.
 a tank from a demo still being freed. With no host it reports an error and
 the level disables itself.
 
+### Key, scale and song
+
+Three buttons sit in the top-right corner of every level
+([`KeyScaleButtons`](key_scale_buttons.gd), kept by the host so they stay
+put through a slide): `key −4th`, `key +4th` and `scale ▸`. Most players are
+on a touch screen, with no shoulder buttons to move the key.
+
+The scale is the band's (`Band.scale_name()`, `scale_changed`): not the
+song's own, which its chords keep, but the palette of notes the levels play
+over it — the spout's pins, the flocks' voices. It starts as the pentatonic
+matching the song's mode and follows it, until `scale ▸` steps it through
+`PegScale.CYCLE`. Every change prints the scale's name into the tank.
+
+**Shake the device for the next song** ([`SongShake`](../../../core/motion/song_shake.gd)):
+two hard jogs within 0.8 s, harder than the eye tank's nudges, then 3 s of
+rest. `Band.next_song()` brings another song in on the next bar line, from
+its first section and at its own tempo, without stopping the clock; its key
+is printed into the tank like any key move. Only a real sensor counts — the
+keyboard fallback's Space is a jog, and Space already pours and plays the
+snare.
+
 What each level does with the band:
 
 - **Eye band** keeps its own `EyeBand`, never started, only to track which
@@ -62,7 +83,8 @@ What each level does with the band:
   pins on its own synth.
 - **Waterboatmen and birds** (`BoidsLevel`, in its two motions) want every
   part and sing over the song: each bird's voice is a step of the band's
-  pentatonic, so the flocks are in the song's key and follow its key moves.
+  scale, so the flocks are in the song's key and follow its key and scale
+  moves.
   They add a snare, its ghosts and a scatter crash, and no kick or reverb,
   which the band already has.
 

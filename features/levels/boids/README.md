@@ -15,6 +15,7 @@ see [Two motions](#two-motions). The class and file names (`Bird`, `FlockSim`,
 | --- | --- |
 | `B` (keyboard or gamepad), `Esc`, `Space`, left or right click | Snare |
 | L1 / R1 (`Q` / `E`), `Z` / `X` | Move the band's key a fourth, a fifth — see `KeyShiftInput` |
+| `key −4th` / `key +4th` / `scale ▸`, top right | Move the key a fourth, or step the scale the flocks sing in |
 | ↑ / ↓ (d-pad too) | Tempo ±2 bpm — in every scene, see `TempoControl` |
 | ← / → (d-pad too) | Tempo ±10 bpm |
 
@@ -67,9 +68,12 @@ and the band they sing over are the host's.
   share.
 - **Loners are silent.** A loner that flies into a flock joins it, taking its
   rhythm and keeping its own voice: every bird has a step of the band's
-  pentatonic (`Bird.degree`, sung by `BoidsLevel.voice_note` from E3 up) and
+  scale (`Bird.degree`, sung by `BoidsLevel.voice_note` from E3 up) and
   a timbre (sine, square or saw) for life. The step is fixed; its pitch
-  follows the band's key, so a key move carries every flock with it. On each pulse a
+  follows the band's key and scale, so a key move or a new scale carries
+  every flock with it. The scale is the song's pentatonic until the
+  `scale ▸` button in the corner steps it on (see the carousel's
+  `KeyScaleButtons`); it is the palette the flocks' arpeggios pick from. On each pulse a
   few members sing in turn, so a flock's melody comes from who is in it.
 - **Flocks breathe on their pulses.** Cohesion and alignment surge on each
   pulse and die away before the next (`FlockSim.surge`), so a 3-flock
