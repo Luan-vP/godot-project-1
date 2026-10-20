@@ -4,12 +4,13 @@ extends GutTest
 ## key move scrolls the pins over to the new key's pentatonic.
 
 const Hosting := preload("res://tests/hosting.gd")
+const SHELL_PATH := "res://features/levels/spout/spout_level.tscn"
 
 var _level: SpoutLevel
 
 
 func before_each() -> void:
-	_level = load("res://features/levels/spout/spout_level.tscn").instantiate()
+	_level = load(SHELL_PATH).instantiate()
 	Hosting.host(self, _level)
 
 
@@ -29,7 +30,7 @@ func test_the_shell_builds_its_pieces() -> void:
 func test_the_shell_lays_the_pins_out_on_a_fretboard() -> void:
 	assert_eq(_level.pins.layout, PinField.Layout.FRETBOARD, "The guitar layout by default")
 	assert_true(_level.peg_scale is FretboardScale)
-	assert_eq(_level.pins.pin_count(), 6 * 13, "Six strings by thirteen frets of sites")
+	assert_eq(_level.pins.pin_count(), 6 * 12, "Six strings by twelve frets of sites")
 
 
 func test_pins_start_on_the_songs_pentatonic() -> void:
@@ -103,20 +104,25 @@ func test_scale_is_on_y_and_enter_not_tab() -> void:
 	assert_false(SpoutLevel.is_scale_press(tab), "Tab is the Deck's View: it leaves the level")
 
 
-func test_touch_buttons_move_the_key_and_the_scale() -> void:
-	var up: Button = _level.find_child("KeyUp", true, false)
-	var down: Button = _level.find_child("KeyDown", true, false)
-	var next: Button = _level.find_child("NextScale", true, false)
-	assert_not_null(up, "Key up button")
-	assert_eq(up.focus_mode, Control.FOCUS_NONE, "Never steals the pad's focus")
-	up.pressed.emit()
-	assert_eq(_level.band.get_key_offset(), 5)
-	down.pressed.emit()
-	down.pressed.emit()
-	assert_eq(_level.band.get_key_offset(), -5)
+func test_the_pins_play_the_bands_scale() -> void:
 	var before := _level.peg_scale.scale_name()
-	next.pressed.emit()
-	assert_ne(_level.peg_scale.scale_name(), before)
+	assert_eq(before, _level.band.scale_name(), "The song's pentatonic to start")
+	_level.band.cycle_scale()
+	assert_eq(_level.peg_scale.scale_name(), _level.band.scale_name(), "The corner button's move")
+	assert_true(_level.peg_scale.is_scrolling(), "Scrolls in")
+	_level.cycle_scale()
+	assert_eq(_level.band.scale_name(), _level.peg_scale.scale_name(), "Y moves the band's")
+	_level.band.follow_key_scale()
+	assert_eq(_level.peg_scale.scale_name(), before, "And back to the song's")
+
+
+func test_a_spout_arriving_after_a_scale_change_starts_on_it() -> void:
+	var shared := SharedLayers.find(_level)
+	shared.band.set_scale_named("dorian")
+	var level: SpoutLevel = load(SHELL_PATH).instantiate()
+	shared.stage.add_child(level)
+	assert_eq(level.peg_scale.scale_name(), "dorian")
+	assert_false(level.peg_scale.is_scrolling(), "Already there")
 
 
 func test_the_spout_follows_the_levels_pointer() -> void:

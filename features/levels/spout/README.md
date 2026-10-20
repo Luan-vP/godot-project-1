@@ -4,7 +4,7 @@ A spout hangs at the top of the screen, pointing down. Swing it left and right
 — that is the whole input — and whatever comes out of it falls through a field
 of pins at the bottom. Every pin it hits plays a note. The pins are laid out
 as a **scale diagram on all six strings of a guitar** — the high e on top,
-frets 9 to 21 left to right — so pitch climbs along each string, and sweeping
+frets 9 to 20 left to right — so pitch climbs along each string, and sweeping
 the spout plays a phrase that rises and falls with your aim. Behind it the
 eye band's songs play in full. (The older layout, staggered rows rising low
 to high left to right, is still there: see [Layouts](#layouts).)
@@ -32,7 +32,7 @@ of either: Space plucks the pin you are aiming at.
 | Aim | Either stick | Touch the screen where you want it to point | A / D, or hold the mouse button |
 | Key down / up a fourth | L1 / R1 | `key −4th` / `key +4th` buttons, top right | Q / E |
 | Key down / up a fifth | — (RT pours) | — | Z / X |
-| Next scale (temporary) | Y | A (sends Enter), or the `scale ▸` button | Enter |
+| Next scale (temporary) | Y | A (sends Enter), or the `scale ▸` button | Enter, or the `scale ▸` button |
 | Pour / fire, 2–16 a bar | RT, depth = step | Touch: the ring you touch is the step; Y (sends Space) = full | Space = full, 1–5 = depths, or hold the mouse button |
 | Tempo | D-pad | D-pad (sends arrows) | Arrows |
 | Back to the menu | View | View (sends Tab), or the `‹ menu` button | Backspace |
@@ -48,7 +48,9 @@ Run outside Steam, Steam keeps the controller in its desktop layout and the
 game sees a keyboard and mouse ([docs/steam-deck-controls.md](../../../docs/steam-deck-controls.md)).
 So the whole level is also playable by touch: touch where the spout should
 point and it swings there for as long as you hold; the buttons in the top
-right move the key and the scale. The right trackpad and R2 (which move the
+right move the key and the scale. Those buttons are the carousel's, not the
+spout's: they are in every level, and the scale they step is the band's,
+shared with the flocks (see [the carousel](../carousel/README.md#key-scale-and-song)). The right trackpad and R2 (which move the
 pointer and click it, outside Steam) aim the same way.
 
 Scale is not on Tab: outside Steam the Deck's View button sends Tab, and that
@@ -84,9 +86,12 @@ fretboard.
 
 **Fretboard (the default).** The pins are a scale diagram on all six strings
 of a guitar in standard tuning — e B G D A E as rows, the high e on top as in
-tab — and frets 9 to 21 as 13 columns, as many as the staggered layout has.
+tab — and frets 9 to 20 as 12 columns. An even number on purpose: the spout
+hangs over the middle of the field, which then falls on a fret wire between
+two columns, so a straight drop splits either side and reaches the low
+strings rather than landing on the top pin of a column every time.
 Every string and fret is a *site* with its own note, the open string plus
-the fret (C#3 at the low E's 9th fret up to C#6 at the high e's 21st), and a
+the fret (C#3 at the low E's 9th fret up to C6 at the high e's 20th), and a
 pin stands at the sites in the scale; roots are ringed. A pentatonic puts
 about 33 pins on the neck, the major scale about 46. The fretboard takes a
 slightly taller strip than the staggered rows (`SpoutLevel.fretboard_area`,
@@ -121,8 +126,8 @@ to high left to right from D4 up, and pins in the same column share it.
 **A key change is printed into the tank**, as in every level: see
 [the carousel](../carousel/README.md#the-level-format). **So is the scale's
 name**, smaller and above where the key goes: when a spout level arrives,
-and whenever the scale changes — the scale button, or a key move into the
-other mode, which swaps the pentatonic.
+and, in any level, whenever the band's scale changes — the scale button, or
+a new song in the other mode, which swaps the pentatonic.
 
 **Changing key or scale scrolls.** Nothing snaps. On the fretboard the pins
 move: fret by fret, lowest first, one per sixteenth of the music, the old
@@ -132,10 +137,11 @@ colour, a pin about to go flickers, and a white ring marks the fret about to
 change. On the staggered layout the notes flip column by column the same
 way. A second change mid-scroll restarts the sweep from the left.
 
-**Scales.** The pins start on the pentatonic matching the song — major for
-*Night Pool*, minor for the rest — and follow a mode change if the key moves.
-`SpoutLevel.set_pin_scale(intervals)` or `cycle_scale()` swap it for anything
-else; `PegScale.SCALES` has major and minor pentatonic, major, natural minor,
+**Scales.** The pins play the band's scale (`Band.scale_name()`), shared
+with every level: the pentatonic matching the song — major for *Night Pool*,
+minor for the rest — until the `scale ▸` button, Y or Enter
+(`cycle_scale()`, which moves the band's) picks another.
+`SpoutLevel.set_pin_scale(intervals)` sets one on the pins alone; `PegScale.SCALES` has major and minor pentatonic, major, natural minor,
 dorian and blues. Which input should do that is still open (#117); Y, Enter
 and the `scale ▸` button are stand-ins.
 
@@ -262,8 +268,8 @@ do the job alone — repeated fourths still reach all twelve keys.
 
 ## Tuning so far
 
-All first guesses, waiting on a play on real hardware: six strings by 13
-frets (9–21) over 60-80% of the height, or 4 rows of 7/6 pins on the
+All first guesses, waiting on a play on real hardware: six strings by 12
+frets (9–20) over 60-80% of the height, or 4 rows of 7/6 pins on the
 staggered layout over 65-80%, both across the middle 80% of the width; the spout hung at 7% of the height; ±90° of aim (horizontal either
 way); 1.6 rad/s at full stick, 0.9 on the keys; pluck level 0.2 (sparkle 0.065), up from 0.11 to sit well over the band; release 0.9
 s.

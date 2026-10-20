@@ -19,7 +19,7 @@ extends PegScale
 ## Open notes of the strings in play, highest (the top row) first.
 var _open_notes: Array[int] = []
 var _first_fret := 9
-var _frets := 13
+var _frets := 12
 
 
 ## [param strings] strings of standard tuning, the highest first, from

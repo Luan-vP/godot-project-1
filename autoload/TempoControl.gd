@@ -109,7 +109,8 @@ func _build_readout() -> Label:
 	label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	label.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	label.offset_right = -16.0
-	label.offset_top = 12.0
+	# Under the key and scale buttons in the corner (KeyScaleButtons).
+	label.offset_top = 76.0
 	label.modulate.a = 0.0
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(label)

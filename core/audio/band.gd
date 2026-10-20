@@ -16,12 +16,27 @@ extends Node
 ## The key moves with [method set_key_offset], round the circle of fifths —
 ## see [KeyShiftInput] — and [signal key_changed] tells anyone following the
 ## key, such as [PegScale], about each move.
+##
+## The band also holds the game's [i]scale[/i]: the palette of notes the
+## levels play over the song — the spout's pins, the flocks' voices. It is
+## not the song's own scale, which the chords keep. Until [method
+## set_scale_named] picks one it is the pentatonic matching the song's mode,
+## and [signal scale_changed] tells the levels each time it moves, whichever
+## of them (or the corner buttons, [KeyScaleButtons]) moved it.
+##
+## [method next_song] moves on to another song without stopping the clock: a
+## shake of the device asks for it.
 
 ## Emitted once the band has chosen what to play.
 signal song_started(title: String)
 
-## Emitted whenever [method set_key_offset] actually moves the key.
+## Emitted whenever [method set_key_offset] actually moves the key, and when
+## [method next_song] brings in a song, whose key and mode are its own.
 signal key_changed(offset: int)
+
+## Emitted whenever [method set_scale_named] or [method follow_key_scale]
+## changes the scale the levels play in, with its name.
+signal scale_changed(scale_name: String)
 
 ## Emitted on every grid step the band plays, after the band has played it.
 ## [param bar] and [param step_in_bar] are as [StepClock] reports them.
@@ -97,6 +112,16 @@ var _key_offset: int = 0
 ## set_part_wanted].
 var _part_wanted := {}
 
+## The levels' scale by name in [constant PegScale.SCALES], or empty to follow
+## the song's mode with its pentatonic.
+var _scale_name := ""
+
+## The bar the song playing now started on: the walker counts from there.
+var _song_from_bar := 0
+## The song [method next_song] asked for, swapped in on the next bar line.
+var _next_song: Song
+var _rng: RandomNumberGenerator
+
 
 func _ready() -> void:
 	for part in PARTS:
@@ -126,6 +151,7 @@ func start(song: Song = null, rng: RandomNumberGenerator = null) -> void:
 	if rng == null:
 		rng = RandomNumberGenerator.new()
 		rng.randomize()
+	_rng = rng
 	_song = song if song != null else EyeBandSongs.pick_random(rng)
 	_walker = SongWalker.new(_song, rng)
 	_build_synths()
@@ -148,6 +174,27 @@ func start(song: Song = null, rng: RandomNumberGenerator = null) -> void:
 	song_started.emit(_song.title)
 
 
+## Move on to another song: [param song], or one picked at random that is
+## not the one playing. The clock carries on; the new song comes in on the
+## next bar line, from its first section, at its own tempo, and
+## [signal song_started] says so. The key offset stays as it is.
+func next_song(song: Song = null) -> void:
+	if not _started:
+		return
+	if song == null:
+		var others: Array[Song] = []
+		for candidate in EyeBandSongs.all():
+			if candidate.title != _song.title:
+				others.append(candidate)
+		song = others[_rng.randi() % others.size()] if not others.is_empty() else _song
+	_next_song = song
+
+
+## Whether [method next_song] has a song waiting for the next bar.
+func has_next_song() -> bool:
+	return _next_song != null
+
+
 ## The song playing, or an empty string before [method start].
 func song_title() -> String:
 	return _song.title if _song != null else ""
@@ -156,7 +203,7 @@ func song_title() -> String:
 ## The section of the song playing now, or an empty string before the first
 ## bar.
 func current_section() -> String:
-	return _walker.section_at(_bar) if _walker != null and _bar >= 0 else ""
+	return _walker.section_at(_song_bar(_bar)) if _walker != null and _bar >= 0 else ""
 
 
 ## Moves the band's key. Chords, bass and arp read this the next time any of
@@ -192,6 +239,49 @@ func key_root() -> int:
 func is_minor() -> bool:
 	var scale: Array[int] = _song.scale if _song != null else EyeBandSongs.MINOR
 	return scale.size() > 2 and scale[2] == 3
+
+
+## The levels' scale's name: one of [constant PegScale.SCALES], the
+## pentatonic matching the song's mode until one is picked.
+func scale_name() -> String:
+	if not _scale_name.is_empty():
+		return _scale_name
+	return "minor pentatonic" if is_minor() else "major pentatonic"
+
+
+## The levels' scale, as semitones above [method key_root].
+func scale_intervals() -> Array[int]:
+	var intervals: Array[int] = []
+	intervals.assign(PegScale.SCALES[scale_name()])
+	return intervals
+
+
+## Whether the scale is still the song's pentatonic, following its mode.
+func follows_key_scale() -> bool:
+	return _scale_name.is_empty()
+
+
+## Play over the song in [param new_scale_name], from [constant
+## PegScale.SCALES].
+func set_scale_named(new_scale_name: String) -> void:
+	if not PegScale.SCALES.has(new_scale_name) or new_scale_name == _scale_name:
+		return
+	_scale_name = new_scale_name
+	scale_changed.emit(new_scale_name)
+
+
+## Go back to the pentatonic matching the song's mode.
+func follow_key_scale() -> void:
+	if _scale_name.is_empty():
+		return
+	_scale_name = ""
+	scale_changed.emit(scale_name())
+
+
+## Move to the scale after the current one in [constant PegScale.CYCLE].
+func cycle_scale() -> void:
+	var index := PegScale.CYCLE.find(scale_name())
+	set_scale_named(PegScale.CYCLE[(index + 1) % PegScale.CYCLE.size()])
 
 
 ## Whether [param part] should sound from the next bar on. Every part does
@@ -243,10 +333,12 @@ func _on_step(_index: int, bar: int, step_in_bar: int) -> void:
 	var new_bar := bar != _bar
 	if new_bar:
 		_bar = bar
+		if _next_song != null:
+			_swap_song(bar)
 		_latch_live_parts()
-		_fill_active = _walker.is_last_bar_of_section(bar) and is_playing("beat")
+		_fill_active = _walker.is_last_bar_of_section(_song_bar(bar)) and is_playing("beat")
 	_step_in_bar = step_in_bar
-	var chords := _walker.chords_at(bar)
+	var chords := _walker.chords_at(_song_bar(bar))
 	var chord := _song.chord_in_bar(chords, step_in_bar).transposed(_key_offset)
 	var steps := _song.beats_per_bar * 4
 	var chord_steps := steps / chords.size()
@@ -270,14 +362,14 @@ func _on_step(_index: int, bar: int, step_in_bar: int) -> void:
 				var accent := 0.75 if step_in_bar % 4 == 0 else 0.55
 				_play("arp", tones[symbol.to_int() % tones.size()], accent, seconds_per_step * 1.5)
 	if is_playing("melody"):
-		var section := _walker.section_at(bar)
+		var section := _walker.section_at(_song_bar(bar))
 		if not _melodies.has(section):
 			_melodies[section] = MelodyWriter.write_section(_song, section)
 		if not _folded_melodies.has(section):
 			_folded_melodies[section] = _fold_melody(
 				_melodies[section], _key_offset, _song.melody_range
 			)
-		for note in _folded_melodies[section][_walker.bar_in_section(bar)]:
+		for note in _folded_melodies[section][_walker.bar_in_section(_song_bar(bar))]:
 			if note[0] == step_in_bar:
 				_play("melody", note[1], 0.8, seconds_per_step * note[2] * 0.95)
 
@@ -309,6 +401,35 @@ func _latch_live_parts() -> void:
 		if _playing[part] and not wanted and _synths.has(part):
 			_synths[part].release_all()
 		_playing[part] = wanted
+
+
+## [param bar] counted from the start of the song playing now.
+func _song_bar(bar: int) -> int:
+	return maxi(bar - _song_from_bar, 0)
+
+
+## Swap in the song [method next_song] asked for, starting at [param bar]:
+## its walk, its sounds and drums, its tempo. Held notes ring out.
+func _swap_song(bar: int) -> void:
+	var was_scale := scale_name()
+	_song = _next_song
+	_next_song = null
+	_song_from_bar = bar
+	_walker = SongWalker.new(_song, _rng)
+	_melodies.clear()
+	_folded_melodies.clear()
+	for part in _synths:
+		_synths[part].release_all()
+		_synths[part].patch = _patch_for(part)
+	for part in DRUM_PARTS:
+		_drum_patterns[part] = StepPattern.parse(_song.drums.get(part, {}))
+	_fill_pattern = StepPattern.parse(_song.drums.get(FILL, {}))
+	AudioManager.set_bpm(_song.tempo_bpm)
+	AudioManager.get_level_meter().set_note("song", _song.title)
+	song_started.emit(_song.title)
+	key_changed.emit(_key_offset)
+	if scale_name() != was_scale:
+		scale_changed.emit(scale_name())
 
 
 ## Wall seconds per grid step at the live clock's current tempo — never the
@@ -372,7 +493,7 @@ func _revoice_pads() -> void:
 	if not _started or _bar < 0 or not is_playing("pads"):
 		return
 	_synths["pads"].release_all()
-	var chords := _walker.chords_at(_bar)
+	var chords := _walker.chords_at(_song_bar(_bar))
 	var steps := _song.beats_per_bar * 4
 	var chord_steps := steps / chords.size()
 	var remaining := chord_steps - _step_in_bar % chord_steps
@@ -422,19 +543,25 @@ static func _fold_melody(bars: Array, offset: int, register: Vector2i) -> Array:
 
 func _build_synths() -> void:
 	for part in PATCHES:
-		var defaults: Array = PATCHES[part]
-		var overrides: Dictionary = _song.timbres.get(part, {})
-		var patch := SynthPatch.new()
-		patch.waveform = overrides.get("waveform", defaults[0])
-		patch.attack_seconds = overrides.get("attack", defaults[1])
-		patch.release_seconds = overrides.get("release", defaults[2])
-		patch.level = overrides.get("level", defaults[3])
-		patch.glide_seconds = 0.06 if part == "melody" else 0.0
 		var synth := Synth.new()
-		synth.patch = patch
-		synth.polyphony = defaults[4]
+		synth.patch = _patch_for(part)
+		synth.polyphony = PATCHES[part][4]
 		_synths[part] = synth
 		add_child(synth)
+
+
+## [param part]'s patch for the song playing: [constant PATCHES], with the
+## song's [member Song.timbres] over it.
+func _patch_for(part: String) -> SynthPatch:
+	var defaults: Array = PATCHES[part]
+	var overrides: Dictionary = _song.timbres.get(part, {})
+	var patch := SynthPatch.new()
+	patch.waveform = overrides.get("waveform", defaults[0])
+	patch.attack_seconds = overrides.get("attack", defaults[1])
+	patch.release_seconds = overrides.get("release", defaults[2])
+	patch.level = overrides.get("level", defaults[3])
+	patch.glide_seconds = 0.06 if part == "melody" else 0.0
+	return patch
 
 
 ## Build the live kit and parse each drum part's notation once. [method

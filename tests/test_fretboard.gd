@@ -63,13 +63,13 @@ func test_a_minor_pentatonic_box_at_the_fifth_fret() -> void:
 	assert_false(GuitarDiagrams.in_scale("minor pentatonic", 0, 6, 9))
 
 
-func test_six_strings_from_the_ninth_fret_thirteen_frets_wide() -> void:
+func test_six_strings_from_the_ninth_fret_twelve_frets_wide() -> void:
 	assert_eq(_scale.string_count(), 6)
-	assert_eq(_scale.fret_count(), 13)
-	assert_eq(_scale.pin_count(), 78)
+	assert_eq(_scale.fret_count(), 12)
+	assert_eq(_scale.pin_count(), 72)
 	assert_eq(_scale.site_note(_scale.site(0, 0)), 64 + 9, "High e, fret 9: C#5")
 	assert_eq(_scale.site_note(_scale.site(0, 2)), 55 + 9, "G string, fret 9: E4")
-	assert_eq(_scale.site_note(_scale.site(12, 0)), 64 + 21, "High e, fret 21")
+	assert_eq(_scale.site_note(_scale.site(11, 0)), 64 + 20, "High e, fret 20")
 	assert_eq(_scale.site_note(_scale.site(0, 5)), 40 + 9, "Low E, fret 9: C#3")
 
 

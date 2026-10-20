@@ -79,3 +79,62 @@ func test_stepped_is_emitted_after_each_step() -> void:
 	watch_signals(_band)
 	_band._on_step(0, 0, 3)
 	assert_signal_emitted_with_parameters(_band, "stepped", [0, 3])
+
+
+func test_the_scale_is_the_songs_pentatonic_until_one_is_picked() -> void:
+	_start(EyeBandSongs.glass_tide())
+	assert_true(_band.follows_key_scale())
+	assert_eq(_band.scale_name(), "minor pentatonic", "Glass Tide is minor")
+	assert_eq(_band.scale_intervals(), PegScale.MINOR_PENTATONIC)
+	watch_signals(_band)
+	_band.cycle_scale()
+	assert_false(_band.follows_key_scale())
+	assert_eq(_band.scale_name(), "major", "The next in the cycle")
+	assert_signal_emitted_with_parameters(_band, "scale_changed", ["major"])
+	_band.follow_key_scale()
+	assert_eq(_band.scale_name(), "minor pentatonic", "Back to the song's")
+
+
+func test_the_scale_cycle_goes_all_the_way_round() -> void:
+	_start(EyeBandSongs.glass_tide())
+	var seen := {}
+	for i in PegScale.CYCLE.size():
+		_band.cycle_scale()
+		seen[_band.scale_name()] = true
+	assert_eq(seen.size(), PegScale.CYCLE.size(), "Every scale once")
+
+
+func test_next_song_comes_in_on_the_next_bar_from_its_start() -> void:
+	_start(EyeBandSongs.glass_tide())
+	_band._on_step(0, 4, 0)
+	_band.next_song(EyeBandSongs.night_pool())
+	assert_true(_band.has_next_song())
+	_band._on_step(1, 4, 5)
+	assert_eq(_band.song_title(), "Glass Tide", "Not mid-bar")
+	watch_signals(_band)
+	_band._on_step(2, 5, 0)
+	assert_false(_band.has_next_song())
+	assert_eq(_band.song_title(), "Night Pool", "On the bar line")
+	var night_pool := EyeBandSongs.night_pool()
+	assert_eq(
+		_band.current_section(),
+		SongWalker.new(night_pool, RandomNumberGenerator.new()).section_at(0),
+		"From its first section"
+	)
+	assert_eq(AudioManager.get_tempo(), night_pool.tempo_bpm, "At its own tempo")
+	assert_signal_emitted(_band, "song_started")
+	assert_signal_emitted(_band, "key_changed", "Its key is printed like a key move")
+	assert_signal_emitted_with_parameters(_band, "scale_changed", ["major pentatonic"])
+
+
+func test_next_song_picks_another_song() -> void:
+	_start(EyeBandSongs.glass_tide())
+	_band._on_step(0, 0, 0)
+	var titles := {}
+	for i in 8:
+		var before := _band.song_title()
+		_band.next_song()
+		_band._on_step(i + 1, i + 1, 0)
+		assert_ne(_band.song_title(), before, "Never the same song again")
+		titles[_band.song_title()] = true
+	assert_gt(titles.size(), 1)

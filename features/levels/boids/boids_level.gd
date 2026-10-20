@@ -33,8 +33,10 @@ extends Node2D
 ##
 ## The music is the host's [Band]: its song keeps playing in full, and the
 ## flocks play over it, on its clock and in its key. A bird's voice is a step
-## of the band's pentatonic ([method voice_note]), so a key move (L1/R1 or Q/E
-## a fourth, Z/X a fifth — see [KeyShiftInput]) carries every flock with it.
+## of the band's scale ([method voice_note]) — the song's pentatonic until the
+## scale button in the corner ([KeyScaleButtons]) picks another — so a key
+## move (L1/R1 or Q/E a fourth, Z/X a fifth — see [KeyShiftInput], or the
+## corner buttons) or a new scale carries every flock with it.
 ## Tempo is [code]TempoControl[/code]'s, like everywhere else: the flocks, the
 ## pulses and the ghosts all run on [AudioManager]'s beats, so they follow a
 ## tempo change without knowing about it.
@@ -319,7 +321,7 @@ func _sing(flock: Flock, downbeat: bool) -> void:
 	var weight := sim.weight_for(flock.pulses)
 	var velocity := clampf(0.3 + 0.35 * weight, 0.3, 0.95)
 	for bird in flock.take_voices(count):
-		var note := voice_note(bird.degree, _band.key_root(), _band.is_minor())
+		var note := voice_note(bird.degree, _band.key_root(), _band.scale_intervals())
 		var voice: SynthVoice = _synths[bird.waveform].note_on(midi_to_hz(note), velocity)
 		bird.glow = 1.0
 		if voice != null:
@@ -536,10 +538,11 @@ func _update_hud() -> void:
 		state = "settling"
 	_hud.text = (
 		(
-			"♪ %s · key %+d · ♩ %d bpm · %d flocks · %d singing, %d silent\n"
+			"♪ %s · key %+d · %s · ♩ %d bpm · %d flocks · %d singing, %d silent\n"
 			% [
 				_band.song_title(),
 				KeyShiftInput.display_offset(_band.get_key_offset()),
+				_band.scale_name(),
 				roundi(AudioManager.get_tempo()),
 				sim.flocks.size(),
 				_singing(),
@@ -619,10 +622,9 @@ func _draw_dial() -> void:
 
 
 ## The MIDI note [param degree] sings in a key with tonic [param root] (pitch
-## class, 0 = C): that step of the key's pentatonic, minor or major as the
-## song is, counted up from the tonic at or above [constant VOICE_FLOOR].
-static func voice_note(degree: int, root: int, minor: bool) -> int:
-	var intervals := PegScale.pentatonic_for(minor)
+## class, 0 = C): that step of [param intervals], the band's scale, counted up
+## from the tonic at or above [constant VOICE_FLOOR].
+static func voice_note(degree: int, root: int, intervals: Array[int]) -> int:
 	var tonic := VOICE_FLOOR + posmod(root - VOICE_FLOOR, 12)
 	var octave := degree / intervals.size()
 	return tonic + 12 * octave + intervals[degree % intervals.size()]

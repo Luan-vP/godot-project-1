@@ -25,8 +25,9 @@ var stroke: float = 0.0
 ## The flock this bird belongs to, or null for a silent loner.
 var flock: Flock = null
 
-## Step of the band's pentatonic this bird sings, 0 the tonic, counting up
-## through [constant FlockSim.VOICE_DEGREES] steps (a little over two octaves).
+## Step of the band's scale this bird sings, 0 the tonic, counting up
+## through [constant FlockSim.VOICE_DEGREES] steps (a little over two octaves
+## of a pentatonic, less of a wider scale).
 var degree: int = 0
 
 ## [enum SynthWavetable.Waveform] this bird sings with.

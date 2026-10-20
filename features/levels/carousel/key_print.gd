@@ -10,8 +10,10 @@ extends Node
 ## has a [code]prints_key_anywhere()[/code] that says true (the eye tank's
 ## does): then it lands at a random spot, wholly on the screen.
 ##
-## A level can print other names the same way with [method print_name]: the
-## spout prints its scale's, smaller and higher up ([method print_scale]).
+## Every move of the band's scale ([signal Band.scale_changed]) prints the
+## scale's name too, smaller and higher up ([method print_scale]); the spout
+## also prints it when it arrives. A level can print other names the same way
+## with [method print_name].
 
 ## How wide the name is printed, as a share of the screen, and the most of
 ## its height it may take.
@@ -35,6 +37,9 @@ var fluid: FluidSimulation
 var stage: Node
 
 var _rng := RandomNumberGenerator.new()
+## Whether the band's first song has started; it prints only that one, as
+## every later one also moves the key.
+var _heard_song := false
 
 
 func _ready() -> void:
@@ -42,6 +47,7 @@ func _ready() -> void:
 	if band != null:
 		band.song_started.connect(_on_song_started)
 		band.key_changed.connect(_on_key_changed)
+		band.scale_changed.connect(print_scale)
 
 
 ## The key as it is printed: "F# minor".
@@ -126,6 +132,10 @@ func print_name(
 
 
 func _on_song_started(_title: String) -> void:
+	# A later song (Band.next_song) says so with key_changed too, which prints.
+	if _heard_song:
+		return
+	_heard_song = true
 	# The first song starts while the carousel is still being built, before the
 	# stage or its first level exists. Wait a frame so wants_anywhere() sees it.
 	await get_tree().process_frame

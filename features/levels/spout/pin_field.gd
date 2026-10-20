@@ -64,10 +64,13 @@ const POP_SECONDS := 0.25
 ## How many strings, counting down from the high e of standard tuning: all
 ## six by default.
 @export_range(1, 6) var strings: int = 6
-## The fret of the leftmost column, and how many frets: 9 to 21, as many
-## columns as the staggered layout has.
+## The fret of the leftmost column, and how many frets: 9 to 20. An even
+## number, so the middle of the field, under the spout's pivot, falls on a
+## fret wire between two columns rather than on a column of pins: a straight
+## drop splits either side and runs down to the low strings instead of
+## stopping on the top pin.
 @export var first_fret: int = 9
-@export var frets: int = 13
+@export var frets: int = 12
 
 @export_group("Physics")
 ## Physics layer the pins' bodies sit on.
