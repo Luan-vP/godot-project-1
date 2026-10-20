@@ -60,6 +60,8 @@ func test_added_dye_goes_over_the_field_with_the_next_step_only() -> void:
 func test_the_key_is_printed_by_name_in_the_middle() -> void:
 	assert_eq(KeyPrint.key_name(6, true), "F# minor")
 	assert_eq(KeyPrint.key_name(3, false), "Eb major")
+	assert_eq(KeyPrint.scale_title(9, "minor pentatonic"), "A minor pentatonic")
+	assert_eq(KeyPrint.scale_title(-2, "dorian"), "Bb dorian")
 	var rect := KeyPrint.rect_for(Vector2(1000, 500), 0.1)
 	assert_almost_eq(rect.get_center().x, 500.0, 0.01, "Centred")
 	assert_almost_eq(rect.get_center().y, 250.0, 0.01)

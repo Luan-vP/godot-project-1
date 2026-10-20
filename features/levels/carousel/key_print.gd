@@ -11,8 +11,9 @@ extends Node
 ## does): then it lands at a random spot, wholly on the screen.
 ##
 ## Every move of the band's scale ([signal Band.scale_changed]) prints the
-## scale's name too, smaller and higher up ([method print_scale]); the spout
-## also prints it when it arrives. A scale's name hovers over the water for
+## scale's name too, on the key's root ("A dorian"), smaller and higher up
+## ([method print_scale]); the spout also prints it when it arrives. A
+## scale's name hovers over the water for
 ## [constant SCALE_HOVER] seconds first, so it can be read before it swirls
 ## away. A level can print other names the same way with [method print_name].
 
@@ -70,6 +71,11 @@ static func key_name(root: int, minor: bool) -> String:
 	return "%s %s" % [PinField.NOTE_NAMES[posmod(root, 12)], "minor" if minor else "major"]
 
 
+## A scale as it is printed, on its root: "A minor pentatonic".
+static func scale_title(root: int, scale_name: String) -> String:
+	return "%s %s" % [PinField.NOTE_NAMES[posmod(root, 12)], scale_name]
+
+
 ## Where a printed name of [param aspect] (height over width) sits on a
 ## [param screen]-sized tank: centred across it with its middle
 ## [param height] of the way down, [param width] of the screen wide but never
@@ -119,15 +125,15 @@ func print_key() -> void:
 	print_name(key_name(root, band.is_minor()), color, place)
 
 
-## Print a scale's name ("minor pentatonic"), smaller and above where the
-## key goes, in the band's root colour, paled.
+## Print a scale's name on the band's root ("A minor pentatonic"), smaller
+## and above where the key goes, in the root's colour, paled.
 func print_scale(scale_name: String) -> void:
 	if band == null:
 		return
 	var color := PinField.note_color(band.key_root(), 1.0).lerp(Color.WHITE, 0.45)
 	var place := func(screen: Vector2, aspect: float) -> Rect2:
 		return rect_for(screen, aspect, SCALE_WIDTH, SCALE_MAX_HEIGHT, SCALE_HEIGHT)
-	print_name(scale_name, color, place, SCALE_HOVER)
+	print_name(scale_title(band.key_root(), scale_name), color, place, SCALE_HOVER)
 
 
 ## Print [param text] into the tank in [param color], at the screen rect
