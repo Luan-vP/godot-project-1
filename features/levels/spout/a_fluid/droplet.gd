@@ -61,5 +61,5 @@ func _process(_delta: float) -> void:
 
 func _draw() -> void:
 	var fade := clampf(1.0 - age / lifetime, 0.0, 1.0)
-	draw_circle(Vector2.ZERO, radius * 1.8, Color(color, 0.18 * fade))
-	draw_circle(Vector2.ZERO, radius, Color(color.darkened(0.15), 0.85 * fade))
+	draw_circle(Vector2.ZERO, radius * 1.8, Color(color, 0.32 * fade))
+	draw_circle(Vector2.ZERO, radius, Color(color, fade))
