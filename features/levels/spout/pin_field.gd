@@ -30,8 +30,8 @@ extends Node2D
 ## collided with, not found by [method pin_at] — until [method restore]
 ## brings it back. Version C pops each pin it plays.
 ##
-## Each pin is drawn as one of the hand-drawn [constant DUCKS], sitting on a
-## disc of its note's colour.
+## Each pin is drawn as one of the hand-drawn [constant DUCKS], and only that:
+## no note colour, no root ring. A hit still glows in the note's colour.
 
 ## Emitted for every hit that sounds (not those inside a pin's cooldown).
 signal pin_hit(pin: int, note: int, strength: float)
@@ -488,13 +488,8 @@ func _draw() -> void:
 		var pop := 1.0 + 0.45 * _flip[column]
 		if flash > 0.0:
 			draw_circle(at, pin_radius * (1.6 + 1.4 * flash), Color(color, 0.22 * flash))
-		var lit := color.lerp(ArtPalette.LIGHT, flash * 0.6)
-		draw_circle(at, pin_radius * 1.4 * pop, Color(lit, 0.85))
 		_draw_duck(i, at, pop, flash)
 		if fretboard:
-			# Roots ringed, as a scale diagram marks them.
-			if _scale != null and posmod(note - _scale.root(), 12) == 0:
-				draw_arc(at, pin_radius + 3.5, 0.0, TAU, 24, Color(color, 0.85), 2.0, true)
 			# A pin the scroll is about to take away flickers.
 			if _scale != null and _scale.will_change(i):
 				var fading := Color(ArtPalette.LIGHT, 0.3 + 0.4 * shimmer)
