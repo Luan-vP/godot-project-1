@@ -56,6 +56,9 @@ const PIN_SPLASH := 1400.0
 const PALETTE: Array[Color] = ArtPalette.DYES
 ## Seconds to drift from one palette colour to the next.
 const PALETTE_SECONDS := 9.0
+## How far towards white the stream is lifted from the dyes, so what pours
+## out stands bright against the tank.
+const STREAM_LIFT := 0.3
 
 var simulation: FluidSimulation
 var _droplets: Array[SpoutDroplet] = []
@@ -107,7 +110,7 @@ func _physics_process(delta: float) -> void:
 ## [param due] droplets launched on the grid, each with a light haptic tick.
 func _pour(delta: float, due: int) -> void:
 	var strength := flow_fraction()
-	var tint := stream_color(_elapsed)
+	var tint := stream_color(_elapsed).lightened(STREAM_LIFT)
 	var muzzle := spout.muzzle_position()
 	var dir := spout.direction()
 	var push := lerpf(JET_ACCELERATION_MIN, JET_ACCELERATION_MAX, strength)

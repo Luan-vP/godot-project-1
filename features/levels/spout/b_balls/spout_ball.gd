@@ -9,6 +9,9 @@ extends RigidBody2D
 signal struck_pin(ball: SpoutBall, pin: int, closing_speed: float)
 
 const RADIUS := 8.0
+## How far towards white a ball is drawn from its billiard colour, so it
+## stands bright against the tank.
+const LIFT := 0.25
 
 var pins: PinField
 var age := 0.0
@@ -81,5 +84,5 @@ static func closing_speed(velocity: Vector2, at: Vector2, centre: Vector2) -> fl
 
 func _draw() -> void:
 	draw_circle(Vector2(1.5, 2.0), RADIUS, Color(ArtPalette.SHADOW, 0.18))
-	draw_circle(Vector2.ZERO, RADIUS, color)
-	draw_circle(Vector2(-2.6, -2.6), RADIUS * 0.32, Color(ArtPalette.LIGHT, 0.55))
+	draw_circle(Vector2.ZERO, RADIUS, color.lightened(LIFT))
+	draw_circle(Vector2(-2.6, -2.6), RADIUS * 0.32, Color(ArtPalette.LIGHT, 0.8))
