@@ -9,24 +9,27 @@ extends Node2D
 ## reads [method muzzle_position] and [method direction] each frame — fluid in
 ## version A, balls in version B.
 ##
-## The pivot is this node's position, at the top; the nozzle swings from
-## there, so the tip moves furthest.
+## The pivot is this node's position, at the eye of the hand-drawn spiral;
+## the spout swings from there, so its foot, where things leave it, moves
+## furthest. The drawing hangs tilted a little so the foot sits straight below
+## the eye, on the line it aims along.
 
 ## Emitted whenever the aim moves.
 signal aim_changed(aim: float)
 
+const ART := preload("res://features/levels/spout/spout.png")
+## The spiral's eye in [constant ART], in its pixels: the pivot.
+const ART_PIVOT := Vector2(135.0, 160.0)
+## The middle of the foot's bottom edge in [constant ART]: the muzzle.
+const ART_FOOT := Vector2(190.0, 620.0)
+
 ## Radians either side of straight down the nozzle can reach.
 @export var max_aim: float = SpoutAimInput.MAX_AIM
-## From the pivot to the tip, in pixels.
-@export var barrel_length: float = 92.0
+## How tall the drawing stands on screen, in pixels.
+@export var art_height: float = 150.0
 ## Whether this reads the pad and keyboard itself. Off for tests, or for a
 ## level that drives [method set_aim] some other way.
 @export var reads_input: bool = true
-
-@export_group("Look")
-@export var body_color: Color = ArtPalette.SPOUT_BODY
-@export var rim_color: Color = ArtPalette.SPOUT_RIM
-@export var barrel_width: float = 26.0
 
 ## 0 is straight down; positive swings the tip to the right.
 var aim: float = 0.0:
@@ -34,6 +37,10 @@ var aim: float = 0.0:
 ## While this is pressed, the nozzle points at it instead of reading the
 ## sticks and keys.
 var pointer: SpoutPointer
+## From the pivot to the foot, in pixels.
+var barrel_length: float:
+	get:
+		return (ART_FOOT - ART_PIVOT).length() * _art_scale()
 var _rate := 0.0
 
 
@@ -86,17 +93,12 @@ func muzzle_position() -> Vector2:
 
 
 func _draw() -> void:
-	var dir := direction()
-	var side := Vector2(dir.y, -dir.x)
-	var tip := dir * barrel_length
-	var half := barrel_width * 0.5
-	# A barrel tapering a little towards the tip, with a lip at the end.
-	var barrel := PackedVector2Array(
-		[side * half, side * half * 0.78 + tip, -side * half * 0.78 + tip, -side * half]
-	)
-	draw_colored_polygon(barrel, body_color)
-	draw_line(tip + side * half * 0.95, tip - side * half * 0.95, rim_color, 4.0, true)
-	# The hub it swings from.
-	draw_circle(Vector2.ZERO, barrel_width * 0.85, body_color)
-	draw_arc(Vector2.ZERO, barrel_width * 0.85, 0.0, TAU, 40, rim_color, 2.0, true)
-	draw_circle(Vector2.ZERO, barrel_width * 0.25, rim_color)
+	# Turned so the foot hangs straight below the eye at rest, then swung.
+	var rest := atan2(ART_FOOT.x - ART_PIVOT.x, ART_FOOT.y - ART_PIVOT.y)
+	var art_scale := _art_scale()
+	draw_set_transform(Vector2.ZERO, rest - aim, Vector2(art_scale, art_scale))
+	draw_texture(ART, -ART_PIVOT)
+
+
+func _art_scale() -> float:
+	return art_height / ART.get_height()

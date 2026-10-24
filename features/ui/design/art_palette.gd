@@ -50,10 +50,6 @@ const SCLERA := Color(0.937, 0.918, 0.859)
 const PUPIL := Color(0.078, 0.086, 0.129)
 const EYE_RIM := Color(0.235, 0.243, 0.353)
 
-## The spout: a dark walnut body with a cream lip.
-const SPOUT_BODY := Color(0.2, 0.17, 0.16)
-const SPOUT_RIM := Color(0.93, 0.86, 0.72)
-
 ## Billiard balls, ivory cue ball first.
 const BALLS: Array[Color] = [
 	Color(0.94, 0.91, 0.82),
