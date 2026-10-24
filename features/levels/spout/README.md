@@ -92,7 +92,9 @@ two columns, so a straight drop splits either side and reaches the low
 strings rather than landing on the top pin of a column every time.
 Every string and fret is a *site* with its own note, the open string plus
 the fret (C#3 at the low E's 9th fret up to C6 at the high e's 20th), and a
-pin stands at the sites in the scale; roots are ringed. A pentatonic puts
+pin stands at the sites in the scale; roots are ringed. Each pin is one of
+seven hand-drawn ducks (`ducks/`, taken in turn along the field) sitting on
+a disc of its note's colour. A pentatonic puts
 about 33 pins on the neck, the major scale about 46. The fretboard takes a
 slightly taller strip than the staggered rows (`SpoutLevel.fretboard_area`,
 60-80% of the height), so the strings sit close together but the drop from
