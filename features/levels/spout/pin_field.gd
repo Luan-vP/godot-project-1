@@ -29,6 +29,9 @@ extends Node2D
 ## A pin can also [method pop]: it bursts and is gone — not drawn, not
 ## collided with, not found by [method pin_at] — until [method restore]
 ## brings it back. Version C pops each pin it plays.
+##
+## Each pin is drawn as one of the hand-drawn [constant DUCKS], and only that:
+## no note colour, no root ring. A hit still glows in the note's colour.
 
 ## Emitted for every hit that sounds (not those inside a pin's cooldown).
 signal pin_hit(pin: int, note: int, strength: float)
@@ -40,6 +43,16 @@ const NOTE_NAMES: Array[String] = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "A
 const FLASH_SECONDS := 0.45
 const FLIP_SECONDS := 0.3
 const POP_SECONDS := 0.25
+## The hand-drawn ducks the pins are drawn as, taken in turn along the field.
+const DUCKS: Array[Texture2D] = [
+	preload("res://features/levels/spout/ducks/duck_1.png"),
+	preload("res://features/levels/spout/ducks/duck_2.png"),
+	preload("res://features/levels/spout/ducks/duck_3.png"),
+	preload("res://features/levels/spout/ducks/duck_4.png"),
+	preload("res://features/levels/spout/ducks/duck_5.png"),
+	preload("res://features/levels/spout/ducks/duck_6.png"),
+	preload("res://features/levels/spout/ducks/duck_7.png"),
+]
 
 ## The rectangle the field fills, in local coordinates.
 @export var area: Rect2 = Rect2(0, 0, 1000, 300)
@@ -47,6 +60,8 @@ const POP_SECONDS := 0.25
 ## field enters the tree, or call [method build] after.
 @export var layout: Layout = Layout.STAGGERED
 @export var pin_radius: float = 9.0
+## A duck's longest side, in pixels, before a flip's pop.
+@export var duck_size: float = 32.0
 ## A pin hit again within this many seconds stays quiet, so a stream of fluid
 ## or a ball rattling on it does not machine-gun.
 @export var retrigger_seconds: float = 0.06
@@ -473,13 +488,8 @@ func _draw() -> void:
 		var pop := 1.0 + 0.45 * _flip[column]
 		if flash > 0.0:
 			draw_circle(at, pin_radius * (1.6 + 1.4 * flash), Color(color, 0.22 * flash))
-		draw_circle(at, pin_radius * pop, color.lerp(ArtPalette.LIGHT, flash * 0.6))
-		var outline := Color(ArtPalette.LIGHT, 0.45)
-		draw_arc(at, pin_radius * pop, 0.0, TAU, 24, outline, 1.5, true)
+		_draw_duck(i, at, pop, flash)
 		if fretboard:
-			# Roots ringed, as a scale diagram marks them.
-			if _scale != null and posmod(note - _scale.root(), 12) == 0:
-				draw_arc(at, pin_radius + 3.5, 0.0, TAU, 24, Color(color, 0.85), 2.0, true)
 			# A pin the scroll is about to take away flickers.
 			if _scale != null and _scale.will_change(i):
 				var fading := Color(ArtPalette.LIGHT, 0.3 + 0.4 * shimmer)
@@ -512,6 +522,18 @@ func _draw_note_names() -> void:
 			12,
 			note_color(note, 1.0).lightened(0.3)
 		)
+
+
+## Pin [param i]'s duck, centred on [param at], scaled up by [param pop] and
+## lit by [param flash].
+func _draw_duck(i: int, at: Vector2, pop: float, flash: float) -> void:
+	var duck := DUCKS[i % DUCKS.size()]
+	var size := duck.get_size()
+	var fit := duck_size * pop / maxf(size.x, size.y)
+	var lit := Color(ArtPalette.LIGHT * (1.0 + 0.6 * flash), 1.0)
+	draw_set_transform(at, 0.0, Vector2(fit, fit))
+	draw_texture(duck, -size * 0.5, lit)
+	draw_set_transform_matrix(Transform2D.IDENTITY)
 
 
 ## A popped pin: a ring bursting outward as it goes, then a faint dotted
