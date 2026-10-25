@@ -6,8 +6,8 @@ extends Node2D
 ## holding the mouse button (see [SpoutPointer]).
 ##
 ## The spout only aims. What comes out of it is up to a [SpoutEmitter], which
-## reads [method muzzle_position] and [method direction] each frame — fluid in
-## version A, balls in version B.
+## reads [method muzzle_position] and [method direction] each frame: the
+## level's bubbles ([BubbleEmitter]).
 ##
 ## The pivot is this node's position, at the eye of the hand-drawn spiral;
 ## the spout swings from there, so its foot, where things leave it, moves

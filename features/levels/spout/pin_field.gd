@@ -21,14 +21,15 @@ extends Node2D
 ## bottom, so pin 0 is the leftmost. In the fretboard layout a site with no
 ## pin is still indexed; [method is_live] says whether a pin is there.
 ##
-## What hits a pin is not this field's business. Version B's balls bounce off
-## the [StaticBody2D] every pin carries; version A's droplets look pins up with
-## [method pin_at]. Both report a hit through [method hit], which plays the
-## note, flashes the pin and emits [signal pin_hit].
+## What hits a pin is not this field's business. The spout's bubbles bounce
+## off the [StaticBody2D] every pin carries; [method pin_at] finds a pin by
+## position. A hit goes through [method hit], which plays the note, flashes
+## the pin and emits [signal pin_hit].
 ##
-## A pin can also [method pop]: it bursts and is gone — not drawn, not
-## collided with, not found by [method pin_at] — until [method restore]
-## brings it back. Version C pops each pin it plays.
+## A pin can also [method pop]: it is gone — its duck fades to a ghost, and
+## it is not collided with, nor found by [method pin_at] — until
+## [method restore] brings it back. The spout's bubbles pop each pin they
+## play.
 ##
 ## Each pin is drawn as one of the hand-drawn [constant DUCKS], and only that:
 ## no note colour, no root ring. A hit still glows in the note's colour.
@@ -43,6 +44,8 @@ const NOTE_NAMES: Array[String] = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "A
 const FLASH_SECONDS := 0.45
 const FLIP_SECONDS := 0.3
 const POP_SECONDS := 0.25
+## How strongly a popped pin's ghost duck shows.
+const GHOST_ALPHA := 0.22
 ## The hand-drawn ducks the pins are drawn as, taken in turn along the field.
 const DUCKS: Array[Texture2D] = [
 	preload("res://features/levels/spout/ducks/duck_1.png"),
@@ -482,7 +485,7 @@ func _draw() -> void:
 				draw_arc(at, ring, 0.0, TAU, 24, Color(coming, 0.4 + 0.4 * shimmer), 2.0, true)
 			continue
 		if _popped[i]:
-			_draw_popped(at, color, _pop[i])
+			_draw_popped(i, at, _pop[i])
 			continue
 		var flash := _flash[i]
 		var pop := 1.0 + 0.45 * _flip[column]
@@ -524,30 +527,22 @@ func _draw_note_names() -> void:
 		)
 
 
-## Pin [param i]'s duck, centred on [param at], scaled up by [param pop] and
-## lit by [param flash].
-func _draw_duck(i: int, at: Vector2, pop: float, flash: float) -> void:
+## Pin [param i]'s duck, centred on [param at], scaled up by [param pop],
+## lit by [param flash] and shown at [param alpha].
+func _draw_duck(i: int, at: Vector2, pop: float, flash: float, alpha: float = 1.0) -> void:
 	var duck := DUCKS[i % DUCKS.size()]
 	var size := duck.get_size()
 	var fit := duck_size * pop / maxf(size.x, size.y)
-	var lit := Color(ArtPalette.LIGHT * (1.0 + 0.6 * flash), 1.0)
+	var lit := Color(ArtPalette.LIGHT * (1.0 + 0.6 * flash), alpha)
 	draw_set_transform(at, 0.0, Vector2(fit, fit))
 	draw_texture(duck, -size * 0.5, lit)
 	draw_set_transform_matrix(Transform2D.IDENTITY)
 
 
-## A popped pin: a ring bursting outward as it goes, then a faint dotted
-## mark where it will come back.
-func _draw_popped(at: Vector2, color: Color, burst: float) -> void:
-	if burst > 0.0:
-		var radius := pin_radius * (1.0 + 1.6 * (1.0 - burst))
-		draw_arc(
-			at, radius, 0.0, TAU, 24, Color(color.lerp(ArtPalette.LIGHT, 0.5), burst), 3.0, true
-		)
-	var ghost := Color(ArtPalette.LIGHT, 0.18)
-	for k in 8:
-		var angle := TAU * k / 8.0
-		draw_arc(at, pin_radius, angle, angle + TAU / 16.0, 3, ghost, 1.5, true)
+## A popped pin: its duck fading, as [param burst] runs down from 1, to a
+## faint ghost where it will come back.
+func _draw_popped(i: int, at: Vector2, burst: float) -> void:
+	_draw_duck(i, at, 1.0, 0.0, lerpf(GHOST_ALPHA, 1.0, burst))
 
 
 ## The neck behind a fretboard: a line per string, heavier for the lower

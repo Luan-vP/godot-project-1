@@ -1,10 +1,10 @@
 extends GutTest
 ## Covers the spout's stepped pour: trigger depth and touch distance to steps
-## of 2-16 droplets a bar, droplets falling on the bar's grid, and the level
-## pouring from RT or a touch.
+## of 8-20 bubbles a bar, bubbles leaving on the bar's grid, and the level
+## firing from RT or a touch.
 
 const Hosting := preload("res://tests/hosting.gd")
-const LEVEL := preload("res://features/levels/spout/a_fluid/level_three_a.tscn")
+const LEVEL := preload("res://features/levels/spout/bubbles/level_three.tscn")
 
 
 ## An overlay that counts how often it is drawn.
@@ -96,16 +96,17 @@ func test_a_stall_never_dumps_a_burst() -> void:
 func test_the_level_is_closed_until_rt_or_a_touch() -> void:
 	var level: SpoutLevel = LEVEL.instantiate()
 	Hosting.host(self, level)
-	var emitter: FluidEmitter = level.emitter
+	var emitter: BubbleEmitter = level.emitter
 	emitter.reads_input = false
+	var steps := BubbleEmitter.STEPS
 	assert_eq(emitter.current_step(), -1, "Nothing held: closed")
 	emitter.set_depth(1.0)
-	assert_eq(SpoutFlow.per_bar(emitter.current_step()), 24, "RT fully pressed")
+	assert_eq(SpoutFlow.per_bar(emitter.current_step(), steps), 20, "RT fully pressed")
 	emitter.set_depth(0.0)
 	level.pointer.press(level.spout.global_position + Vector2(0, emitter.flow_inner() - 5.0))
-	assert_eq(SpoutFlow.per_bar(emitter.current_step()), 8, "A touch by the nozzle")
+	assert_eq(SpoutFlow.per_bar(emitter.current_step(), steps), 8, "A touch by the nozzle")
 	level.pointer.move_to(level.spout.global_position + Vector2(0, emitter.flow_reach() + 10.0))
-	assert_eq(SpoutFlow.per_bar(emitter.current_step()), 24, "A touch down at the pins")
+	assert_eq(SpoutFlow.per_bar(emitter.current_step(), steps), 20, "A touch down at the pins")
 	level.pointer.release()
 
 
@@ -152,14 +153,14 @@ func test_overlay_is_faint_for_a_trigger() -> void:
 	assert_almost_eq(overlay.visibility(), 0.35, 0.001)
 
 
-func test_pouring_drops_droplets_on_the_grid_as_the_music_moves() -> void:
+func test_firing_drops_bubbles_on_the_grid_as_the_music_moves() -> void:
 	var scripted := ScriptedMusicTime.new()
 	AudioManager.set_music_time_source(scripted)
 	var level: SpoutLevel = LEVEL.instantiate()
 	Hosting.host(self, level)
-	var emitter: FluidEmitter = level.emitter
+	var emitter: BubbleEmitter = level.emitter
 	emitter.reads_input = false
-	emitter.set_depth(1.0)  # 24 a bar.
+	emitter.set_depth(1.0)  # 20 a bar.
 	var beats_per_bar := AudioManager.get_music_clock().beats_per_bar
 	emitter._physics_process(1.0 / 60.0)  # Opens the spout; starts counting.
 	var before := emitter.fired_count()
@@ -167,12 +168,12 @@ func test_pouring_drops_droplets_on_the_grid_as_the_music_moves() -> void:
 	for i in 64:
 		scripted.advance(beats_per_bar / 64.0)
 		emitter._physics_process(1.0 / 60.0)
-	assert_eq(emitter.fired_count() - before, 24, "Twenty-four droplets in a bar")
+	assert_eq(emitter.fired_count() - before, 20, "Twenty bubbles in a bar")
 	emitter.set_depth(0.0)
 	emitter._physics_process(1.0 / 60.0)
 	var closed_at := emitter.fired_count()
 	for i in 64:
 		scripted.advance(beats_per_bar / 64.0)
 		emitter._physics_process(1.0 / 60.0)
-	assert_eq(emitter.fired_count(), closed_at, "Closed: nothing pours")
+	assert_eq(emitter.fired_count(), closed_at, "Closed: nothing fires")
 	AudioManager.set_music_time_source(WallClockMusicTime.new())

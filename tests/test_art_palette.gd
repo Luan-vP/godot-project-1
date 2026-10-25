@@ -17,16 +17,15 @@ const ART_SCRIPTS := [
 	"res://features/levels/secret_eyes/floaty_eye.gd",
 	"res://features/levels/spout/pin_field.gd",
 	"res://features/levels/spout/spout.gd",
-	"res://features/levels/spout/a_fluid/droplet.gd",
-	"res://features/levels/spout/a_fluid/fluid_emitter.gd",
-	"res://features/levels/spout/b_balls/ball_emitter.gd",
-	"res://features/levels/spout/b_balls/spout_ball.gd",
+	"res://features/levels/spout/bubbles/bubble.gd",
+	"res://features/levels/spout/bubbles/bubble_emitter.gd",
+	"res://features/levels/spout/bubbles/pin_echo.gd",
 ]
 
 
 func test_every_pour_uses_the_same_dyes() -> void:
 	assert_eq(SharedLayers.SEED_PALETTE, ArtPalette.DYES, "Seed blobs")
-	assert_eq(FluidEmitter.PALETTE, ArtPalette.DYES, "Spout stream")
+	assert_eq(BubbleEmitter.PALETTE, ArtPalette.DYES, "Spout stream")
 	assert_eq(ArtPalette.dye(ArtPalette.DYES.size()), ArtPalette.DYES[0], "Wraps")
 
 

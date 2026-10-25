@@ -13,7 +13,7 @@ extends Node2D
 ##
 ## Behind it the host's band plays its song in full, with the eye band's
 ## key moves: L1/R1 (Q/E) a fourth, L2/R2 (Z/X) a fifth — unless the emitter
-## wants the triggers, as both versions do: RT pours. A key move scrolls the pins over to
+## wants the triggers, as the bubbles do: RT fires. A key move scrolls the pins over to
 ## the new key, one column per step of the music, left to right. So does a
 ## change of the band's scale ([signal Band.scale_changed]), which every level
 ## shares: [method cycle_scale] on the pad's Y or [kbd]Enter[/kbd] (the Deck's
@@ -27,8 +27,8 @@ extends Node2D
 ## do not reach the game.
 ##
 ## Built in code, like the eye tank: the scene file is a single node, and the
-## two versions are scenes of this script with a different
-## [member emitter_script].
+## level ([code]bubbles/level_three.tscn[/code]) is a scene of this script
+## with [BubbleEmitter] as its [member emitter_script].
 
 ## The [SpoutEmitter] script to put in the slot. Left empty, the level uses
 ## [DebugSpoutEmitter].

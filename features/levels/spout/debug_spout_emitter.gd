@@ -1,6 +1,6 @@
 class_name DebugSpoutEmitter
 extends SpoutEmitter
-## The shell's stand-in emitter, until a version brings its own: Space plucks
+## The shell's stand-in emitter, when the level brings none: Space plucks
 ## the pin the spout is pointing at, so the pins and the scale can be heard
 ## and checked with nothing coming out of the nozzle.
 

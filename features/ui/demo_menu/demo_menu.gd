@@ -32,7 +32,7 @@ extends Control
 ## Two launch options exist for a device nobody is holding, where the only
 ## way in is the command line (see "Building for iPhone" in the README):
 ## [code]--open=eye_band[/code] goes straight into a demo, and
-## [code]--probe[/code] or [code]--probe=eye_band,spout_a_fluid[/code] hands the menu to
+## [code]--probe[/code] or [code]--probe=eye_band,spout[/code] hands the menu to
 ## a [FrameProbe], which quits the app when it is done.
 ##
 ## [code]--meter[/code] opens with the [LevelMeterOverlay] showing; F8 toggles
@@ -58,22 +58,12 @@ const DEMOS: Array[Dictionary] = [
 		"Each eye plays a part while it stays off the walls. Tilt or stir to thin the music.",
 	},
 	{
-		"name": "Spout A: fluid",
-		"path": "res://features/levels/carousel/solo/spout_a.tscn",
-		"blurb": "Level 3, A: pour the eye tank's fluid over singing pins. Stick or touch aims.",
-	},
-	{
-		"name": "Spout B: balls",
-		"path": "res://features/levels/carousel/solo/spout_b.tscn",
-		"blurb": "Level 3, B: RT or a touch fires billiard balls at the pins. Stick or touch aims.",
-	},
-	{
-		"name": "Spout C: sticky",
-		"path": "res://features/levels/carousel/solo/spout_c.tscn",
+		"name": "Spout",
+		"path": "res://features/levels/carousel/solo/spout.tscn",
 		"blurb":
 		(
-			"Level 3, C: balls stick to the pins they hit; each plays on the next "
-			+ "sixteenth and pops until the bar."
+			"Level 3: bubbles stick round the ducks they hit; each plays on the next "
+			+ "sixteenth and pops."
 		),
 	},
 	{
@@ -105,7 +95,7 @@ const DEMOS: Array[Dictionary] = [
 		"path": "res://features/levels/carousel/fluid_carousel.tscn",
 		"blurb":
 		(
-			"Eye band, a spout (A, B or C) and a flock (boatmen or birds) over one tank. "
+			"Eye band, the spout and a flock (boatmen or birds) over one tank. "
 			+ "Swipe along the bottom to change level."
 		),
 	},

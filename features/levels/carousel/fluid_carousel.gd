@@ -1,6 +1,6 @@
 class_name FluidCarousel
 extends Node2D
-## The three fluid levels in turn — the eye band, spout A and the waterboatmen —
+## The three fluid levels in turn — the eye band, the spout and the waterboatmen —
 ## over one tank and one band.
 ##
 ## The fluid and the music are a single persistent layer ([SharedLayers]) that
@@ -27,11 +27,10 @@ extends Node2D
 ##
 ## It never advances on its own unless [member dwell_seconds] is set.
 ##
-## Two of the slots hold variants ([constant VARIANTS]): spout A (the
-## fluid), B (the balls) or C (the sticky balls), and the waterboatmen or
-## the birds. Every time the carousel arrives at one of those slots it picks
-## one of the group, each as likely, so swiping round again may bring
-## another.
+## A slot can hold variants ([constant VARIANTS]): the flock is the
+## waterboatmen or the birds. Every time the carousel arrives at that slot
+## it picks one of the group, each as likely, so swiping round again may
+## bring the other.
 ##
 ## [member level_paths] is exported, so a variant is just a scene that sets it:
 ## a carousel of one for each level played on its own
@@ -45,18 +44,13 @@ signal level_changed(index: int)
 ## The levels, in order, looping.
 const LEVELS: Array[String] = [
 	"res://features/levels/secret_eyes/eye_band_demo.tscn",
-	"res://features/levels/spout/a_fluid/level_three_a.tscn",
+	"res://features/levels/spout/bubbles/level_three.tscn",
 	"res://features/levels/boids/boids_level.tscn",
 ]
 
 ## Levels that share a slot: arriving at a slot holding any of them,
 ## one of the group is played, picked at random.
 const VARIANTS: Array[Array] = [
-	[
-		"res://features/levels/spout/a_fluid/level_three_a.tscn",
-		"res://features/levels/spout/b_balls/level_three_b.tscn",
-		"res://features/levels/spout/c_sticky/level_three_c.tscn",
-	],
 	[
 		"res://features/levels/boids/boids_level.tscn",
 		"res://features/levels/boids/birds_level.tscn",
