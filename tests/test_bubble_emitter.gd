@@ -1,12 +1,12 @@
 extends GutTest
-## Covers version C: balls fired on its own steps (8-20 a bar) at twice B's
-## speed, one ball sticking to a pin, stuck pins playing together on the next
-## sixteenth and popping until the next bar.
+## Covers the bubbles sticking and playing in time: one bubble to a pin,
+## stuck pins playing together on the next sixteenth as their bubbles pop,
+## the pins gone until the next bar, and the echoes and constellations.
 
 const Hosting := preload("res://tests/hosting.gd")
 
-const _TEST_SETTINGS_PATH := "user://test_sticky_ball_emitter_settings.cfg"
-const LEVEL_C := preload("res://features/levels/spout/c_sticky/level_three_c.tscn")
+const _TEST_SETTINGS_PATH := "user://test_bubble_emitter_settings.cfg"
+const LEVEL := preload("res://features/levels/spout/bubbles/level_three.tscn")
 
 
 func before_each() -> void:
@@ -27,36 +27,10 @@ func after_each() -> void:
 ## the clock under a test: the tests move it with [method tick_clock].
 func _level() -> SpoutLevel:
 	AudioManager.set_music_time_source(ScriptedMusicTime.new())
-	var level: SpoutLevel = LEVEL_C.instantiate()
+	var level: SpoutLevel = LEVEL.instantiate()
 	Hosting.host(self, level)
 	level.emitter.reads_input = false
 	return level
-
-
-func test_version_c_fires_eight_to_twenty_a_bar() -> void:
-	var level := _level()
-	var emitter: StickyBallEmitter = level.emitter
-	assert_eq(emitter.flow_steps(), [8, 12, 16, 20] as Array[int])
-	emitter.set_depth(SpoutFlow.DEADZONE + 0.01)
-	emitter.set_step(emitter.current_step())
-	assert_eq(emitter.flow_per_bar(), 8, "A gentle press: 8 a bar")
-	emitter.set_depth(1.0)
-	emitter.set_step(emitter.current_step())
-	assert_eq(emitter.flow_per_bar(), 20, "Fully pressed: 20")
-	assert_eq(emitter.overlay.steps, [8, 12, 16, 20] as Array[int], "The rings show C's steps")
-
-
-func test_balls_leave_at_twice_version_bs_speed() -> void:
-	var level := _level()
-	var emitter: StickyBallEmitter = level.emitter
-	var ball := emitter.fire()
-	assert_almost_eq(ball.linear_velocity.length(), BallEmitter.MUZZLE_SPEED * 2.0, 0.01)
-
-
-func test_the_other_versions_keep_the_shared_steps() -> void:
-	assert_eq(SpoutFlow.per_bar(4), 24)
-	assert_eq(SpoutFlow.per_bar(3, StickyBallEmitter.STEPS), 20)
-	assert_eq(SpoutFlow.per_bar(4, StickyBallEmitter.STEPS), 0, "No fifth step in C")
 
 
 func test_the_clock_runs_ahead_by_the_lookahead_like_the_bands() -> void:
@@ -65,31 +39,29 @@ func test_the_clock_runs_ahead_by_the_lookahead_like_the_bands() -> void:
 	scripted.start()
 	scripted.set_beats(2.0)
 	var clock := AudioManager.get_music_clock()
-	assert_almost_eq(StickyBallEmitter.heard_bars(), 2.0 / clock.beats_per_bar, 0.0001)
+	assert_almost_eq(BubbleEmitter.heard_bars(), 2.0 / clock.beats_per_bar, 0.0001)
 	scripted.lookahead = clock.seconds_per_beat()
-	assert_almost_eq(
-		StickyBallEmitter.heard_bars(), 3.0 / clock.beats_per_bar, 0.0001, "A beat ahead"
-	)
+	assert_almost_eq(BubbleEmitter.heard_bars(), 3.0 / clock.beats_per_bar, 0.0001, "A beat ahead")
 
 
-func test_only_one_ball_sticks_to_a_pin() -> void:
+func test_only_one_bubble_sticks_to_a_pin() -> void:
 	var level := _level()
-	var emitter: StickyBallEmitter = level.emitter
+	var emitter: BubbleEmitter = level.emitter
 	var live := level.pins.live_pins()
 	var first := emitter.fire()
 	var second := emitter.fire()
-	assert_true(emitter.stick(first, live[0], 300.0), "A free pin takes the ball")
-	assert_false(emitter.stick(second, live[0], 300.0), "A pin holds one ball")
+	assert_true(emitter.stick(first, live[0], 300.0), "A free pin takes the bubble")
+	assert_false(emitter.stick(second, live[0], 300.0), "A pin holds one bubble")
 	assert_true(emitter.stick(second, live[1], 300.0), "It can stick elsewhere")
-	assert_false(emitter.stick(first, live[2], 300.0), "A stuck ball stays where it is")
+	assert_false(emitter.stick(first, live[2], 300.0), "A stuck bubble stays where it is")
 	assert_eq(emitter.stuck_count(), 2)
-	assert_eq(emitter.ball_on(live[0]), first)
+	assert_eq(emitter.bubble_on(live[0]), first)
 	assert_true(first.is_stuck())
 
 
 func test_nothing_sticks_where_the_scale_has_no_pin() -> void:
 	var level := _level()
-	var emitter: StickyBallEmitter = level.emitter
+	var emitter: BubbleEmitter = level.emitter
 	var empty := -1
 	for pin in level.pins.pin_count():
 		if not level.pins.is_live(pin):
@@ -101,10 +73,10 @@ func test_nothing_sticks_where_the_scale_has_no_pin() -> void:
 
 func test_a_stuck_pin_waits_for_the_next_sixteenth_then_pops() -> void:
 	var level := _level()
-	var emitter: StickyBallEmitter = level.emitter
+	var emitter: BubbleEmitter = level.emitter
 	var heard: Array[int] = []
 	level.pins.pin_hit.connect(func(pin: int, _note: int, _strength: float): heard.append(pin))
-	var sixteenth := 1.0 / StickyBallEmitter.sixteenths_per_bar()
+	var sixteenth := 1.0 / BubbleEmitter.sixteenths_per_bar()
 	var pin := level.pins.live_pins()[2]
 	emitter.tick_clock(0.01)
 	emitter.stick(emitter.fire(), pin, 400.0)
@@ -115,7 +87,7 @@ func test_a_stuck_pin_waits_for_the_next_sixteenth_then_pops() -> void:
 	assert_eq(heard, [pin] as Array[int], "On the sixteenth")
 	assert_true(level.pins.is_popped(pin), "Then it pops")
 	assert_eq(emitter.stuck_count(), 0)
-	assert_eq(emitter.in_play(), 0, "Its ball goes with it")
+	assert_eq(emitter.in_play(), 0, "Its bubble goes with it")
 	var where := level.pins.to_global(level.pins.pin_position(pin))
 	assert_ne(level.pins.pin_at(where), pin, "Not found where it was")
 	assert_false(level.pins.hit(pin, 1.0), "A popped pin is silent")
@@ -123,10 +95,10 @@ func test_a_stuck_pin_waits_for_the_next_sixteenth_then_pops() -> void:
 
 func test_pins_stuck_together_play_together_on_the_next_sixteenth() -> void:
 	var level := _level()
-	var emitter: StickyBallEmitter = level.emitter
+	var emitter: BubbleEmitter = level.emitter
 	var heard: Array[int] = []
 	level.pins.pin_hit.connect(func(pin: int, _note: int, _strength: float): heard.append(pin))
-	var sixteenth := 1.0 / StickyBallEmitter.sixteenths_per_bar()
+	var sixteenth := 1.0 / BubbleEmitter.sixteenths_per_bar()
 	var live := level.pins.live_pins()
 	emitter.tick_clock(0.01)
 	emitter.stick(emitter.fire(), live[4], 400.0)
@@ -140,11 +112,11 @@ func test_pins_stuck_together_play_together_on_the_next_sixteenth() -> void:
 
 func test_popped_pins_come_back_at_the_next_bar() -> void:
 	var level := _level()
-	var emitter: StickyBallEmitter = level.emitter
+	var emitter: BubbleEmitter = level.emitter
 	var pin := level.pins.live_pins()[3]
 	emitter.tick_clock(0.5)
 	emitter.stick(emitter.fire(), pin, 400.0)
-	emitter.tick_clock(0.5 + 1.0 / StickyBallEmitter.sixteenths_per_bar())
+	emitter.tick_clock(0.5 + 1.0 / BubbleEmitter.sixteenths_per_bar())
 	assert_true(level.pins.is_popped(pin))
 	emitter.tick_clock(0.99)
 	assert_true(level.pins.is_popped(pin), "Gone for the rest of the bar")
@@ -157,7 +129,7 @@ func test_popped_pins_come_back_at_the_next_bar() -> void:
 
 func test_a_pin_played_on_the_downbeat_stays_gone_that_bar() -> void:
 	var level := _level()
-	var emitter: StickyBallEmitter = level.emitter
+	var emitter: BubbleEmitter = level.emitter
 	var pin := level.pins.live_pins()[0]
 	emitter.tick_clock(0.97)
 	emitter.stick(emitter.fire(), pin, 400.0)
@@ -169,44 +141,30 @@ func test_a_pin_played_on_the_downbeat_stays_gone_that_bar() -> void:
 	assert_false(level.pins.is_popped(pin))
 
 
-func test_retiring_a_stuck_ball_frees_its_pin() -> void:
+func test_retiring_a_stuck_bubble_frees_its_pin() -> void:
 	var level := _level()
-	var emitter: StickyBallEmitter = level.emitter
+	var emitter: BubbleEmitter = level.emitter
 	var pin := level.pins.live_pins()[3]
-	var ball := emitter.fire()
-	emitter.stick(ball, pin, 400.0)
-	emitter._retire(ball)
+	var bubble := emitter.fire()
+	emitter.stick(bubble, pin, 400.0)
+	emitter._retire(bubble)
 	assert_eq(emitter.stuck_count(), 0)
 	assert_eq(emitter.play_waiting(), [] as Array[int], "Nothing left waiting")
 	assert_true(emitter.stick(emitter.fire(), pin, 400.0), "The pin is free again")
 
 
-func test_a_ball_settles_frozen_against_its_pin() -> void:
-	var level := _level()
-	var emitter: StickyBallEmitter = level.emitter
-	var pin := level.pins.live_pins()[3]
-	var ball := emitter.fire()
-	var centre := level.pins.to_global(level.pins.pin_position(pin))
-	ball.global_position = centre + Vector2(0, -30)
-	emitter.stick(ball, pin, 400.0)
-	await wait_physics_frames(2)
-	assert_true(ball.freeze, "Frozen in place")
-	var touching := level.pins.pin_radius + SpoutBall.RADIUS
-	assert_almost_eq(ball.global_position.distance_to(centre), touching, 0.5)
-
-
 func test_a_played_pin_echoes_a_bar_later_and_again_softer() -> void:
 	var level := _level()
-	var emitter: StickyBallEmitter = level.emitter
+	var emitter: BubbleEmitter = level.emitter
 	var echoes: Array = []
 	emitter.echo.echoed.connect(
 		func(note: int, strength: float, repeat: int): echoes.append([note, strength, repeat])
 	)
-	var sixteenth := 1.0 / StickyBallEmitter.sixteenths_per_bar()
+	var sixteenth := 1.0 / BubbleEmitter.sixteenths_per_bar()
 	var pin := level.pins.live_pins()[2]
 	var note := level.pins.note_for(pin)
 	emitter.tick_clock(0.01)
-	emitter.stick(emitter.fire(), pin, BallEmitter.FULL_STRENGTH_SPEED * 2.0)
+	emitter.stick(emitter.fire(), pin, BubbleEmitter.FULL_STRENGTH_SPEED)
 	emitter.tick_clock(sixteenth + 0.001)
 	assert_eq(emitter.echo.pending_count(), 2, "Two repeats queued")
 	emitter.tick_clock(1.0 + sixteenth - 0.002)
@@ -214,7 +172,7 @@ func test_a_played_pin_echoes_a_bar_later_and_again_softer() -> void:
 	emitter.tick_clock(1.0 + sixteenth + 0.001)
 	assert_eq(echoes.size(), 1, "A bar later: the pins' recharge")
 	assert_eq(echoes[0][0], note, "The same note")
-	assert_almost_eq(echoes[0][1], PinEcho.ECHO_LEVELS[0], 0.001, "Half as loud")
+	assert_almost_eq(echoes[0][1], PinEcho.ECHO_LEVELS[0], 0.001, "Nearly as loud")
 	emitter.tick_clock(2.0 + sixteenth + 0.001)
 	assert_eq(echoes.size(), 2, "And again a bar after that")
 	assert_almost_eq(echoes[1][1], PinEcho.ECHO_LEVELS[1], 0.001, "Softer again")
@@ -225,10 +183,10 @@ func test_a_played_pin_echoes_a_bar_later_and_again_softer() -> void:
 
 func test_an_echo_keeps_its_note_through_a_key_change() -> void:
 	var level := _level()
-	var emitter: StickyBallEmitter = level.emitter
+	var emitter: BubbleEmitter = level.emitter
 	var notes: Array[int] = []
 	emitter.echo.echoed.connect(func(note: int, _s: float, _r: int): notes.append(note))
-	var sixteenth := 1.0 / StickyBallEmitter.sixteenths_per_bar()
+	var sixteenth := 1.0 / BubbleEmitter.sixteenths_per_bar()
 	var pin := level.pins.live_pins()[2]
 	var note := level.pins.note_for(pin)
 	emitter.tick_clock(0.01)
@@ -242,9 +200,9 @@ func test_an_echo_keeps_its_note_through_a_key_change() -> void:
 
 func test_a_bars_notes_make_one_constellation_that_rises_then_prints() -> void:
 	var level := _level()
-	var emitter: StickyBallEmitter = level.emitter
+	var emitter: BubbleEmitter = level.emitter
 	var echo := emitter.echo
-	var sixteenth := 1.0 / StickyBallEmitter.sixteenths_per_bar()
+	var sixteenth := 1.0 / BubbleEmitter.sixteenths_per_bar()
 	var live := level.pins.live_pins()
 	emitter.tick_clock(0.01)
 	emitter.stick(emitter.fire(), live[1], 400.0)
@@ -269,8 +227,8 @@ func test_a_bars_notes_make_one_constellation_that_rises_then_prints() -> void:
 
 func test_a_restart_of_the_music_drops_waiting_echoes() -> void:
 	var level := _level()
-	var emitter: StickyBallEmitter = level.emitter
-	var sixteenth := 1.0 / StickyBallEmitter.sixteenths_per_bar()
+	var emitter: BubbleEmitter = level.emitter
+	var sixteenth := 1.0 / BubbleEmitter.sixteenths_per_bar()
 	emitter.tick_clock(0.01)
 	emitter.stick(emitter.fire(), level.pins.live_pins()[2], 400.0)
 	emitter.tick_clock(sixteenth + 0.001)

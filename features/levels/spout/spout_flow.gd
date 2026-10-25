@@ -1,9 +1,9 @@
 class_name SpoutFlow
 extends RefCounted
-## How hard the spout pours or fires, in steps of the bar: 8 drops a bar
-## (droplets from the fluid spout, balls from the other), then 12, 16, 20
-## and 24. Few steps, so each gets a wide band. Pure — depth or distance in, a step
-## out, and which droplets fall due between two moments of the music — so it
+## How hard the spout fires, in steps of the bar: 8 drops a bar, then 12,
+## 16, 20 and 24, unless an emitter brings steps of its own (the bubbles stop
+## at 20). Few steps, so each gets a wide band. Pure — depth or distance in, a
+## step out, and which drops fall due between two moments of the music — so it
 ## can be tested without a pad or a clock.
 ##
 ## The rate is set two ways. RT (or its keyboard stand-ins) by depth: past a
@@ -50,7 +50,7 @@ static func step_for_distance(
 	return mini(floori(past * steps.size()), steps.size() - 1)
 
 
-## Droplets a bar at [param step]; 0 for closed (-1).
+## Drops a bar at [param step]; 0 for closed (-1).
 static func per_bar(step: int, steps: Array[int] = STEPS) -> int:
 	return steps[step] if step >= 0 and step < steps.size() else 0
 
@@ -61,7 +61,7 @@ static func band_outer(step: int, inner: float, reach: float, steps: Array[int] 
 	return inner + (reach - inner) * float(step + 1) / steps.size()
 
 
-## Droplets falling due as the music moves from [param from_bars] to
+## Drops falling due as the music moves from [param from_bars] to
 ## [param to_bars] — positions in bars, counting from the start — at
 ## [param count] a bar: one for each [code]k/count[/code] of a bar crossed.
 static func due(from_bars: float, to_bars: float, count: int) -> int:

@@ -12,8 +12,9 @@ A 2D game about floaty eye thingies, in a painterly style. Godot 4.4.
 - `features/levels/secret_eyes/` — the eye band: a tank full of floaty eyes,
   each playing a part while it stays off the walls. See its [README](features/levels/secret_eyes/README.md).
 - `features/levels/spout/` — level 3: aim a spout over a field of pins that
-  play a scale, the eye band behind it. Two versions: A pours the eye tank's
-  fluid, B fires balls. See its [README](features/levels/spout/README.md).
+  play a scale, the eye band behind it. The spout fires bubbles that stick
+  round the ducks on the pins and pop in time, stirring the tank as they go.
+  See its [README](features/levels/spout/README.md).
 - `features/levels/boids/` — flocks of waterboatmen that row and sing polyrhythms, played
   with a snare. See its [README](features/levels/boids/README.md).
 - `features/levels/carousel/` — the main way to play: the levels in turn,
@@ -57,10 +58,8 @@ scripts/run.sh play        # the game as every player sees it: splash, then caro
 scripts/run.sh menu        # straight to the demo menu
 scripts/run.sh carousel    # the levels in turn over one tank and one band
 scripts/run.sh band        # the eye tank as a band: eyes off the walls play parts
-scripts/run.sh spout-a     # level 3, A: pour the eye tank's fluid over the pins
-scripts/run.sh spout-b     # level 3, B: RT fires billiard balls at the pins
-scripts/run.sh spout-c     # level 3, C: balls stick to pins, play on the 16th, pop
-scripts/run.sh spout       # level 3's shell: spout, pins, band (Space plucks)
+scripts/run.sh spout       # level 3: bubbles stick round ducks, play on the 16th, pop
+scripts/run.sh spout-shell # level 3's shell: spout, pins, band (Space plucks)
 scripts/run.sh birds       # flocks singing 3-against-4, played with a snare (B)
 scripts/run.sh synth       # play the synth voices from the keyboard
 scripts/run.sh groove      # synthwave loop: drums on the step grid, bass and pads

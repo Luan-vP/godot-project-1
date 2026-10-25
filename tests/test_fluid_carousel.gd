@@ -55,7 +55,7 @@ func test_the_real_levels_are_the_three_fluid_ones_in_order() -> void:
 	for path in FluidCarousel.LEVELS:
 		assert_true(ResourceLoader.exists(path), path)
 	assert_true(FluidCarousel.LEVELS[0].ends_with("eye_band_demo.tscn"), "Eye band first")
-	assert_true(FluidCarousel.LEVELS[1].ends_with("level_three_a.tscn"), "Then spout A")
+	assert_true(FluidCarousel.LEVELS[1].ends_with("bubbles/level_three.tscn"), "Then the spout")
 	assert_true(FluidCarousel.LEVELS[2].ends_with("boids_level.tscn"), "Then the boatmen")
 
 

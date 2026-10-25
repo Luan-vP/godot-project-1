@@ -183,7 +183,7 @@ Two ways to put a picture into the pigment, which then moves with the water:
 - `add_dye(image, cell)` adds a picture of any size over what is already
   there, its top-left corner at a grid cell; several in a frame add up. The
   dye pass adds a whole-grid texture that is zero except on the frame
-  something is printed. The spout prints key names and version C's
+  something is printed. The spout prints key names and its echoes'
   constellations this way; `DyePrint` builds the pictures.
 
 Both are premultiplied, like the field.

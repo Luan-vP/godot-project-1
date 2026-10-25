@@ -2,7 +2,7 @@ extends Control
 ## Manual proof that [ComfortSettings] works and is reachable in-game: a
 ## slider per comfort option, bound straight to its setter the same way
 ## `audio_demo.gd`'s bus sliders are bound to [AudioManager]. Haptics strength
-## applies to the next pulse; feel it in Spout B, which ticks once per ball.
+## applies to the next pulse; feel it in the spout, which ticks once per bubble.
 
 
 func _ready() -> void:

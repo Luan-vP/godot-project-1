@@ -44,7 +44,7 @@ func show_flow(step: int, touching: bool, touch_point: Vector2 = Vector2.ZERO) -
 	_touch = touch_point
 
 
-## A drop (droplet or ball) just left: flash the lit ring.
+## A drop just left: flash the lit ring.
 func pulse() -> void:
 	_pulse = 1.0
 

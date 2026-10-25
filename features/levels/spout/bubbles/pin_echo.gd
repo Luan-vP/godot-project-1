@@ -1,10 +1,10 @@
 class_name PinEcho
 extends Node2D
-## Version C's delay. Every pin played comes back twice more, softer each
+## The spout level's delay. Every pin played comes back twice more, softer each
 ## time, after the pins' recharge: a popped pin returns on the next bar line,
 ## so the delay is a bar ([member delay_bars]). An echo keeps its sixteenth,
-## so the bar's phrase loops whole, in time with the band, at half and then a
-## quarter of its strength ([constant ECHO_LEVELS]). It replays the note that
+## so the bar's phrase loops whole, in time with the band, twice: nearly as
+## loud as it was played, then a little softer ([constant ECHO_LEVELS]). It replays the note that
 ## was played, even if the pins have scrolled to a new key since.
 ##
 ## Each bar's phrase is drawn as a constellation: a star where every pin
@@ -14,7 +14,7 @@ extends Node2D
 ## water as pigment ([DyePrint]) and the ghost fades out over it, leaving the
 ## shape to swirl away with the tank.
 ##
-## [StickyBallEmitter] owns one: it calls [method record] for every pin it
+## [BubbleEmitter] owns one: it calls [method record] for every pin it
 ## plays and [method tick] as the music moves.
 
 ## Emitted for every echo that sounds; [param repeat] is 1 for the first.
@@ -22,7 +22,7 @@ signal echoed(note: int, strength: float, repeat: int)
 
 ## How loud each echo is, against the note it repeats: as many loops as
 ## there are entries.
-const ECHO_LEVELS: Array[float] = [0.5, 0.25]
+const ECHO_LEVELS: Array[float] = [0.85, 0.6]
 ## How far a constellation rises in a bar, in pixels.
 const RISE_PER_BAR := 90.0
 ## How much of the current at its middle a constellation drifts with.

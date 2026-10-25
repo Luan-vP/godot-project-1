@@ -1,19 +1,18 @@
 class_name SpoutEmitter
 extends Node2D
 ## What comes out of the [Spout]. The level shell ([SpoutLevel]) has one slot
-## for an emitter and hands it the spout and the pins in [method bind]; each
-## version of the level brings its own — fluid for A, balls for B — so the two
-## never edit the same file.
+## for an emitter and hands it the spout and the pins in [method bind]: the
+## level's own is [BubbleEmitter]; the shell alone has [DebugSpoutEmitter].
 ##
 ## An emitter reads [method Spout.muzzle_position] and [method Spout.direction]
 ## each frame, and reports pins it hits with [method PinField.hit].
 ##
-## [b]The stepped pour[/b] is shared: both versions pour (or fire) in steps
+## [b]The stepped pour[/b] is shared: an emitter pours (or fires) in steps
 ## of the bar ([SpoutFlow]), 8 drops a bar at the gentlest, up to 24, each one
 ## leaving on the bar's grid so the stream plays in time with the band. RT
 ## sets the step by depth; a touch (or held click) by how far from the spout
 ## it is, with [SpoutFlowOverlay] drawing the steps as rings round the nozzle.
-## With neither held the spout is closed. A version opts in by calling
+## With neither held the spout is closed. An emitter opts in by calling
 ## [method start_flow] in its [method bind], then each physics frame takes
 ## [method tick_flow]'s drops due and launches that many.
 
@@ -100,7 +99,7 @@ func flow_step() -> int:
 
 
 ## Drops a bar at each step, gentlest first. [constant SpoutFlow.STEPS]
-## unless a version pours on its own.
+## unless an emitter pours on its own.
 func flow_steps() -> Array[int]:
 	return SpoutFlow.STEPS
 
@@ -133,8 +132,8 @@ func flow_reach() -> float:
 	return maxf(bottom - spout.global_position.y, flow_inner() + 1.0)
 
 
-## Whether this emitter leaves L2/R2 free for key moves. Both versions pour on
-## RT, so they say no and the level keeps key moves on L1/R1.
+## Whether this emitter leaves L2/R2 free for key moves. One that pours on
+## RT says no, and the level keeps key moves on L1/R1.
 func leaves_triggers_free() -> bool:
 	return overlay == null
 
