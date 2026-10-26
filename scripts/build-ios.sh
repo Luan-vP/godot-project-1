@@ -11,6 +11,8 @@
 #   scripts/build-ios.sh --release          release archive: install and launch it on
 #                                           the connected iPhone, upload to TestFlight
 #   scripts/build-ios.sh --release --no-upload
+#   scripts/build-ios.sh --release --no-install
+#                                           upload without looking for a phone (CI)
 #   scripts/build-ios.sh -- --open=eyes     anything after -- is passed to the game
 #
 # Output goes under builds/ (ignored by git): builds/ios is the exported Xcode
@@ -23,6 +25,13 @@
 # can create the development certificate and profile; nothing is committed. The
 # release upload uses that account too, and its build number is the time, so
 # every upload gets a new one. The app must already exist in App Store Connect.
+#
+# Without an Xcode account (CI), set APP_STORE_CONNECT_KEY_PATH,
+# APP_STORE_CONNECT_KEY_ID and APP_STORE_CONNECT_ISSUER_ID to an App Store
+# Connect API key with the Admin role; xcodebuild signs in with it instead. A
+# development certificate would be made afresh on every clean machine, so there
+# set IOS_CODE_SIGN_IDENTITY="Apple Distribution" with that certificate in the
+# keychain; the archive is then signed for the App Store and cannot go on a phone.
 #
 # The simulator is only good for layout. Godot 4.4 runs it on the OpenGL
 # Compatibility renderer, which has no RenderingDevice, so the fluid's compute
@@ -38,19 +47,20 @@ PROJECT_NAME="godot_project_1"
 PRESET="iOS"
 BUNDLE_ID="com.goldenruleengineering.eyemusic"
 TEAM="${IOS_TEAM:-BJS3Z2X97R}"
+SIGN_IDENTITY="${IOS_CODE_SIGN_IDENTITY:-Apple Development}"
 IMPORTED="$ROOT/.godot/imported"
 SHADER_DIR="$ROOT/features/fluid/shaders/compute"
-TEMPLATES="$HOME/Library/Application Support/Godot/export_templates/4.4.stable"
 DEFAULT_SIMULATOR="iPhone 16 Pro"
 
 usage() {
-	sed -n '2,30p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+	sed -n '2,39p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 target="device"
 device="${IOS_DEVICE:-}"
 simulator="$DEFAULT_SIMULATOR"
 launch=1
+install=1
 upload=1
 game_args=()
 while [ $# -gt 0 ]; do
@@ -66,6 +76,7 @@ while [ $# -gt 0 ]; do
 		--release) target="release" ;;
 		--no-upload) upload=0 ;;
 		--no-launch) launch=0 ;;
+		--no-install) install=0 ;;
 		--) shift; game_args=("$@"); break ;;
 		*) echo "Unknown option: $1" >&2; usage >&2; exit 2 ;;
 	esac
@@ -100,11 +111,22 @@ if ! GODOT_BIN="$(find_godot)"; then
 	exit 1
 fi
 
+# "4.4.1.stable.official.49a5bc7b6" -> "4.4.1.stable", the templates' folder.
+godot_version="$("$GODOT_BIN" --version | cut -d. -f1-4 | sed -E 's/\.(stable|rc[0-9]*|beta[0-9]*|dev[0-9]*)\..*$/.\1/')"
+TEMPLATES="$HOME/Library/Application Support/Godot/export_templates/$godot_version"
 if [ ! -f "$TEMPLATES/ios.zip" ]; then
-	echo "Godot 4.4 export templates are missing ($TEMPLATES/ios.zip)." >&2
-	echo "Download https://github.com/godotengine/godot/releases/download/4.4-stable/Godot_v4.4-stable_export_templates.tpz" >&2
-	echo "and unzip its templates/ folder's contents into that directory." >&2
+	echo "Godot $godot_version's export templates are missing ($TEMPLATES/ios.zip)." >&2
+	echo "Install them from the editor (Editor > Manage Export Templates), or unzip the" >&2
+	echo "templates/ folder of the release's export_templates.tpz into that directory." >&2
 	exit 1
+fi
+
+# An API key stands in for Xcode's signed-in account.
+auth=()
+if [ -n "${APP_STORE_CONNECT_KEY_PATH:-}" ]; then
+	auth=(-authenticationKeyPath "$APP_STORE_CONNECT_KEY_PATH"
+		-authenticationKeyID "${APP_STORE_CONNECT_KEY_ID:?set with APP_STORE_CONNECT_KEY_PATH}"
+		-authenticationKeyIssuerID "${APP_STORE_CONNECT_ISSUER_ID:?set with APP_STORE_CONNECT_KEY_PATH}")
 fi
 
 mkdir -p "$BUILDS"
@@ -232,10 +254,12 @@ if [ "$target" = "release" ]; then
 	xcodebuild -quiet \
 		-project "$EXPORT_DIR/$PROJECT_NAME.xcodeproj" -scheme "$PROJECT_NAME" -configuration Release \
 		-destination "generic/platform=iOS" -archivePath "$archive" \
-		-derivedDataPath "$BUILDS/ios-release-derived" -allowProvisioningUpdates \
-		DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic CODE_SIGN_IDENTITY="Apple Development" \
+		-derivedDataPath "$BUILDS/ios-release-derived" -allowProvisioningUpdates ${auth[@]+"${auth[@]}"} \
+		DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic CODE_SIGN_IDENTITY="$SIGN_IDENTITY" \
 		CURRENT_PROJECT_VERSION="$build_number" archive
-	if [ -n "$device" ] || device="$(find_device)"; then
+	if [ "$install" -eq 0 ]; then
+		:
+	elif [ -n "$device" ] || device="$(find_device)"; then
 		install_and_launch "$archive/Products/Applications/$PROJECT_NAME.app"
 	else
 		echo "Not installing on a phone."
@@ -255,7 +279,8 @@ if [ "$target" = "release" ]; then
 PLIST
 	echo "Uploading build $build_number to App Store Connect"
 	if ! xcodebuild -exportArchive -archivePath "$archive" -exportPath "$EXPORT_DIR/upload" \
-		-exportOptionsPlist "$options" -allowProvisioningUpdates 2>&1 | { grep -v "Progress" || true; }; then
+		-exportOptionsPlist "$options" -allowProvisioningUpdates ${auth[@]+"${auth[@]}"} 2>&1 \
+		| { grep -v "Progress" || true; }; then
 		echo "Upload failed." >&2
 		exit 1
 	fi

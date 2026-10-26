@@ -179,9 +179,11 @@ scripts/build-ios.sh --simulator       # layout only; see below
 
 One-time setup:
 
-- **Export templates.** Unzip the `templates/` folder of
-  [Godot 4.4-stable's export templates](https://github.com/godotengine/godot/releases/download/4.4-stable/Godot_v4.4-stable_export_templates.tpz)
-  into `~/Library/Application Support/Godot/export_templates/4.4.stable/`.
+- **Export templates** for the Godot you build with: Editor > Manage Export
+  Templates, or unzip the `templates/` folder of the release's
+  `export_templates.tpz` into
+  `~/Library/Application Support/Godot/export_templates/<version>.stable/`
+  (`4.4.1.stable` for the 4.4.1 CI uses).
 - **Signing.** Signing is automatic for team `BJS3Z2X97R` (override with
   `IOS_TEAM`), so Xcode has to be signed in to an Apple ID on that team —
   Xcode > Settings > Accounts. Xcode then makes the development certificate
@@ -289,6 +291,46 @@ February 2027, so by then the project needs Godot 4.5 or later.
 to. Add it to the internal testing track's email list, then send them the
 track's opt-in link; after they accept, eyeMusic installs from the Play Store
 and updates like any other app.
+
+## Deploying from CI
+
+Every push to `main` that passes CI goes to TestFlight and to Play's internal
+testing track (`.github/workflows/deploy.yml`, which runs the two scripts
+above with `--release`). *Actions > Deploy > Run workflow* sends the current
+`main` on demand. The build numbers are the time, as from a desk, so a CI
+build and one from here never collide.
+
+It needs these repository secrets (*Settings > Secrets and variables >
+Actions*):
+
+| Secret | What it is |
+| --- | --- |
+| `APP_STORE_CONNECT_API_KEY` | The `.p8` file's contents, from an App Store Connect API team key with the Admin role (*Users and Access > Integrations*) |
+| `APP_STORE_CONNECT_KEY_ID` | That key's ID |
+| `APP_STORE_CONNECT_ISSUER_ID` | The issuer ID shown above the keys |
+| `IOS_DISTRIBUTION_CERT_P12` | An Apple Distribution certificate with its private key, as a base64 `.p12` |
+| `IOS_DISTRIBUTION_CERT_PASSWORD` | The `.p12`'s password |
+| `ANDROID_UPLOAD_KEYSTORE` | `~/.android/eyemusic-upload.keystore`, base64 |
+| `ANDROID_UPLOAD_KEYSTORE_PASSWORD` | Its password, from the login keychain |
+| `PLAY_SERVICE_ACCOUNT_JSON` | The Play service account's JSON key |
+
+The distribution certificate is made once: Xcode > Settings > Accounts >
+Manage Certificates > + > Apple Distribution, then export it from Keychain
+Access (*My Certificates*, with its key) as a `.p12`. A development
+certificate would do on a desk, but a clean runner would make a new one every
+time. Then, from here:
+
+```sh
+gh secret set APP_STORE_CONNECT_API_KEY < AuthKey_XXXXXXXXXX.p8
+gh secret set IOS_DISTRIBUTION_CERT_P12 --body "$(base64 -i distribution.p12)"
+gh secret set ANDROID_UPLOAD_KEYSTORE --body "$(base64 -i ~/.android/eyemusic-upload.keystore)"
+gh secret set ANDROID_UPLOAD_KEYSTORE_PASSWORD \
+  --body "$(security find-generic-password -s eyemusic-android-upload-key -w)"
+gh secret set PLAY_SERVICE_ACCOUNT_JSON < ~/.config/eyemusic/play-service-account.json
+```
+
+The one-time Play Console steps above still come first: Play's API takes no
+bundle for an app it has never seen one for.
 
 ## Running the tests
 

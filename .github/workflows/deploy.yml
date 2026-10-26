@@ -1,0 +1,206 @@
+name: Deploy
+
+# Every push to main that CI passes goes to TestFlight and to Google Play's
+# internal testing track, through the same scripts as a release from a desk:
+# scripts/build-ios.sh --release and scripts/build-android.sh --release. The
+# secrets they need are listed in the README, under "Deploying from CI".
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+# A newer merge replaces one still waiting, but never cuts an upload short.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  GODOT_VERSION: 4.4.1
+
+jobs:
+  testflight:
+    name: TestFlight
+    # CI also runs for pull requests; only a passing push to main ships.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: macos-26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          lfs: true
+
+      # App Store Connect only takes builds made with the current SDK.
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install Godot
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/godot.zip" \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_macos.universal.zip"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP"
+          echo "GODOT=$RUNNER_TEMP/Godot.app/Contents/MacOS/Godot" >> "$GITHUB_ENV"
+
+      - name: Cache export templates
+        id: templates
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Application Support/Godot/export_templates/${{ env.GODOT_VERSION }}.stable
+          key: godot-templates-ios-${{ env.GODOT_VERSION }}
+
+      # The whole set is over a gigabyte; only the iOS template is kept.
+      - name: Install export templates
+        if: steps.templates.outputs.cache-hit != 'true'
+        run: |
+          dir="$HOME/Library/Application Support/Godot/export_templates/${GODOT_VERSION}.stable"
+          curl -fsSL -o "$RUNNER_TEMP/templates.tpz" \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          mkdir -p "$dir"
+          unzip -q -j "$RUNNER_TEMP/templates.tpz" templates/ios.zip templates/version.txt -d "$dir"
+          rm "$RUNNER_TEMP/templates.tpz"
+
+      # Xcode's automatic signing would make a new development certificate on
+      # every clean runner, so the archive is signed with the team's
+      # distribution certificate instead, from a keychain that lives for this
+      # job. The API key stands in for Xcode's signed-in account.
+      - name: Install the signing certificate and API key
+        env:
+          CERT_P12: ${{ secrets.IOS_DISTRIBUTION_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERT_PASSWORD }}
+          API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+        run: |
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          keychain_password="$(openssl rand -base64 24)"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          printf '%s' "$CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$keychain" -P "$CERT_PASSWORD" \
+            -f pkcs12 -T /usr/bin/codesign -T /usr/bin/security
+          rm "$RUNNER_TEMP/cert.p12"
+          security set-key-partition-list -S apple-tool:,apple: -k "$keychain_password" "$keychain" >/dev/null
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          key="$RUNNER_TEMP/AuthKey_$API_KEY_ID.p8"
+          printf '%s\n' "$API_KEY" > "$key"
+          echo "APP_STORE_CONNECT_KEY_PATH=$key" >> "$GITHUB_ENV"
+
+      # The script imports the project first; the compute shaders compile only
+      # with a window, which the runner's logged-in session gives it.
+      - name: Build and upload to TestFlight
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          IOS_CODE_SIGN_IDENTITY: Apple Distribution
+        run: scripts/build-ios.sh --release --no-install
+
+      # Printed rather than uploaded: the repository is public, and the log
+      # here has its secrets masked.
+      - name: Show the export log
+        if: failure()
+        run: cat builds/ios-release-export.log || true
+
+      - name: Remove the keychain and API key
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/signing.keychain-db" || true
+          rm -f "$RUNNER_TEMP"/AuthKey_*.p8
+
+  play-internal:
+    name: Google Play internal testing
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          lfs: true
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Godot
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/godot.zip" \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP"
+          echo "GODOT=$RUNNER_TEMP/Godot_v${GODOT_VERSION}-stable_linux.x86_64" >> "$GITHUB_ENV"
+
+      - name: Cache export templates
+        id: templates
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable
+          key: godot-templates-android-${{ env.GODOT_VERSION }}
+
+      - name: Install export templates
+        if: steps.templates.outputs.cache-hit != 'true'
+        run: |
+          dir="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          curl -fsSL -o "$RUNNER_TEMP/templates.tpz" \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          mkdir -p "$dir"
+          unzip -q -j "$RUNNER_TEMP/templates.tpz" 'templates/android_*' templates/version.txt -d "$dir"
+          rm "$RUNNER_TEMP/templates.tpz"
+
+      # The runner has the Android SDK; Godot finds it through its editor
+      # settings.
+      - name: Point Godot at the Android SDK and JDK
+        run: |
+          mkdir -p ~/.config/godot
+          cat > ~/.config/godot/editor_settings-4.4.tres <<EOF
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/android_sdk_path = "$ANDROID_HOME"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          EOF
+
+      # The fluid solve runs as compute shaders, and Godot compiles .glsl to
+      # SPIR-V through a real rendering device. A headless import cannot do it,
+      # so lavapipe gives the runner a software Vulkan device to compile
+      # against. The build script refuses to export if they did not compile.
+      - name: Install a software Vulkan device
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq mesa-vulkan-drivers xvfb
+
+      - name: Import project
+        run: xvfb-run -a "$GODOT" --import || true
+
+      - name: Install the upload key and Play service account
+        env:
+          UPLOAD_KEYSTORE: ${{ secrets.ANDROID_UPLOAD_KEYSTORE }}
+          SERVICE_ACCOUNT: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          printf '%s' "$UPLOAD_KEYSTORE" | base64 --decode > "$RUNNER_TEMP/upload.keystore"
+          printf '%s' "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/play-service-account.json"
+          echo "ANDROID_UPLOAD_KEYSTORE=$RUNNER_TEMP/upload.keystore" >> "$GITHUB_ENV"
+          echo "PLAY_SERVICE_ACCOUNT=$RUNNER_TEMP/play-service-account.json" >> "$GITHUB_ENV"
+
+      - name: Build and upload to the internal testing track
+        env:
+          ANDROID_UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
+        run: scripts/build-android.sh --release
+
+      # Printed rather than uploaded: Gradle's command line carries the
+      # keystore password, which is masked here and nowhere else.
+      - name: Show the export log
+        if: failure()
+        run: cat builds/android-release-export.log || true
+
+      - name: Remove the upload key and service account
+        if: always()
+        run: rm -f "$RUNNER_TEMP/upload.keystore" "$RUNNER_TEMP/play-service-account.json"
