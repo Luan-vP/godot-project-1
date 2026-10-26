@@ -246,6 +246,51 @@ renderer, which has no `RenderingDevice`, so the fluid stands still there. Its
 official simulator library is also x86_64 only (the script builds for Rosetta)
 and links MetalFX, which the simulator SDK lacks (the script strips it).
 
+## Building for Android
+
+```sh
+scripts/build-android.sh                    # debug APK, installed and launched on the connected phone
+scripts/build-android.sh --export-only      # just the APK, in builds/android
+scripts/build-android.sh --release          # signed bundle, up to Play's internal testing track
+scripts/build-android.sh --release --no-upload  # just the bundle, in builds/android-release
+```
+
+The package is `com.goldenruleengineering.eyemusic`, the same as the iPhone's
+bundle id. Everything under *What changes on a phone* above holds here too:
+the `mobile` feature tag is set on Android. The fluid needs Vulkan; a phone
+without it falls back to the Compatibility renderer and the tank sits still.
+
+One-time setup:
+
+- **Android SDK and JDK 17**, with their paths in Godot's editor settings
+  (Export > Android), and Godot's Android export templates.
+- **The upload key.** `scripts/build-android.sh --make-upload-key` writes
+  `~/.android/eyemusic-upload.keystore` and puts its password in the login
+  keychain. Back both up. Play signs what testers install with its own key
+  (Play App Signing); this one only proves an upload came from us.
+- **Play Console.** Create the app with the package above, then upload the
+  first bundle by hand (`--release --no-upload`, then *Testing > Internal
+  testing > Create new release*). Play's API takes no bundle for an app it has
+  never seen one for.
+- **Uploading from here.** A Google Cloud service account with the *Google
+  Play Android Developer API* enabled on its project, invited in Play Console
+  (*Users and permissions*) with *Release apps to testing tracks* on this app.
+  Its JSON key goes in `~/.config/eyemusic/play-service-account.json` (or
+  `PLAY_SERVICE_ACCOUNT`).
+
+The version code is the minutes since 1970, so each upload outranks the last.
+
+The release preset targets API 36, which Play has required of new apps and
+updates since August 2026; Godot 4.4's template still compiles against 34,
+which Gradle accepts. Godot 4.4's libraries are aligned for 4 KB memory pages
+only. Play warns about that now and refuses updates without 16 KB support from
+February 2027, so by then the project needs Godot 4.5 or later.
+
+**Testers** need the Google account their phone's Play Store is signed in
+to. Add it to the internal testing track's email list, then send them the
+track's opt-in link; after they accept, eyeMusic installs from the Play Store
+and updates like any other app.
+
 ## Running the tests
 
 ```sh
