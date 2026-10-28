@@ -125,7 +125,11 @@ fi
 
 # "4.4.1.stable.official.49a5bc7b6" -> "4.4.1.stable", the templates' folder.
 godot_version="$("$GODOT_BIN" --version | cut -d. -f1-4 | sed -E 's/\.(stable|rc[0-9]*|beta[0-9]*|dev[0-9]*)\..*$/.\1/')"
-TEMPLATES="$HOME/Library/Application Support/Godot/export_templates/$godot_version"
+if [ "$(uname)" = "Darwin" ]; then
+	TEMPLATES="$HOME/Library/Application Support/Godot/export_templates/$godot_version"
+else
+	TEMPLATES="${XDG_DATA_HOME:-$HOME/.local/share}/godot/export_templates/$godot_version"
+fi
 if [ ! -f "$TEMPLATES/android_source.zip" ]; then
 	echo "Godot $godot_version's Android export templates are missing ($TEMPLATES)." >&2
 	echo "Install them from the editor: Editor > Manage Export Templates." >&2
