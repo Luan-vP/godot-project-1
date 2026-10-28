@@ -66,9 +66,10 @@ jobs:
           rm "$RUNNER_TEMP/templates.tpz"
 
       # Xcode's automatic signing would make a new development certificate on
-      # every clean runner, so the archive is signed with the team's
-      # distribution certificate instead, from a keychain that lives for this
-      # job. The API key stands in for Xcode's signed-in account.
+      # every clean runner, so the archive is left unsigned and the upload
+      # signs it with the team's distribution certificate, from a keychain
+      # that lives for this job. The API key stands in for Xcode's signed-in
+      # account.
       - name: Install the signing certificate and API key
         env:
           CERT_P12: ${{ secrets.IOS_DISTRIBUTION_CERT_P12 }}
@@ -97,7 +98,6 @@ jobs:
         env:
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          IOS_CODE_SIGN_IDENTITY: Apple Distribution
         run: scripts/build-ios.sh --release --no-install
 
       # Printed rather than uploaded: the repository is public, and the log

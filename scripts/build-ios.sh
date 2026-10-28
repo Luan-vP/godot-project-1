@@ -12,7 +12,8 @@
 #                                           the connected iPhone, upload to TestFlight
 #   scripts/build-ios.sh --release --no-upload
 #   scripts/build-ios.sh --release --no-install
-#                                           upload without looking for a phone (CI)
+#                                           an unsigned archive, signed only by the
+#                                           upload; no phone needed (CI)
 #   scripts/build-ios.sh -- --open=eyes     anything after -- is passed to the game
 #
 # Output goes under builds/ (ignored by git): builds/ios is the exported Xcode
@@ -28,10 +29,10 @@
 #
 # Without an Xcode account (CI), set APP_STORE_CONNECT_KEY_PATH,
 # APP_STORE_CONNECT_KEY_ID and APP_STORE_CONNECT_ISSUER_ID to an App Store
-# Connect API key with the Admin role; xcodebuild signs in with it instead. A
-# development certificate would be made afresh on every clean machine, so there
-# set IOS_CODE_SIGN_IDENTITY="Apple Distribution" with that certificate in the
-# keychain; the archive is then signed for the App Store and cannot go on a phone.
+# Connect API key with the Admin role; xcodebuild signs in with it instead. Use
+# --no-install there too: a development certificate would be made afresh on
+# every clean machine, so the archive is left unsigned and only the upload signs
+# it, with the Apple Distribution certificate in the keychain.
 #
 # The simulator is only good for layout. Godot 4.4 runs it on the OpenGL
 # Compatibility renderer, which has no RenderingDevice, so the fluid's compute
@@ -47,13 +48,12 @@ PROJECT_NAME="godot_project_1"
 PRESET="iOS"
 BUNDLE_ID="com.goldenruleengineering.eyemusic"
 TEAM="${IOS_TEAM:-BJS3Z2X97R}"
-SIGN_IDENTITY="${IOS_CODE_SIGN_IDENTITY:-Apple Development}"
 IMPORTED="$ROOT/.godot/imported"
 SHADER_DIR="$ROOT/features/fluid/shaders/compute"
 DEFAULT_SIMULATOR="iPhone 16 Pro"
 
 usage() {
-	sed -n '2,39p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+	sed -n '2,40p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 target="device"
@@ -250,12 +250,15 @@ if [ "$target" = "release" ]; then
 	archive="$EXPORT_DIR/$PROJECT_NAME.xcarchive"
 	echo "Archiving build $build_number (team $TEAM)"
 	# The archive is signed for development so it installs on the phone as is;
-	# the upload re-signs it for the App Store.
+	# the upload re-signs it for the App Store. One nothing installs is not
+	# signed at all, and the upload signs it.
+	signing=(-allowProvisioningUpdates ${auth[@]+"${auth[@]}"}
+		DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic CODE_SIGN_IDENTITY="Apple Development")
+	[ "$install" -eq 1 ] || signing=(CODE_SIGNING_ALLOWED=NO)
 	xcodebuild -quiet \
 		-project "$EXPORT_DIR/$PROJECT_NAME.xcodeproj" -scheme "$PROJECT_NAME" -configuration Release \
 		-destination "generic/platform=iOS" -archivePath "$archive" \
-		-derivedDataPath "$BUILDS/ios-release-derived" -allowProvisioningUpdates ${auth[@]+"${auth[@]}"} \
-		DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic CODE_SIGN_IDENTITY="$SIGN_IDENTITY" \
+		-derivedDataPath "$BUILDS/ios-release-derived" "${signing[@]}" \
 		CURRENT_PROJECT_VERSION="$build_number" archive
 	if [ "$install" -eq 0 ]; then
 		:
