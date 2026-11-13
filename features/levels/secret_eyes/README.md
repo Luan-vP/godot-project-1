@@ -11,6 +11,15 @@ The eyes started as the fluid demo's placeholder, built from a misreading of
 "eye floaters" as floating eyeballs, and stayed because the band made them
 worth keeping.
 
+## Painted eyes
+
+Four of the seven eyes are trying out hand-painted bodies
+([`paintings/`](paintings/)) in place of the procedural eye: the sand dollar
+(its star cut out, so the tank shows through) and the long thin one, each once
+bare and once wearing an eye. A worn eye still looks about and blinks. Which
+eyes get which painting, and where the eye sits on each, is `PAINTINGS` in
+`eye_band_demo.gd`; the bodies themselves are `FloatyEye.painting`.
+
 ## Controls
 
 Drag to stir and paint, WASD to tilt, `Space` to jog, `C` to recalibrate,
@@ -73,5 +82,6 @@ Kept together because they only make sense as a set:
 | `eye_band_songs.gd` | `EyeBandSongs` — the four songs the band picks from. |
 | `eye_band_demo.gd` | The level: the eyes over the host's tank, input, an `EyeBand` driving the host's band, rings round the eyes and a parts readout. |
 | `floaty_eye.gd` | `FloatyEye` — a [`FluidBody`](../../fluid/fluid_body.gd) with a face. |
+| `paintings/` | Hand-painted cut-outs some eyes float as instead (see [Painted eyes](#painted-eyes)). |
 | `eye.gdshader` | The procedural eye look: squash-along-motion and gaze read off the fluid. |
 | `eye_band_demo.tscn` | The single-node scene entry point. |

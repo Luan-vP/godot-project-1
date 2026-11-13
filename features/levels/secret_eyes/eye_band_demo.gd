@@ -32,6 +32,30 @@ const PAINT_RATE := 3.2
 ## walls on their own, and more work to keep the band playing.
 const CENTRE_PULL := 0.1
 
+const SAND_DOLLAR := preload("res://features/levels/secret_eyes/paintings/sand_dollar.png")
+const LONG_THIN := preload("res://features/levels/secret_eyes/paintings/long_thin.png")
+
+## Hand-painted bodies tried in place of some of the eyes, taken by the first
+## eyes in turn: each painting bare, then wearing an eye. [code]offset[/code]
+## and [code]size[/code] place the eye (see [member FloatyEye.eye_offset]).
+const PAINTINGS: Array[Dictionary] = [
+	{"texture": SAND_DOLLAR},
+	{
+		"texture": SAND_DOLLAR,
+		"offset": Vector2(0.025, 0.05),
+		"size": 0.36,
+	},
+	{"texture": LONG_THIN},
+	{
+		"texture": LONG_THIN,
+		"offset": Vector2(0.35, -0.33),
+		"size": 0.28,
+	},
+]
+## Paintings read only big enough to see, so they never come as small as an
+## eye can.
+const PAINTING_RADIUS := Vector2(44.0, 66.0)
+
 const RING_GAP := 7.0
 const PLAYING_COLOR := UiTokens.HUD_TEXT
 const SILENT_COLOR := Color(UiTokens.SIGIL, 0.22)
@@ -313,6 +337,13 @@ func _make_eye(index: int, extent: Vector2) -> FloatyEye:
 	eye.name = "Eye%d" % index
 	eye.position = Vector2(randf_range(0.15, 0.85), randf_range(0.15, 0.85)) * extent
 	eye.radius = randf_range(26.0, 62.0)
+	if index < PAINTINGS.size():
+		var painting: Dictionary = PAINTINGS[index]
+		eye.painting = painting["texture"]
+		eye.painted_eye = painting.has("offset")
+		eye.eye_offset = painting.get("offset", Vector2.ZERO)
+		eye.eye_size = painting.get("size", 0.4)
+		eye.radius = randf_range(PAINTING_RADIUS.x, PAINTING_RADIUS.y)
 	eye.iris_color = ArtPalette.dye(index)
 	# Bigger eyes shove more water and are harder for it to shove back.
 	eye.wake_radius = eye.radius * 2.2
