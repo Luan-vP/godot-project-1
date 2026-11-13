@@ -34,6 +34,7 @@ const CENTRE_PULL := 0.1
 
 const SAND_DOLLAR := preload("res://features/levels/secret_eyes/paintings/sand_dollar.png")
 const LONG_THIN := preload("res://features/levels/secret_eyes/paintings/long_thin.png")
+const RING_CROSS := preload("res://features/levels/secret_eyes/paintings/ring_cross.png")
 
 ## Hand-painted bodies tried in place of some of the eyes, taken by the first
 ## eyes in turn: each painting bare, then wearing an eye. [code]offset[/code]
@@ -50,6 +51,12 @@ const PAINTINGS: Array[Dictionary] = [
 		"texture": LONG_THIN,
 		"offset": Vector2(0.35, -0.33),
 		"size": 0.28,
+	},
+	{"texture": RING_CROSS},
+	{
+		"texture": RING_CROSS,
+		"offset": Vector2(-0.056, -0.174),
+		"size": 0.26,
 	},
 ]
 ## Paintings read only big enough to see, so they never come as small as an

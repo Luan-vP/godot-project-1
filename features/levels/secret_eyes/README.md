@@ -13,10 +13,10 @@ worth keeping.
 
 ## Painted eyes
 
-Four of the seven eyes are trying out hand-painted bodies
+Six of the seven eyes are trying out hand-painted bodies
 ([`paintings/`](paintings/)) in place of the procedural eye: the sand dollar
-(its star cut out, so the tank shows through) and the long thin one, each once
-bare and once wearing an eye. A worn eye still looks about and blinks. Which
+(its star cut out, so the tank shows through), the long thin one and the ring
+with its crossed stem, each once bare and once wearing an eye. A worn eye still looks about and blinks. Which
 eyes get which painting, and where the eye sits on each, is `PAINTINGS` in
 `eye_band_demo.gd`; the bodies themselves are `FloatyEye.painting`.
 
