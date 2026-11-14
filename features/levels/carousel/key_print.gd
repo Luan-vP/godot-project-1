@@ -34,7 +34,7 @@ const SCALE_MAX_HEIGHT := 0.14
 const SCALE_HEIGHT := 0.3
 ## Seconds a scale's name hovers over the water before it is printed into it,
 ## and the seconds it takes to fade in, and out as it is printed.
-const SCALE_HOVER := 1.5
+const SCALE_HOVER := 4.0
 const HOVER_FADE := 0.25
 ## Over the levels, under [KeyScaleButtons].
 const HOVER_LAYER := 85

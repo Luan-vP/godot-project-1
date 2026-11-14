@@ -546,6 +546,7 @@ func _build_synths() -> void:
 		var synth := Synth.new()
 		synth.patch = _patch_for(part)
 		synth.polyphony = PATCHES[part][4]
+		synth.bus = AudioManager.BAND_BUS
 		_synths[part] = synth
 		add_child(synth)
 
@@ -570,6 +571,7 @@ func _patch_for(part: String) -> SynthPatch:
 ## off the [StepClock] instead of being mixed into a loop up front.
 func _build_drum_kit() -> void:
 	_kit = DrumKit.new()
+	_kit.bus = AudioManager.BAND_BUS
 	add_child(_kit)
 	for part in DRUM_PARTS:
 		_drum_patterns[part] = StepPattern.parse(_song.drums.get(part, {}))

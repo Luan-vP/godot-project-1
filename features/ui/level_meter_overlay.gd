@@ -5,7 +5,8 @@ extends CanvasLayer
 ## a lamp that lights on an over and fades, and the session's loudest peak and
 ## overs as text.
 ##
-## F8 toggles it; [DemoMenu] starts it showing when launched with
+## A [MixPanel] under it sets the band, solo and rhythm volumes and
+## collapses. F8 toggles it; [DemoMenu] starts it showing when launched with
 ## [code]--meter[/code], which is the way to have it on a Deck, where there is
 ## no F8: [code]scripts/deck.sh run NAME --meter[/code].
 
@@ -41,6 +42,13 @@ func _ready() -> void:
 	_panel.offset_bottom = 16.0 + PANEL_SIZE.y
 	_panel.draw.connect(_draw_panel)
 	add_child(_panel)
+	var mix := MixPanel.new()
+	mix.name = "MixPanel"
+	mix.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	mix.offset_left = -MixPanel.WIDTH - 16.0
+	mix.offset_right = -16.0
+	mix.offset_top = 16.0 + PANEL_SIZE.y + 8.0
+	add_child(mix)
 
 
 func _process(delta: float) -> void:

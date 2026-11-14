@@ -188,3 +188,30 @@ func test_flock_members_row_on_their_flocks_pulse() -> void:
 	_sim.step(0.1, 1.0)
 	for bird in flock.members:
 		assert_gt(bird.stroke, 0.0, "On the pulse everybody rows")
+
+
+func test_ensure_flock_forms_a_flock_of_one_when_nothing_plays_the_rhythm() -> void:
+	for i in 6:
+		_bird_at(Vector2(100.0 + i * 120.0, 300.0))
+	var flock := _sim.ensure_flock(6)
+	assert_not_null(flock)
+	assert_eq(flock.pulses, 6)
+	assert_eq(flock.size(), 1)
+	_sim.update_membership(0.1)
+	assert_true(_sim.flocks.has(flock), "A flock of one the player summoned stays")
+	assert_eq(_sim.ensure_flock(6), flock, "It is not summoned twice")
+
+
+func test_ensure_flock_leaves_a_flock_already_playing_it() -> void:
+	var flock := _flock_at(Vector2(500, 300), 6)
+	assert_eq(_sim.ensure_flock(6), flock)
+	assert_eq(_sim.flocks.size(), 1)
+
+
+func test_ensure_flock_makes_room_when_every_slot_is_taken() -> void:
+	for i in FlockSim.MAX_FLOCKS:
+		_flock_at(Vector2(100.0 + i * 150.0, 100.0), 3 if i % 2 == 0 else 4, 4)
+	_bird_at(Vector2(500, 300))
+	var flock := _sim.ensure_flock(6)
+	assert_not_null(flock)
+	assert_lte(_sim.flocks.size(), FlockSim.MAX_FLOCKS)

@@ -289,6 +289,44 @@ func leave(bird: Bird) -> void:
 	bird.gather = 0.0
 
 
+## Make sure a flock plays [param pulses]. With none on screen, the loner
+## nearest the middle of the bounds (else the bird nearest it from any flock
+## with company) forms a flock of one to play it, and stays one until others
+## join; if every flock slot is taken, the smallest flock gives way. Returns
+## the flock, or null with no birds.
+func ensure_flock(pulses: int) -> Flock:
+	for flock in flocks:
+		if flock.pulses == pulses:
+			return flock
+	var middle := bounds.get_center()
+	var pick: Bird = null
+	var pick_cost := INF
+	for bird in birds:
+		if bird.flock != null and bird.flock.size() < 3:
+			continue
+		var cost := bird.position.distance_squared_to(middle)
+		if bird.flock != null:
+			cost += 1.0e9
+		if cost < pick_cost:
+			pick = bird
+			pick_cost = cost
+	if pick == null:
+		return null
+	if flocks.size() >= MAX_FLOCKS:
+		var smallest: Flock = flocks[0]
+		for flock in flocks:
+			if flock.size() < smallest.size() and flock != pick.flock:
+				smallest = flock
+		for bird: Bird in smallest.members.duplicate():
+			leave(bird)
+		_remove_flock(smallest)
+	var members: Array[Bird] = [pick]
+	var flock := make_flock(members, pulses)
+	flock.summoned = true
+	pick.stunned = 0.0
+	return flock
+
+
 ## Burst every flock not playing [param survivor] apart: members are thrown
 ## clear of their flock's centre, go silent, and cannot join anything for
 ## [constant STUN_SECONDS]. Returns how many birds were scattered.
@@ -506,7 +544,9 @@ func update_membership(delta: float) -> void:
 		_refresh_centroid(flock)
 	_shed(delta)
 	for flock: Flock in flocks.duplicate():
-		if flock.size() < 2:
+		if flock.summoned and flock.size() > 1:
+			flock.summoned = false
+		if flock.size() < 2 and not flock.summoned:
 			for bird: Bird in flock.members.duplicate():
 				leave(bird)
 			_remove_flock(flock)
@@ -525,6 +565,8 @@ func _shed(delta: float) -> void:
 		for bird: Bird in flock.members.duplicate():
 			if bird.position.distance_to(flock.centroid) > reach:
 				leave(bird)
+			elif flock.summoned:
+				continue
 			elif rng.randf() < restless:
 				leave(bird)
 				bird.stunned = RESTLESS_STUN_SECONDS

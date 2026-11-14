@@ -210,6 +210,9 @@ func _process(delta: float) -> void:
 		_scatter(charge.winner)
 
 	sim.bounds = get_viewport_rect()
+	# A rhythm played cleanly always has a creature playing it.
+	if reading.unambiguous and reading.winner > 0:
+		sim.ensure_flock(reading.winner)
 	var step := minf(delta, 0.05)
 	sim.step(step, beats)
 	_stir(step)
@@ -353,7 +356,7 @@ func _build_audio() -> void:
 	_crash_stream = DrumSynth.one_shot(DrumSynth.Hit.OPEN_HAT, rate)
 	for i in 6:
 		var player := AudioStreamPlayer.new()
-		player.bus = AudioManager.MUSIC_BUS
+		player.bus = AudioManager.RHYTHM_BUS
 		add_child(player)
 		_players.append(player)
 	# Plucks: quick attack, a short ring. Levels balance sine against the
@@ -373,6 +376,7 @@ func _build_audio() -> void:
 		var synth := Synth.new()
 		synth.patch = patch
 		synth.polyphony = 12
+		synth.bus = AudioManager.RHYTHM_BUS
 		_synths[waveform] = synth
 		add_child(synth)
 
