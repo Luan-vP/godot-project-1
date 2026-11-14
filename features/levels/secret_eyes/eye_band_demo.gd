@@ -62,6 +62,11 @@ const PAINTINGS: Array[Dictionary] = [
 ## Paintings read only big enough to see, so they never come as small as an
 ## eye can.
 const PAINTING_RADIUS := Vector2(44.0, 66.0)
+## How much bigger a painting is drawn than [constant PAINTING_RADIUS], so
+## paintings are larger than the plain eyes. Only the look and the walls see
+## it: how a painting swims (drag, wake) is still worked out from its unscaled
+## radius, since at this size the eyes' rules would give it negative drag.
+const PAINTING_SCALE := 2.5
 
 const RING_GAP := 7.0
 const PLAYING_COLOR := UiTokens.HUD_TEXT
@@ -344,19 +349,21 @@ func _make_eye(index: int, extent: Vector2) -> FloatyEye:
 	eye.name = "Eye%d" % index
 	eye.position = Vector2(randf_range(0.15, 0.85), randf_range(0.15, 0.85)) * extent
 	eye.radius = randf_range(26.0, 62.0)
+	var swim_radius := eye.radius
 	if index < PAINTINGS.size():
 		var painting: Dictionary = PAINTINGS[index]
 		eye.painting = painting["texture"]
 		eye.painted_eye = painting.has("offset")
 		eye.eye_offset = painting.get("offset", Vector2.ZERO)
 		eye.eye_size = painting.get("size", 0.4)
-		eye.radius = randf_range(PAINTING_RADIUS.x, PAINTING_RADIUS.y)
+		swim_radius = randf_range(PAINTING_RADIUS.x, PAINTING_RADIUS.y)
+		eye.radius = swim_radius * PAINTING_SCALE
 	eye.iris_color = ArtPalette.dye(index)
 	# Bigger eyes shove more water and are harder for it to shove back.
-	eye.wake_radius = eye.radius * 2.2
-	eye.wake_strength = 5.0 + eye.radius * 0.07
-	eye.drag = 4.4 - eye.radius * 0.03
+	eye.wake_radius = swim_radius * 2.2
+	eye.wake_strength = 5.0 + swim_radius * 0.07
+	eye.drag = 4.4 - swim_radius * 0.03
 	eye.paint_amount = 0.55
 	eye.paint_color = eye.iris_color.lerp(ArtPalette.WASH, 0.35)
-	eye.paint_radius = eye.radius * 1.4
+	eye.paint_radius = swim_radius * 1.4
 	return eye
