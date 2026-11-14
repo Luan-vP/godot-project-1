@@ -217,10 +217,15 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 func _physics_process(delta: float) -> void:
 	var centre := _simulation.get_world_rect().get_center()
+	var eyes: Array[FloatyEye] = []
 	for child in get_children():
 		var eye := child as FloatyEye
 		if eye != null:
 			eye.velocity += (centre - eye.global_position) * CENTRE_PULL * delta
+			eyes.append(eye)
+	# Paintings bump along their painted edges and eyes squish against
+	# whatever they meet, rather than passing through one another.
+	BodyCollisions.resolve(eyes)
 
 
 func _unhandled_input(event: InputEvent) -> void:

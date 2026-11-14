@@ -14,6 +14,10 @@ uniform float iris_radius : hint_range(0.05, 0.5) = 0.24;
 uniform float pupil_radius : hint_range(0.02, 0.4) = 0.11;
 uniform float lid : hint_range(0.0, 1.0) = 0.0;
 uniform float squash : hint_range(0.2, 2.0) = 1.0;
+// A dent where something presses on the eye: the direction it comes from and
+// how deep, in UV units. The body flattens there and bulges out to the sides.
+uniform vec2 dent_dir = vec2(1.0, 0.0);
+uniform float dent : hint_range(0.0, 0.3) = 0.0;
 uniform float wobble_amount : hint_range(0.0, 0.2) = 0.035;
 uniform float wobble_speed : hint_range(0.0, 8.0) = 1.3;
 uniform float seed = 0.0;
@@ -44,13 +48,24 @@ void fragment() {
 	// Breathing outline — the body is jelly, not a circle.
 	float breathe = value_noise(vec2(angle * 1.6, TIME * wobble_speed + seed) * 1.7) - 0.5;
 	float body_radius = 0.42 + breathe * wobble_amount;
+	// The iris and the lids keep to the undented body, so a dent squeezes the
+	// outline without warping the eye inside it.
+	float eye_radius = body_radius;
+	if (dent > 0.0) {
+		float facing = dot(centred / max(distance_out, 0.0001), normalize(dent_dir));
+		float wall = (body_radius - dent) / max(facing, 0.0001);
+		body_radius += dent * 0.3 * (1.0 - facing * facing);
+		if (facing > 0.0) {
+			body_radius = min(body_radius, wall);
+		}
+	}
 
 	float body = smoothstep(body_radius, body_radius - edge_softness, distance_out);
 	if (body <= 0.001) {
 		discard;
 	}
 
-	vec2 iris_centre = clamp(gaze, vec2(-1.0), vec2(1.0)) * (body_radius - iris_radius) * 0.85;
+	vec2 iris_centre = clamp(gaze, vec2(-1.0), vec2(1.0)) * (eye_radius - iris_radius) * 0.85;
 	float iris_distance = length(centred - iris_centre);
 	float iris = smoothstep(iris_radius, iris_radius - edge_softness, iris_distance);
 	float pupil = smoothstep(pupil_radius, pupil_radius - edge_softness, iris_distance);
@@ -72,7 +87,7 @@ void fragment() {
 	colour = mix(colour, vec3(1.0), glint * 0.72);
 
 	// Lids close from both sides, as a fraction of the body height.
-	float lid_edge = (1.0 - lid) * body_radius;
+	float lid_edge = (1.0 - lid) * eye_radius;
 	float lidded = smoothstep(lid_edge, lid_edge - edge_softness, abs(centred.y));
 	float alpha = body * mix(1.0, lidded, step(0.001, lid));
 

@@ -20,6 +20,15 @@ with its crossed stem, each once bare and once wearing an eye. A worn eye still 
 eyes get which painting, and where the eye sits on each, is `PAINTINGS` in
 `eye_band_demo.gd`; the bodies themselves are `FloatyEye.painting`.
 
+Bodies bump into each other instead of passing through. A painting collides
+along its real painted edge ([`BodyOutline`](body_outline.gd), read from the
+cut-out's transparency, so the sand dollar's open star is water another body
+can sit in). A plain eye is a soft circle: it gives way only part of the
+overlap each step and dents where it is pressed, flattening on that side and
+bulging at the others, then springs back with a wobble. The pushing apart is
+[`BodyCollisions`](body_collisions.gd), run by the level every physics step.
+The tank walls still see every body as its circle.
+
 ## Controls
 
 Drag to stir and paint, WASD to tilt, `Space` to jog, `C` to recalibrate,
@@ -82,6 +91,8 @@ Kept together because they only make sense as a set:
 | `eye_band_songs.gd` | `EyeBandSongs` — the four songs the band picks from. |
 | `eye_band_demo.gd` | The level: the eyes over the host's tank, input, an `EyeBand` driving the host's band, rings round the eyes and a parts readout. |
 | `floaty_eye.gd` | `FloatyEye` — a [`FluidBody`](../../fluid/fluid_body.gd) with a face. |
+| `body_outline.gd` | `BodyOutline` — the edge a body collides with: a circle, or a painting's outline as a coarse signed-distance grid. |
+| `body_collisions.gd` | `BodyCollisions` — pushes touching bodies apart along their outlines and dents the plain eyes. |
 | `paintings/` | Hand-painted cut-outs some eyes float as instead (see [Painted eyes](#painted-eyes)). |
 | `eye.gdshader` | The procedural eye look: squash-along-motion and gaze read off the fluid. |
 | `eye_band_demo.tscn` | The single-node scene entry point. |

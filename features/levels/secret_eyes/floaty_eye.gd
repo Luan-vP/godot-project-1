@@ -57,6 +57,14 @@ const BLINK_DURATION := 0.16
 ## Random range between blinks, in seconds.
 @export var blink_interval: Vector2 = Vector2(2.4, 7.0)
 
+@export_group("Squish")
+## How stiffly a plain eye's dent springs back, in 1/second^2.
+@export var squish_stiffness: float = 420.0
+## How quickly the dent's wobble dies away, in 1/second.
+@export var squish_damping: float = 14.0
+## The deepest a dent goes, as a share of [member radius].
+@export_range(0.0, 0.8, 0.01) var max_dent: float = 0.45
+
 var _pivot: Node2D
 var _visual: ColorRect
 ## The painted body, when there is a [member painting].
@@ -66,6 +74,15 @@ var _gaze: Vector2 = Vector2.ZERO
 var _wander_phase: float = 0.0
 var _blink_countdown: float = 0.0
 var _blink_phase: float = -1.0
+var _outline: BodyOutline
+## The hardest press this step, from [method press]: where from (world) and
+## how deep (pixels).
+var _press_direction := Vector2.ZERO
+var _press_depth := 0.0
+## The dent drawn, sprung towards the press so it wobbles back out.
+var _dent := 0.0
+var _dent_speed := 0.0
+var _dent_direction := Vector2.RIGHT
 
 
 func _ready() -> void:
@@ -87,11 +104,56 @@ func _physics_process(delta: float) -> void:
 	_face_motion(delta)
 	_update_gaze(delta)
 	_update_blink(delta)
+	_update_squish(delta)
 
 
 ## Interrupt whatever the eye was doing and make it blink now.
 func blink() -> void:
 	_blink_phase = 0.0
+
+
+## The edge other bodies collide with: the painting's own outline, or a
+## circle of [member radius] for a plain eye.
+func outline() -> BodyOutline:
+	if _outline == null:
+		_outline = (
+			BodyOutline.of_texture(painting) if painting != null else BodyOutline.circle(radius)
+		)
+	return _outline
+
+
+## Where [method outline] sits in the world: the painting's own transform,
+## turned and squashed with it, or the eye's turned centre.
+func outline_transform() -> Transform2D:
+	if _sprite != null:
+		return _sprite.get_global_transform()
+	if _pivot != null:
+		return _pivot.get_global_transform()
+	return get_global_transform()
+
+
+## How hard this body is to shove, by its size.
+func mass() -> float:
+	return radius * radius
+
+
+## Whether this body dents when pressed: only a plain eye. Paintings are firm.
+func is_squishy() -> bool:
+	return painting == null
+
+
+## Pressed from [param direction] (world, pointing from the eye's centre
+## towards what touches it) by [param depth] pixels this step. A plain eye
+## dents there; the deepest press of the step wins.
+func press(direction: Vector2, depth: float) -> void:
+	if depth > _press_depth:
+		_press_depth = depth
+		_press_direction = direction
+
+
+## How deep the drawn dent is now, in pixels.
+func dent_depth() -> float:
+	return _dent
 
 
 ## Whether an eye is drawn at all: always on a plain eye, and on a painting
@@ -165,6 +227,25 @@ func _update_gaze(delta: float) -> void:
 	# pivot's frame or the eye would appear to roll with it.
 	_gaze = _gaze.lerp(wanted.rotated(-_pivot.rotation), minf(delta * 5.0, 1.0))
 	_material.set_shader_parameter("gaze", _gaze)
+
+
+## Spring the dent towards this step's press, so it gives where pressed and
+## jiggles back when let go.
+func _update_squish(delta: float) -> void:
+	if not is_squishy():
+		return
+	var target := minf(_press_depth, radius * max_dent)
+	if _press_depth > 0.0:
+		_dent_direction = _press_direction
+	_dent_speed += ((target - _dent) * squish_stiffness - _dent_speed * squish_damping) * delta
+	_dent = clampf(_dent + _dent_speed * delta, 0.0, radius * max_dent)
+	_press_depth = 0.0
+	if _pivot == null:
+		return
+	# In the shader's frame: turned with the pivot, and in units of the sprite,
+	# where the body's radius is 0.42.
+	_material.set_shader_parameter("dent_dir", _dent_direction.rotated(-_pivot.rotation))
+	_material.set_shader_parameter("dent", _dent / radius * BODY_EXTENT * 0.5)
 
 
 func _update_blink(delta: float) -> void:
