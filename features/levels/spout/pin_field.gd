@@ -445,6 +445,7 @@ func _make_synth(attack: float, release: float, level: float) -> Synth:
 	var synth := Synth.new()
 	synth.patch = patch
 	synth.polyphony = voices
+	synth.bus = AudioManager.SOLO_BUS
 	add_child(synth)
 	return synth
 

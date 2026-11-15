@@ -19,6 +19,11 @@ var next_voice: int = 0
 ## Visual kick on a pulse, decaying to 0.
 var flash: float = 0.0
 
+## A flock of one called up by [method FlockSim.ensure_flock] because the
+## player is playing its rhythm and nothing on screen was. It is let stay a
+## flock, and kept from shedding its one member, until others join it.
+var summoned := false
+
 ## Index of the last pulse the flock rowed on, so each pulse strokes once.
 var last_pulse: int = -1
 

@@ -57,6 +57,19 @@ const MUSIC_BUS := "Music"
 const SFX_BUS := "SFX"
 
 const _ALL_BUSES: Array[String] = [MASTER_BUS, MUSIC_BUS, SFX_BUS]
+
+## Sub-buses of Music, made in code at startup, one per kind of part so the
+## mix can be set by ear (see [method set_mix_db]): the band's synths and
+## drums, the spout's duck solo, and the boids' rhythm voices. Music's chorus
+## and reverb still apply to all three.
+const BAND_BUS := "Band"
+const SOLO_BUS := "Solo"
+const RHYTHM_BUS := "Rhythm"
+## Each mix bus's default level in dB. The solo and rhythm sit well above the
+## band, which gives way under them.
+const MIX_DEFAULT_DB := {BAND_BUS: -6.0, SOLO_BUS: 9.0, RHYTHM_BUS: 9.0}
+const MIX_MIN_DB := -36.0
+const MIX_MAX_DB := 18.0
 const _SETTINGS_SECTION := "audio"
 const _FOCUS_SETTING_KEY := "mute_on_focus_loss"
 
@@ -122,6 +135,7 @@ func _ready() -> void:
 	_loop_clock = MusicClock.new()
 	_loop_scheduler = LoopLayerScheduler.new(_loop_clock)
 
+	_build_mix_buses()
 	_load_settings()
 
 	_master_capture = _find_master_capture()
@@ -507,3 +521,37 @@ func _volume_key(bus_name: String) -> String:
 
 func _mute_key(bus_name: String) -> String:
 	return "%s_muted" % bus_name.to_lower()
+
+
+## Make the [constant BAND_BUS], [constant SOLO_BUS] and [constant RHYTHM_BUS]
+## under Music if they are not already there, at their default levels.
+func _build_mix_buses() -> void:
+	for bus_name: String in MIX_DEFAULT_DB:
+		var index := AudioServer.get_bus_index(bus_name)
+		if index == -1:
+			AudioServer.add_bus()
+			index = AudioServer.bus_count - 1
+			AudioServer.set_bus_name(index, bus_name)
+			AudioServer.set_bus_send(index, MUSIC_BUS)
+		var key := "mix_db_" + bus_name.to_lower()
+		var db: float = SaveManager.get_value(_SETTINGS_SECTION, key, MIX_DEFAULT_DB[bus_name])
+		AudioServer.set_bus_volume_db(index, clampf(db, MIX_MIN_DB, MIX_MAX_DB))
+
+
+## Set a mix bus ([constant BAND_BUS], [constant SOLO_BUS] or
+## [constant RHYTHM_BUS]) to [param db], within [constant MIX_MIN_DB] and
+## [constant MIX_MAX_DB], and keep the choice.
+func set_mix_db(bus_name: String, db: float) -> void:
+	var index := AudioServer.get_bus_index(bus_name)
+	if index == -1 or not MIX_DEFAULT_DB.has(bus_name):
+		push_warning("AudioManager: unknown mix bus '%s'" % bus_name)
+		return
+	var clamped := clampf(db, MIX_MIN_DB, MIX_MAX_DB)
+	AudioServer.set_bus_volume_db(index, clamped)
+	SaveManager.set_value(_SETTINGS_SECTION, "mix_db_" + bus_name.to_lower(), clamped)
+
+
+## A mix bus's level in dB, or 0 for a bus that is not there.
+func get_mix_db(bus_name: String) -> float:
+	var index := AudioServer.get_bus_index(bus_name)
+	return AudioServer.get_bus_volume_db(index) if index != -1 else 0.0
