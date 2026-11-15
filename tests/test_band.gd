@@ -138,3 +138,16 @@ func test_next_song_picks_another_song() -> void:
 		assert_ne(_band.song_title(), before, "Never the same song again")
 		titles[_band.song_title()] = true
 	assert_gt(titles.size(), 1)
+
+
+func test_songs_cycle_every_three_and_a_half_minutes() -> void:
+	assert_eq(Band.SONG_SECONDS, 210.0)
+	_start(EyeBandSongs.glass_tide())
+	_band._on_step(0, 0, 0)
+	var timer: Timer = _band._song_timer
+	assert_eq(timer.wait_time, Band.SONG_SECONDS)
+	assert_false(timer.is_stopped())
+	timer.timeout.emit()
+	assert_true(_band.has_next_song(), "The timer asks for another song")
+	_band._on_step(1, 1, 0)
+	assert_ne(_band.song_title(), "Glass Tide")
