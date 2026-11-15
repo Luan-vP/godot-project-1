@@ -165,8 +165,8 @@ mkdir -p "$EXPORT_DIR"
 "$GODOT_BIN" --headless --path "$ROOT" "$export_mode" "$PRESET" "$EXPORT_DIR/$PROJECT_NAME.ipa" \
 	>"$export_log" 2>&1 || true
 # Godot's exit code is not reliable here; judge the export by what it wrote.
-# The leak reports at exit are noise.
-if grep "ERROR" "$export_log" | grep -qv "leaked\|still in use" \
+# The leak and allocator reports at exit are noise.
+if grep "ERROR" "$export_log" | grep -qv "leaked\|still in use\|Pages in use" \
 	|| [ ! -d "$EXPORT_DIR/$PROJECT_NAME.xcodeproj" ]; then
 	grep -A1 "ERROR" "$export_log" >&2 || true
 	echo "Export failed; full log in ${export_log#"$ROOT"/}" >&2
