@@ -16,7 +16,7 @@ extends RefCounted
 ## tempo and works the same whether the player taps 3 or 6 times a bar.
 
 ## Beats of unbroken, unambiguous playing to fill the charge from empty.
-var fill_beats: float = 16.0
+var fill_beats: float = 8.0
 
 ## Beats for a full charge to drain away once the playing stops reading clearly.
 var drain_beats: float = 8.0
