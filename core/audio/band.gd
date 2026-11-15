@@ -25,7 +25,8 @@ extends Node
 ## of them (or the corner buttons, [KeyScaleButtons]) moved it.
 ##
 ## [method next_song] moves on to another song without stopping the clock: a
-## shake of the device asks for it.
+## shake of the device asks for it, and so does a timer, every
+## [constant SONG_SECONDS], so a long session cycles through the songs.
 
 ## Emitted once the band has chosen what to play.
 signal song_started(title: String)
@@ -45,6 +46,10 @@ signal stepped(bar: int, step_in_bar: int)
 ## What [method pending] reports for a part: nothing due, due to start next
 ## bar, or due to stop next bar.
 enum Pending { NONE, STARTING, STOPPING }
+
+## How long a song plays before the band moves on to another: three and a half
+## minutes.
+const SONG_SECONDS := 210.0
 
 ## Heaviest first: [EyeBand] matches eyes to these by size.
 const PARTS: Array[String] = ["beat", "bass", "pads", "melody", "arp", "ghost", "shimmer"]
@@ -120,6 +125,8 @@ var _scale_name := ""
 var _song_from_bar := 0
 ## The song [method next_song] asked for, swapped in on the next bar line.
 var _next_song: Song
+## Fires every [constant SONG_SECONDS] to move on to another song.
+var _song_timer: Timer
 var _rng: RandomNumberGenerator
 
 
@@ -171,6 +178,11 @@ func start(song: Song = null, rng: RandomNumberGenerator = null) -> void:
 	_clock.step.connect(_on_step)
 	add_child(_clock)
 	AudioManager.get_level_meter().set_note("song", _song.title)
+	_song_timer = Timer.new()
+	_song_timer.wait_time = SONG_SECONDS
+	_song_timer.timeout.connect(next_song)
+	add_child(_song_timer)
+	_song_timer.start()
 	song_started.emit(_song.title)
 
 
@@ -188,6 +200,8 @@ func next_song(song: Song = null) -> void:
 				others.append(candidate)
 		song = others[_rng.randi() % others.size()] if not others.is_empty() else _song
 	_next_song = song
+	if _song_timer != null:
+		_song_timer.start()
 
 
 ## Whether [method next_song] has a song waiting for the next bar.
