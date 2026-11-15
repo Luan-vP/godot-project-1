@@ -200,7 +200,7 @@ charge builds.
 | Absolute fit threshold | tune |
 | Winner margin over second best | tune |
 | Minimum taps in window | `min(pulses)` |
-| Charge fill time | ~4 bars of consistent playing |
+| Charge fill time | ~2 bars of consistent playing |
 | Charge drain rate / reset-on-change | tune |
 | Cooldown after scatter | ~8 bars |
 | Attraction weight range | tune |
