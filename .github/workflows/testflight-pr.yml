@@ -1,0 +1,98 @@
+name: TestFlight for a pull request
+
+# Comment `/testflight` on a pull request to build its head for iOS and send
+# it to TestFlight, to review it on the phone before merging. The Deck plays
+# pull requests through its own picker; this is the phone's way in.
+#
+# Only the repository owner's comment starts it: the build signs with the
+# distribution certificate and uploads with the App Store Connect key, so
+# it never runs for anyone else, nor for a branch from a fork. iOS only for
+# now; Play's internal track still takes main alone (deploy.yml).
+#
+# GitHub runs comment-triggered workflows from the default branch, so this
+# file only answers once it is on main.
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  resolve:
+    name: Find the pull request's head
+    if: >-
+      github.event.issue.pull_request &&
+      github.event.comment.author_association == 'OWNER' &&
+      startsWith(github.event.comment.body, '/testflight')
+    runs-on: ubuntu-24.04
+    outputs:
+      sha: ${{ steps.pr.outputs.sha }}
+    steps:
+      - name: Read the pull request
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              ...context.repo,
+              pull_number: context.issue.number,
+            });
+            const here = `${context.repo.owner}/${context.repo.repo}`;
+            if (pr.head.repo === null || pr.head.repo.full_name !== here) {
+              core.setFailed(`Only branches of ${here} go to TestFlight, not forks.`);
+              return;
+            }
+            if (pr.state !== 'open') {
+              core.setFailed('The pull request is closed.');
+              return;
+            }
+            core.setOutput('sha', pr.head.sha);
+            await github.rest.reactions.createForIssueComment({
+              ...context.repo,
+              comment_id: context.payload.comment.id,
+              content: 'rocket',
+            });
+            const run = `${context.serverUrl}/${here}/actions/runs/${context.runId}`;
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: context.issue.number,
+              body: `Building \`${pr.head.sha.slice(0, 7)}\` for TestFlight ([run](${run})).`,
+            });
+
+  testflight:
+    needs: resolve
+    # One build per pull request at a time. A newer request waits rather
+    # than cutting an upload short.
+    concurrency:
+      group: testflight-pr-${{ github.event.issue.number }}
+      cancel-in-progress: false
+    uses: ./.github/workflows/ios-testflight.yml
+    with:
+      ref: ${{ needs.resolve.outputs.sha }}
+    secrets: inherit
+
+  report:
+    name: Report back on the pull request
+    needs: [resolve, testflight]
+    if: always() && needs.resolve.result == 'success'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/github-script@v7
+        env:
+          RESULT: ${{ needs.testflight.result }}
+          SHA: ${{ needs.resolve.outputs.sha }}
+        with:
+          script: |
+            const short = process.env.SHA.slice(0, 7);
+            const run = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = process.env.RESULT === 'success'
+              ? `\`${short}\` is uploaded. TestFlight offers it once Apple has processed it, usually within a few minutes.`
+              : `The TestFlight build of \`${short}\` did not make it (${process.env.RESULT}). See the [run](${run}).`;
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: context.issue.number,
+              body,
+            });

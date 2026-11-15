@@ -10,7 +10,8 @@ extends Node
 ## finger takes, and compares the peak speed in the tank's CPU mirror before
 ## and after: a solve that is not running reads zero both times.
 ##
-## Started by [DemoMenu] from the command line:
+## Started from the command line, by the Deck's demo menu or, in every other
+## build, by [GameHost]; either is the host it opens scenes through:
 ## [codeblock lang=text]
 ## --probe            every demo in the menu
 ## --probe=eye_band,waterboatmen
@@ -19,7 +20,7 @@ extends Node
 ## with a PNG per demo beside it. On an iPhone that folder is the app's
 ## Documents directory; see "Building for iPhone" in the README.
 
-## Emitted once every demo has been visited and the menu is back.
+## Emitted once every demo has been visited.
 signal finished(report: Array[Dictionary])
 
 const OUTPUT_DIR := "user://probe"
@@ -33,12 +34,14 @@ const SETTLE_SECONDS := 0.5
 
 var demos: Array[Dictionary] = []
 
-var _menu: DemoMenu
+## Whatever opens the scenes: anything with [code]open_demo(path)[/code],
+## [code]close_demo()[/code] and [code]get_demo()[/code].
+var _host: Node
 var _report: Array[Dictionary] = []
 
 
-func _init(menu: DemoMenu = null, which: Array[Dictionary] = []) -> void:
-	_menu = menu
+func _init(host: Node = null, which: Array[Dictionary] = []) -> void:
+	_host = host
 	demos = which
 
 
@@ -90,18 +93,20 @@ static func peak_speed(field: FluidField) -> float:
 func _run() -> void:
 	await _capture_menu()
 	for demo in demos:
-		_menu.open_demo(demo["path"])
+		_host.open_demo(demo["path"])
 		var result := await _probe(demo)
 		_report.append(result)
-		_menu.close_demo()
+		_host.close_demo()
 		await get_tree().process_frame
 	_log("probe: done")
 	finished.emit(_report)
 
 
+## The host's own screen, when it has one to show (the menu does).
 func _capture_menu() -> void:
 	await _wait(1.0)
-	_screenshot("menu")
+	if _host is Control:
+		_screenshot("menu")
 
 
 func _probe(demo: Dictionary) -> Dictionary:
@@ -156,7 +161,7 @@ func _probe(demo: Dictionary) -> Dictionary:
 ## The running demo's tank: the game's one tank, when the demo holds it. A
 ## demo just closed has let go of it, so it is never measured for the next.
 func _find_tank() -> FluidSimulation:
-	var demo := _menu.get_demo()
+	var demo: Node = _host.get_demo()
 	if demo == null:
 		return null
 	return Tank.held_within(demo)

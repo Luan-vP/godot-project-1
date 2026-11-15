@@ -39,12 +39,31 @@ Pressing play opens on Godot's boot splash, then the studio logo
 (`features/splash/`; any key or tap skips it), then straight into the fluid
 carousel (swipe along the bottom to change level; the key and scale
 buttons are top right in every level, and shaking a phone moves on to the
-next song). `Backspace` (or `Select`
-on a gamepad) leaves it for `features/ui/demo_menu/`, the list of every level
-and demo (also `scripts/run.sh menu`): pick one with a click, `Enter`, or a
-gamepad, and press `Backspace` from inside one to come back. `Backspace` or `Select` at the list itself quits, as does its Quit
-button. On a touch screen with no `Backspace`, a tappable `‹ menu` button in
-the corner takes its place.
+next song).
+
+### The Deck's build and everyone else's
+
+The game itself is the same on every platform. The developer tools are the
+Deck's alone (`core/platform/dev_tools.gd`):
+
+| | Steam Deck (and the editor, `scripts/run.sh`) | Phones, and every other export |
+| --- | --- | --- |
+| Exported from | the **Steam Deck** preset, which adds the `deck` feature tag | its own preset |
+| After the splash | the carousel, opened from the demo menu behind it | the carousel, opened by `features/game/game_host.gd`; no menu |
+| Demo menu, PR picker, Synth / Groove / Audio / Motion / Comfort | yes | left out of the export (`exclude_filter`) |
+| Debug overlay (meter and mix) | `F8`, `--meter`, or a three-finger hold | hidden; a three-finger hold for a moment shows it |
+| `--open=` / `--probe` | every demo in the menu | the carousel and its levels |
+
+On the Deck, `Backspace` (or `Select` on a gamepad) leaves the carousel for
+`features/ui/demo_menu/`, the list of every level and demo (also
+`scripts/run.sh menu`): pick one with a click, `Enter`, or a gamepad, and
+press `Backspace` from inside one to come back. `Backspace` or `Select` at
+the list itself quits, as does its Quit button. On a touch screen, a tappable
+`‹ menu` button in the corner takes its place.
+
+`tests/test_dev_tools.gd` checks the split: only the Deck's preset carries the
+tag, every other preset leaves the Deck-only files out, and nothing those
+builds ship names a class they leave out.
 
 Every menu takes its look from one design system in `features/ui/design/`:
 change a colour, font or size in `UiTokens` and every menu follows. See
@@ -214,16 +233,17 @@ so the desktop window is untouched:
 - **Mobile renderer.** Forward+ does not exist on iOS. The Mobile renderer
   still has a `RenderingDevice` on Metal, which is what the fluid's compute
   solve needs.
-- **Safe area.** `SafeArea` keeps the menu and demo labels clear of the
+- **Safe area.** `SafeArea` keeps the HUDs and labels clear of the
   Dynamic Island and the home indicator.
-- **Touch.** Touches arrive as the left mouse button, so tapping the menu,
-  and dragging to stir need no code of their own. The corner `‹ menu` is a button: it is the only way
-  back without a keyboard. Tilt and jog come from the real sensors —
-  `MotionInput` picks them — and the eye tank's corner readout says so.
+- **Touch.** Touches arrive as the left mouse button, so tapping buttons
+  and dragging to stir need no code of their own. Tilt and jog come from the
+  real sensors (`MotionInput` picks them), and the eye tank's corner readout
+  says so.
+- **No menu.** A phone build is the carousel alone (see *The Deck's build and
+  everyone else's*). Holding three fingers on the screen for a moment shows
+  the debug overlay; doing it again hides it.
 
-Keyboard-only controls go missing: the eye tank's `R`/`C`/`B`, and all of **Synth** and
-**Groove**, which cannot be played or started at all without a keyboard.
-**Audio** is all buttons and sliders and works.
+The eye tank's keyboard-only `R`/`C`/`B` go missing.
 
 ### Checking a device without holding it
 
@@ -297,7 +317,14 @@ and updates like any other app.
 Every push to `main` that passes CI goes to TestFlight and to Play's internal
 testing track (`.github/workflows/deploy.yml`, which runs the two scripts
 above with `--release`). *Actions > Deploy > Run workflow* sends the current
-`main` on demand. The build numbers are the time, as from a desk, so a CI
+`main` on demand.
+
+To review a pull request on the phone before merging it, comment
+`/testflight` on it (`.github/workflows/testflight-pr.yml`). Its head is
+built and uploaded to TestFlight, and the result is posted back on the pull
+request. Only the repository owner's comment starts it, and only for a branch
+of this repository, not a fork. It is iOS only for now. Both TestFlight paths
+share `.github/workflows/ios-testflight.yml`. The build numbers are the time, as from a desk, so a CI
 build and one from here never collide.
 
 It needs these repository secrets (*Settings > Secrets and variables >

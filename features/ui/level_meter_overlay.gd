@@ -6,9 +6,11 @@ extends CanvasLayer
 ## overs as text.
 ##
 ## A [MixPanel] under it sets the band, solo and rhythm volumes and
-## collapses. F8 toggles it; [DemoMenu] starts it showing when launched with
-## [code]--meter[/code], which is the way to have it on a Deck, where there is
-## no F8: [code]scripts/deck.sh run NAME --meter[/code].
+## collapses. It starts hidden, unless the game was launched with
+## [code]--meter[/code] (the way to have it on a Deck, where there is no F8:
+## [code]scripts/deck.sh run NAME --meter[/code]). F8 toggles it, and so does
+## holding three fingers on the screen for a moment ([TouchHold]), which is
+## the way on a phone.
 
 const TOGGLE_KEY := KEY_F8
 ## The scale, in dBFS. Above 0 is where the limiter is working.
@@ -24,6 +26,7 @@ const LAMP_SECONDS := 2.0
 const PANEL_SIZE := Vector2(240.0, 46.0)
 
 var _panel: Control
+var _touch_hold := TouchHold.new()
 var _peak_db := FLOOR_DB
 var _hold_db := FLOOR_DB
 var _hold_age := 0.0
@@ -52,6 +55,8 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if _touch_hold.poll(_now()):
+		visible = not visible
 	var meter := AudioManager.get_level_meter()
 	if meter == null:
 		return
@@ -75,6 +80,11 @@ func _input(event: InputEvent) -> void:
 	var key := event as InputEventKey
 	if key != null and key.pressed and not key.echo and key.keycode == TOGGLE_KEY:
 		visible = not visible
+	_touch_hold.track(event, _now())
+
+
+static func _now() -> float:
+	return Time.get_ticks_msec() / 1000.0
 
 
 ## Where [param db] sits along the meter, 0 at [constant FLOOR_DB] to 1 at
