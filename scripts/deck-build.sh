@@ -76,8 +76,16 @@ echo "Compiled $compiled compute shaders."
 
 stage="$(mktemp -d)"
 trap 'rm -rf "$stage"' EXIT
-echo "Exporting..."
-"$GODOT_BIN" --headless --path "$ROOT" --export-release "Linux/X11" "$stage/$NAME.x86_64" >"$stage/export.log" 2>&1 || {
+# The "Steam Deck" preset carries the `deck` feature tag, which is what gives
+# the build its demo menu and pull request picker (see core/platform/dev_tools.gd);
+# every other export is the game alone. A PR from before that preset existed
+# only has "Linux/X11", and its menu needed no tag.
+preset="Steam Deck"
+if ! grep -q '^name="Steam Deck"$' "$ROOT/export_presets.cfg"; then
+	preset="Linux/X11"
+fi
+echo "Exporting ($preset)..."
+"$GODOT_BIN" --headless --path "$ROOT" --export-release "$preset" "$stage/$NAME.x86_64" >"$stage/export.log" 2>&1 || {
 	tail -n 30 "$stage/export.log" >&2
 	exit 1
 }

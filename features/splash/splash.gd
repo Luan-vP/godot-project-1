@@ -9,11 +9,14 @@ extends Control
 ##
 ## This is [code]run/main_scene[/code], so it is the first thing the game
 ## shows after Godot's own boot splash. Any key, pad button or tap skips
-## straight to the carousel. It steps aside entirely when the game is started
-## for a job rather than a player ([method skips_for]): the pull request
-## picker's handoff, a probe, or a demo opened from the command line, all of
-## which the menu reads itself, so those land on the menu. So does a device
-## with no compute to run the tank, since the carousel needs one too.
+## straight to the carousel. Where the carousel opens from depends on the
+## build ([DevTools]): on the Deck, from the demo menu, which waits behind it;
+## everywhere else, from [GameHost], with no menu at all.
+##
+## It steps aside entirely when the game is started for a job rather than a
+## player ([method skips_for]): the pull request picker's handoff, a probe, or
+## a demo opened from the command line, all of which the menu (or the host)
+## reads itself. So does a device with no compute to run the tank.
 ##
 ## The tank is the game's one tank, the [code]Tank[/code] autoload, which
 ## the splash is usually the first to use and so starts. It does not fade to
@@ -80,7 +83,7 @@ const STRUM := 0.045
 const CHORD_HOLD := 1.2
 
 ## Command-line arguments (after [code]--[/code]) that mean a job, not a
-## player, started the game. The menu handles each of them.
+## player, started the game. The menu, or [GameHost], handles each of them.
 const JOB_ARGS: Array[String] = ["--prs", "--from-picker", "--no-splash", "--probe"]
 const JOB_PREFIXES: Array[String] = ["--open=", "--probe="]
 
@@ -238,9 +241,11 @@ func is_inside_menu() -> bool:
 	return _menu() != null
 
 
-func _menu() -> DemoMenu:
+## The demo menu, found by its scene rather than its class: only the Deck's
+## build ships the menu's script, so nothing shipped everywhere may name it.
+func _menu() -> Node:
 	for child in get_tree().root.get_children():
-		if child is DemoMenu:
+		if child.scene_file_path == MENU_PATH:
 			return child
 	return null
 
@@ -332,8 +337,9 @@ func _start_time() -> void:
 	fluid.config.dye_dissipation = SETTLE_RETENTION
 
 
-## Hand over: back to the menu that opened this, or else to a new menu,
-## opening the carousel in front of it when [param to_carousel].
+## Hand over: back to the menu that opened this; or, on the Deck, to a new
+## menu, opening the carousel in front of it when [param to_carousel]; or,
+## everywhere else, to a [GameHost], which opens the carousel itself.
 func _finish(to_carousel := true) -> void:
 	if _done:
 		return
@@ -344,9 +350,21 @@ func _finish(to_carousel := true) -> void:
 		menu.close_demo()
 		return
 	var tree := get_tree()
-	menu = (load(MENU_PATH) as PackedScene).instantiate() as DemoMenu
+	var next := handoff_for(DevTools.enabled(), to_carousel)
+	tree.root.add_child(next)
+	tree.current_scene = next
+	queue_free()
+
+
+## What the splash hands over to when the game starts on it: the demo menu
+## with the carousel in front (only the carousel when [param to_carousel]) when
+## the build has [param dev_tools], or else a [GameHost].
+static func handoff_for(dev_tools: bool, to_carousel := true) -> Node:
+	if not dev_tools:
+		var host := GameHost.new()
+		host.name = "GameHost"
+		return host
+	var menu := (load(MENU_PATH) as PackedScene).instantiate()
 	if to_carousel:
 		menu.start_demo = START_PATH
-	tree.root.add_child(menu)
-	tree.current_scene = menu
-	queue_free()
+	return menu

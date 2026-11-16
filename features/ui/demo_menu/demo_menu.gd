@@ -29,11 +29,15 @@ extends Control
 ## the layout keeps clear of the Dynamic Island and home indicator (see
 ## [SafeArea]). The card grid drops to one column in portrait.
 ##
+## The menu, and everything it lists, is the Deck's alone ([DevTools]): every
+## other build leaves this folder out and opens the carousel through
+## [GameHost] instead.
+##
 ## Two launch options exist for a device nobody is holding, where the only
-## way in is the command line (see "Building for iPhone" in the README):
-## [code]--open=eye_band[/code] goes straight into a demo, and
-## [code]--probe[/code] or [code]--probe=eye_band,spout[/code] hands the menu to
-## a [FrameProbe], which quits the app when it is done.
+## way in is the command line ([LaunchOptions]): [code]--open=eye_band[/code]
+## goes straight into a demo, and [code]--probe[/code] or
+## [code]--probe=eye_band,spout[/code] hands the menu to a [FrameProbe], which
+## quits the app when it is done.
 ##
 ## [code]--meter[/code] opens with the [LevelMeterOverlay] showing; F8 toggles
 ## it at any time.
@@ -263,40 +267,17 @@ func _input(event: InputEvent) -> void:
 ## The demos a comma-separated [param names] list picks, matched loosely:
 ## "eyes", "Eye band" and "eye_band" all work. Empty picks them all.
 static func demos_named(names: String) -> Array[Dictionary]:
-	var picked: Array[Dictionary] = []
-	var wanted := PackedStringArray()
-	for part in names.split(",", false):
-		wanted.append(_slug(part))
-	for demo in DEMOS:
-		if wanted.is_empty() or wanted.has(_slug(demo["name"])):
-			picked.append(demo)
-	return picked
+	return LaunchOptions.named(names, DEMOS)
 
 
 ## Read [code]--open=[/code] and [code]--probe[=][/code] out of command-line
 ## [param args]. Unknown arguments are left alone; they belong to Godot.
 static func launch_options(args: PackedStringArray) -> Dictionary:
-	var options := {}
-	for arg in args:
-		if arg.begins_with("--open="):
-			var found := demos_named(arg.trim_prefix("--open="))
-			if found.size() > 0 and not arg.trim_prefix("--open=").is_empty():
-				options["open"] = found[0]["path"]
-		elif arg == "--probe":
-			options["probe"] = demos_named("").filter(
-				func(demo: Dictionary) -> bool: return demo.get("probe", true)
-			)
-		elif arg.begins_with("--probe="):
-			options["probe"] = demos_named(arg.trim_prefix("--probe="))
-	return options
-
-
-static func _slug(text: String) -> String:
-	return text.strip_edges().to_lower().replace(" ", "_")
+	return LaunchOptions.parse(args, DEMOS)
 
 
 func _command_line() -> PackedStringArray:
-	return OS.get_cmdline_args() + OS.get_cmdline_user_args()
+	return LaunchOptions.command_line()
 
 
 func _apply_launch_options(options: Dictionary) -> void:
