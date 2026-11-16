@@ -5,12 +5,12 @@ extends CanvasLayer
 ## a lamp that lights on an over and fades, and the session's loudest peak and
 ## overs as text.
 ##
-## A [MixPanel] under it sets the band, solo and rhythm volumes and
-## collapses. It starts hidden, unless the game was launched with
-## [code]--meter[/code] (the way to have it on a Deck, where there is no F8:
-## [code]scripts/deck.sh run NAME --meter[/code]). F8 toggles it, and so does
-## holding three fingers on the screen for a moment ([TouchHold]), which is
-## the way on a phone.
+## A [MixPanel] under it sets the band, solo and rhythm volumes, and a
+## [SwingPanel] under that sets the swing; each folds away. It starts hidden,
+## unless the game was launched with [code]--meter[/code] (the way to have it
+## on a Deck, where there is no F8: [code]scripts/deck.sh run NAME
+## --meter[/code]). F8 toggles it, and so does holding three fingers on the
+## screen for a moment ([TouchHold]), which is the way on a phone.
 
 const TOGGLE_KEY := KEY_F8
 ## The scale, in dBFS. Above 0 is where the limiter is working.
@@ -45,13 +45,22 @@ func _ready() -> void:
 	_panel.offset_bottom = 16.0 + PANEL_SIZE.y
 	_panel.draw.connect(_draw_panel)
 	add_child(_panel)
+	# The drop-downs stack under the meter and close up as each folds.
+	var panels := VBoxContainer.new()
+	panels.name = "Panels"
+	panels.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panels.add_theme_constant_override("separation", 8)
+	panels.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	panels.offset_left = -DropDownPanel.WIDTH - 16.0
+	panels.offset_right = -16.0
+	panels.offset_top = 16.0 + PANEL_SIZE.y + 8.0
+	add_child(panels)
 	var mix := MixPanel.new()
 	mix.name = "MixPanel"
-	mix.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	mix.offset_left = -MixPanel.WIDTH - 16.0
-	mix.offset_right = -16.0
-	mix.offset_top = 16.0 + PANEL_SIZE.y + 8.0
-	add_child(mix)
+	panels.add_child(mix)
+	var swing := SwingPanel.new()
+	swing.name = "SwingPanel"
+	panels.add_child(swing)
 
 
 func _process(delta: float) -> void:

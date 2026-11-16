@@ -4,7 +4,8 @@ extends Control
 ## Drums are [StepPattern]s rendered into loop layers, so they are
 ## sample-accurate. Bass and pads are live [Synth] notes fired by a
 ## [StepClock] on the same clock, so they are within one mix block. Layer
-## changes wait for the next bar.
+## changes wait for the next bar. The drums are rendered with the swing in
+## force when the demo opens; the live parts follow it as it moves.
 ##
 ## Space starts and stops. 1 and 2 toggle the two drum layers, B the bass,
 ## P the pads.
@@ -143,7 +144,9 @@ func _release_if_unchanged(voice: SynthVoice, started_usec: int) -> void:
 func _drum_layer(layer_name: String, lines: Dictionary, rate: int, db: float) -> LoopLayer:
 	var layer := LoopLayer.new()
 	layer.layer_name = layer_name
-	layer.stream = StepPattern.parse(lines).render(TEMPO_BPM, BEATS_PER_BAR, rate)
+	layer.stream = StepPattern.parse(lines).render(
+		TEMPO_BPM, BEATS_PER_BAR, rate, AudioManager.get_swing()
+	)
 	layer.volume_db = db
 	return layer
 

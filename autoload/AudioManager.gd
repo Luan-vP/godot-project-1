@@ -52,6 +52,9 @@ signal bus_mute_changed(bus_name: String, muted: bool)
 ## or [method set_bpm], for a HUD readout to follow.
 signal tempo_changed(tempo_bpm: float)
 
+## Emitted whenever [method set_swing] changes the swing, with the new ratio.
+signal swing_changed(ratio: float)
+
 const MASTER_BUS := "Master"
 const MUSIC_BUS := "Music"
 const SFX_BUS := "SFX"
@@ -72,6 +75,7 @@ const MIX_MIN_DB := -36.0
 const MIX_MAX_DB := 18.0
 const _SETTINGS_SECTION := "audio"
 const _FOCUS_SETTING_KEY := "mute_on_focus_loss"
+const _SWING_SETTING_KEY := "swing"
 
 ## How many overlapping one-shot sounds can play at once before the oldest is
 ## cut off to make room for a new one.
@@ -109,6 +113,7 @@ var _time_source: MusicTimeSource = WallClockMusicTime.new()
 ## Tempo the configured loop layers were rendered at; see
 ## [method get_loop_playback_rate].
 var _loop_render_tempo: float = 0.0
+var _swing: float = Swing.STRAIGHT
 
 ## First on Master, before its limiter; see [method drain_master_peak].
 var _master_capture: AudioEffectCapture
@@ -132,7 +137,10 @@ func _ready() -> void:
 	_loop_player.name = "LoopPlayer"
 	_loop_player.bus = MUSIC_BUS
 	add_child(_loop_player)
-	_loop_clock = MusicClock.new()
+	_swing = Swing.clamp_ratio(
+		SaveManager.get_value(_SETTINGS_SECTION, _SWING_SETTING_KEY, Swing.STRAIGHT)
+	)
+	_loop_clock = MusicClock.new(120.0, 4, 4, _swing)
 	_loop_scheduler = LoopLayerScheduler.new(_loop_clock)
 
 	_build_mix_buses()
@@ -214,11 +222,34 @@ func get_tempo() -> float:
 
 func _set_tempo(tempo_bpm: float, beats_per_bar: int) -> void:
 	_time_source.set_tempo_bpm(tempo_bpm)
-	_loop_clock = MusicClock.new(tempo_bpm, beats_per_bar)
-	_loop_scheduler.set_clock(_loop_clock)
+	_replace_clock(tempo_bpm, beats_per_bar)
 	if _loop_player != null:
 		_loop_player.pitch_scale = get_loop_playback_rate()
 	tempo_changed.emit(_loop_clock.tempo_bpm)
+
+
+func _replace_clock(tempo_bpm: float, beats_per_bar: int) -> void:
+	_loop_clock = MusicClock.new(tempo_bpm, beats_per_bar, 4, _swing)
+	_loop_scheduler.set_clock(_loop_clock)
+
+
+## Sets the swing everything on the music clock plays with, from
+## [constant Swing.STRAIGHT] to [constant Swing.MAX], and keeps the choice.
+## Live: the band, the flocks and anything else on a [StepSequencer] follow
+## from the next step, because the swing rides on [method get_music_clock].
+## Loops already rendered keep the swing they were rendered with.
+func set_swing(ratio: float) -> void:
+	var clamped := Swing.clamp_ratio(ratio)
+	if is_equal_approx(clamped, _swing):
+		return
+	_swing = clamped
+	_replace_clock(_loop_clock.tempo_bpm, _loop_clock.beats_per_bar)
+	SaveManager.set_value(_SETTINGS_SECTION, _SWING_SETTING_KEY, _swing)
+	swing_changed.emit(_swing)
+
+
+func get_swing() -> float:
+	return _swing
 
 
 ## How fast the loop layers play relative to how they were rendered: the live

@@ -22,6 +22,12 @@ extends RefCounted
 ##
 ## Tempo and bar length are constructor arguments, not constants, so both are
 ## configurable rather than baked in.
+##
+## [member swing] is the one place score and sound part ways: the score — bars,
+## beats, steps — is straight, and [method score_beats] says where in it the
+## music is for a position on the [MusicTimeSource], with the swing taken out.
+## Everything that plays or reads a rhythm goes through that (see
+## [StepSequencer]), so one swing holds for all of it. See [Swing].
 
 ## Never at or below zero: [method seconds_per_beat] divides by it, and a
 ## live tempo control (see #72) can be nudged all the way down to nothing.
@@ -33,11 +39,48 @@ var beats_per_bar: int
 ## Grid steps per beat. 4 is a sixteenth-note grid in 4/4.
 var steps_per_beat: int
 
+## How far through a pair of sixteenths the off one lands: [constant
+## Swing.STRAIGHT] up to [constant Swing.MAX].
+var swing: float
 
-func _init(p_tempo_bpm: float = 120.0, p_beats_per_bar: int = 4, p_steps_per_beat: int = 4) -> void:
+
+func _init(
+	p_tempo_bpm: float = 120.0,
+	p_beats_per_bar: int = 4,
+	p_steps_per_beat: int = 4,
+	p_swing: float = Swing.STRAIGHT
+) -> void:
 	tempo_bpm = maxf(p_tempo_bpm, MIN_TEMPO_BPM)
 	beats_per_bar = p_beats_per_bar
 	steps_per_beat = p_steps_per_beat
+	swing = Swing.clamp_ratio(p_swing)
+
+
+## This clock on another grid: the same tempo, bar and swing, with
+## [param p_steps_per_beat] steps to the beat.
+func with_steps_per_beat(p_steps_per_beat: int) -> MusicClock:
+	return MusicClock.new(tempo_bpm, beats_per_bar, p_steps_per_beat, swing)
+
+
+## Where in the score the music is when the time source reads
+## [param heard_beats]: the same position with the swing taken out.
+func score_beats(heard_beats: float) -> float:
+	return Swing.score(heard_beats, swing)
+
+
+## Where score position [param p_score_beats] is heard, on the time source's
+## beats: later than written for anything off the beat, once there is swing.
+func heard_beats(p_score_beats: float) -> float:
+	return Swing.heard(p_score_beats, swing)
+
+
+## Wall seconds from grid step [param step] to [param length] steps later, as
+## heard: with swing, steps are not all the same length. Both may be
+## fractional.
+func seconds_across_steps(step: float, length: float) -> float:
+	var from := heard_beats(step / steps_per_beat)
+	var to := heard_beats((step + length) / steps_per_beat)
+	return (to - from) * seconds_per_beat()
 
 
 func seconds_per_beat() -> float:

@@ -16,6 +16,7 @@ func before_each() -> void:
 
 
 func after_each() -> void:
+	AudioManager.set_swing(Swing.STRAIGHT)
 	AudioManager.set_tempo(120.0, 4)
 
 
@@ -143,3 +144,34 @@ func test_a_key_move_moves_the_band_and_the_flocks_with_it() -> void:
 	press.pressed = true
 	_level._unhandled_input(press)
 	assert_eq(band.get_key_offset(), before + KeyShiftInput.FOURTH, "Up a fourth")
+
+
+func test_the_dial_fills_the_middle_under_the_flocks() -> void:
+	var dial := _level.get_node("Dial") as Node2D
+	assert_true(dial.show_behind_parent, "Drawn before the birds")
+	assert_eq(dial.get_parent(), _level, "In the level, so over the tank")
+	assert_lt(dial.modulate.a, 1.0, "The water shows through")
+	assert_almost_eq(BoidsLevel.dial_radius(Vector2(1280.0, 800.0)), 288.0, 0.001)
+	assert_almost_eq(BoidsLevel.dial_radius(Vector2(390.0, 844.0)), 140.4, 0.001, "Portrait")
+
+
+func test_the_dial_shows_pulses_where_they_are_heard() -> void:
+	var straight := MusicClock.new(84.0)
+	var swung := MusicClock.new(84.0, 4, 4, Swing.MAX)
+	assert_almost_eq(BoidsLevel.heard_phase(1.0 / 3.0, straight), 1.0 / 3.0, 0.000001)
+	assert_gt(BoidsLevel.heard_phase(1.0 / 3.0, swung), 1.0 / 3.0, "3's second pulse sits late")
+	assert_almost_eq(BoidsLevel.heard_phase(0.25, swung), 0.25, 0.000001, "Beats do not move")
+
+
+func test_playing_along_with_the_swing_still_reads_as_the_rhythm() -> void:
+	AudioManager.set_swing(Swing.MAX)
+	var clock := AudioManager.get_music_clock()
+	_level.reader.clear()
+	var ghost := 0.0
+	for k in 3:
+		# Where a 3's pulses are heard, with the swing on.
+		var heard := clock.heard_beats(100.0 + k * 4.0 / 3.0)
+		ghost = _level.tap(clock.score_beats(heard))
+	assert_eq(_level.reading.winner, 3)
+	assert_gt(_level.reading.winner_fit, 0.99, "On the pulses exactly")
+	assert_almost_eq(ghost, 100.0 + 8.0 / 3.0 + 4.0, 0.0001, "The ghost is a score position")

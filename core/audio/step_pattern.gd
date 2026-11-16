@@ -77,8 +77,17 @@ func velocity(hit: int, step: int) -> float:
 ## Sample offset where [param step] starts in a bar [param bar_samples] long.
 ## Rounded per step from the bar start, not accumulated, so rounding never
 ## builds up across the bar.
-static func step_offset(step: int, step_count: int, bar_samples: int) -> int:
-	return int(round(float(step) * bar_samples / step_count))
+## With [param swing] and the bar's [param beats_per_bar], the step is placed
+## where it is heard (see [Swing]).
+static func step_offset(
+	step: int,
+	step_count: int,
+	bar_samples: int,
+	swing: float = Swing.STRAIGHT,
+	beats_per_bar: int = 4
+) -> int:
+	var beats := Swing.heard(float(step) * beats_per_bar / step_count, swing)
+	return int(round(beats * bar_samples / beats_per_bar))
 
 
 ## Length of one bar in whole samples.
@@ -89,8 +98,11 @@ static func bar_length(tempo_bpm: float, beats_per_bar: int, sample_rate: int) -
 ## Mix the bar into a buffer exactly one bar long. A tail that runs past the
 ## end wraps to the start, so an open hat on the last step rings into the
 ## downbeat when the bar loops, just as it would live. An open hat stops at the
-## next closed hat, the way a drum machine chokes it.
-func mix(tempo_bpm: float, beats_per_bar: int, sample_rate: int) -> PackedFloat32Array:
+## next closed hat, the way a drum machine chokes it. [param swing] is baked
+## in, as the tempo is.
+func mix(
+	tempo_bpm: float, beats_per_bar: int, sample_rate: int, swing: float = Swing.STRAIGHT
+) -> PackedFloat32Array:
 	var bar_samples := bar_length(tempo_bpm, beats_per_bar, sample_rate)
 	var out := PackedFloat32Array()
 	out.resize(bar_samples)
@@ -101,10 +113,10 @@ func mix(tempo_bpm: float, beats_per_bar: int, sample_rate: int) -> PackedFloat3
 			var level := velocity(hit, step)
 			if level <= 0.0:
 				continue
-			var start := step_offset(step, steps, bar_samples)
+			var start := step_offset(step, steps, bar_samples, swing, beats_per_bar)
 			var length := sound.size()
 			if hit == DrumSynth.Hit.OPEN_HAT:
-				length = mini(length, _samples_until_choke(step, bar_samples))
+				length = mini(length, _samples_until_choke(step, bar_samples, swing, beats_per_bar))
 			for i in length:
 				var gain := level
 				if length < sound.size() and i >= length - fade:
@@ -116,8 +128,10 @@ func mix(tempo_bpm: float, beats_per_bar: int, sample_rate: int) -> PackedFloat3
 
 
 ## [method mix], as a mono 16-bit stream that loops exactly one bar.
-func render(tempo_bpm: float, beats_per_bar: int, sample_rate: int) -> AudioStreamWAV:
-	var samples := mix(tempo_bpm, beats_per_bar, sample_rate)
+func render(
+	tempo_bpm: float, beats_per_bar: int, sample_rate: int, swing: float = Swing.STRAIGHT
+) -> AudioStreamWAV:
+	var samples := mix(tempo_bpm, beats_per_bar, sample_rate, swing)
 	var data := PackedByteArray()
 	data.resize(samples.size() * 2)
 	for i in samples.size():
@@ -142,11 +156,13 @@ static func soft_clip(x: float) -> float:
 	return signf(x) * (0.8 + 0.2 * tanh((magnitude - 0.8) / 0.2))
 
 
-func _samples_until_choke(step: int, bar_samples: int) -> int:
-	var start := step_offset(step, steps, bar_samples)
+func _samples_until_choke(
+	step: int, bar_samples: int, swing: float = Swing.STRAIGHT, beats_per_bar: int = 4
+) -> int:
+	var start := step_offset(step, steps, bar_samples, swing, beats_per_bar)
 	for ahead in range(1, steps + 1):
 		var next := (step + ahead) % steps
 		if velocity(DrumSynth.Hit.CLOSED_HAT, next) > 0.0:
-			var offset := step_offset(next, steps, bar_samples)
+			var offset := step_offset(next, steps, bar_samples, swing, beats_per_bar)
 			return posmod(offset - start, bar_samples) if next != step else bar_samples
 	return bar_samples
