@@ -530,6 +530,37 @@ shifts their pitch as well (about 2.3 semitones from 70 to 80 bpm), which
 drums carry and tonal loops would not — keep anything tonal on live `Synth`
 notes.
 
+## Swing
+
+One swing for everything on the music clock, set with
+`AudioManager.set_swing(ratio)` and kept between sessions. The ratio is how
+far through a pair of sixteenths the off one lands: 0.5 straight, 2/3 a
+triplet shuffle, 0.75 the hardest. The debug overlay (F8, `--meter`, or a
+three-finger hold) has a **swing** drop-down under the mix one, with the
+slider in percent.
+
+[`Swing`](swing.gd) is the whole idea: a warp between the *score*, which
+stays straight, and where it is *heard*. It stretches time inside each pair
+of sixteenths rather than nudging individual notes, so things that are not
+on the sixteenth grid at all move with the notes round them. Beats and bar
+lines never move.
+
+`MusicClock` carries the ratio (`score_beats`, `heard_beats`), and
+`StepSequencer` applies it: a step is due once the music reaches where that
+step is heard. Every grid runs through a `StepSequencer`, so nothing swings
+on its own:
+
+- the `Band` — drums, bass, arp and melody alike, with note lengths measured
+  across the swung steps (`MusicClock.seconds_across_steps`);
+- the flocks' pulses, on their twelfth-note grid
+  (`MusicClock.with_steps_per_beat`), and the taps read against them;
+- the spout's stuck pins, which play on the band's sixteenths;
+- rendered `StepPattern` loops, which bake in the swing they are rendered
+  with, as they do the tempo.
+
+A swing change swaps the clock, like a tempo change, and no step is fired
+twice.
+
 ## Polyrhythms and reading taps
 
 [`rhythm/`](rhythm/) holds the polyrhythm model the birds level is built on:

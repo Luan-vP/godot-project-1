@@ -23,8 +23,15 @@ extends Node2D
 ##
 ## The snare sounds the instant it is hit, and a quieter ghost of it lands a
 ## bar later on the pulse it was read as, so the player hears how they were
-## heard. The dial in the corner shows the same thing: the bar going round,
-## every rhythm's pulses, the last bar's taps, and the charge building.
+## heard. The dial shows the same thing: the bar going round, every rhythm's
+## pulses, the last bar's taps, and the charge building. It fills the middle
+## of the screen, see-through, over the water and under the flocks.
+##
+## Swing ([method AudioManager.set_swing]) bends all of it together. The
+## flocks' pulses are positions in the score like the band's notes, so they
+## are heard swung with it; a tap is read where it falls in the score, so
+## playing along with the swing still reads as the rhythm; and the dial's
+## hand turns evenly while its pulses sit where they are heard.
 ##
 ## A foreground over the host's tank and band ([SharedLayers]). Birds and
 ## boatmen stir the tank as they move — each flock drags a broad wake through
@@ -101,6 +108,13 @@ const WAKE_RADIUS_MAX := 110.0
 const WAKE_PAINT := 0.04
 const LONER_COLOR := ArtPalette.LONER
 
+## The dial's radius, as a share of the screen's shorter side.
+const DIAL_REACH := 0.36
+## How solid the dial is: the water shows through it.
+const DIAL_OPACITY := 0.5
+## The radius the dial's marks were sized for; they scale with it.
+const DIAL_DESIGN_RADIUS := 82.0
+
 ## Seconds added to a tap before it is read, to cancel the time between
 ## hearing a pulse and a press registering. 0 until measured on a device.
 @export var tap_offset_seconds: float = 0.0
@@ -120,8 +134,11 @@ var reading: TapReader.Reading
 var _rng := RandomNumberGenerator.new()
 var _grid := 12
 var _sequencer: StepSequencer
-var _sequencer_tempo := 0.0
+## The band's clock the sequencer's grid clock was last made from.
+var _sequencer_clock: MusicClock
 var _last_beats := -1.0
+## Where the music is in the score: [member _last_beats] with the swing out.
+var _score_beats := 0.0
 ## Beats positions still waiting to play a ghost snare.
 var _ghosts: Array[float] = []
 ## pulses -> weight, eased; mirrored into [member FlockSim.weights].
@@ -139,7 +156,7 @@ var _crash_stream: AudioStreamWAV
 var _key_shift := KeyShiftInput.new()
 
 var _hud: Label
-var _dial: Control
+var _dial: Node2D
 var _fluid: FluidSimulation
 ## The level's host: the tank to stir and the band to play over. See
 ## [SharedLayers].
@@ -203,8 +220,9 @@ func _process(delta: float) -> void:
 	var beats := source.get_beats()
 	var elapsed := 0.0 if _last_beats < 0.0 else maxf(beats - _last_beats, 0.0)
 	_last_beats = beats
+	_score_beats = AudioManager.get_music_clock().score_beats(beats)
 
-	reading = reader.read(beats, table)
+	reading = reader.read(_score_beats, table)
 	_ease_weights(delta)
 	if charge.advance(elapsed, reading.winner, reading.unambiguous):
 		_scatter(charge.winner)
@@ -214,7 +232,7 @@ func _process(delta: float) -> void:
 	if reading.unambiguous and reading.winner > 0:
 		sim.ensure_flock(reading.winner)
 	var step := minf(delta, 0.05)
-	sim.step(step, beats)
+	sim.step(step, _score_beats)
 	_stir(step)
 	for bird in sim.birds:
 		bird.glow = maxf(bird.glow - delta * 4.0, 0.0)
@@ -252,13 +270,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		_play_one_shot(_snare_stream, SNARE_DB)
 		var source := AudioManager.get_music_time_source()
-		var seconds_per_beat := AudioManager.get_music_clock().seconds_per_beat()
-		tap(source.get_beats() + tap_offset_seconds / seconds_per_beat)
+		var clock := AudioManager.get_music_clock()
+		var heard := source.get_beats() + tap_offset_seconds / clock.seconds_per_beat()
+		tap(clock.score_beats(heard))
 
 
-## Read a snare hit at [param beats]: it joins the last bar of taps, and its
-## ghost is queued a bar later on the pulse it reads as. Returns where the
-## ghost will land, in beats.
+## Read a snare hit at [param beats] in the score (see [method
+## MusicClock.score_beats]): it joins the last bar of taps, and its ghost is
+## queued a bar later on the pulse it reads as. Returns where the ghost will
+## land, in score beats.
 func tap(beats: float) -> float:
 	reader.add_tap(beats)
 	reading = reader.read(beats, table)
@@ -298,21 +318,23 @@ func _scatter(survivor: int) -> void:
 ## any ghost snares.
 func _play_due(source: MusicTimeSource, beats: float) -> void:
 	var clock := AudioManager.get_music_clock()
-	if _sequencer == null or clock.tempo_bpm != _sequencer_tempo:
-		var grid_clock := MusicClock.new(clock.tempo_bpm, BEATS_PER_BAR, _grid / BEATS_PER_BAR)
+	if clock != _sequencer_clock:
+		# The band's tempo and swing, on the flocks' grid.
+		var grid_clock := clock.with_steps_per_beat(_grid / BEATS_PER_BAR)
 		if _sequencer == null:
 			_sequencer = StepSequencer.new(grid_clock)
 		else:
 			_sequencer.set_clock(grid_clock)
-		_sequencer_tempo = clock.tempo_bpm
+		_sequencer_clock = clock
 	var lookahead := clock.beats_from_seconds(source.get_lookahead())
 	for step in _sequencer.update(beats, lookahead):
 		var in_bar := step % _grid
 		for flock in sim.flocks:
 			if in_bar % (_grid / flock.pulses) == 0:
 				_sing(flock, in_bar == 0)
+	var horizon := clock.score_beats(beats + lookahead)
 	for ghost: float in _ghosts.duplicate():
-		if beats + lookahead >= ghost:
+		if horizon >= ghost:
 			_ghosts.erase(ghost)
 			_play_one_shot(_snare_stream, GHOST_DB)
 
@@ -517,18 +539,14 @@ func _build_hud() -> void:
 	_hud.offset_bottom = -12.0
 	layer.add_child(_hud)
 
-	_dial = Control.new()
-	_dial.custom_minimum_size = Vector2(180.0, 180.0)
-	_dial.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_dial.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	_dial.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_dial.offset_left = -196.0
-	_dial.offset_top = -216.0
-	_dial.offset_right = -16.0
-	_dial.offset_bottom = -36.0
-	_dial.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# A child drawn behind this node: over the tank, which is the host's, and
+	# under the flocks, which this node draws.
+	_dial = Node2D.new()
+	_dial.name = "Dial"
+	_dial.show_behind_parent = true
+	_dial.modulate.a = DIAL_OPACITY
 	_dial.draw.connect(_draw_dial)
-	layer.add_child(_dial)
+	add_child(_dial)
 
 
 func _update_hud() -> void:
@@ -572,55 +590,88 @@ func _silent() -> int:
 	return sim.birds.size() - _singing()
 
 
+## The dial's radius in pixels for a screen of [param screen] pixels.
+static func dial_radius(screen: Vector2) -> float:
+	return minf(screen.x, screen.y) * DIAL_REACH
+
+
+## Where on the dial's face a bar phase in the score (0..1) is heard, with
+## [param clock]'s swing: the face is the bar as it sounds, so the hand turns
+## evenly and a swung pulse sits late.
+static func heard_phase(score_phase: float, clock: MusicClock) -> float:
+	return clock.heard_beats(score_phase * BEATS_PER_BAR) / BEATS_PER_BAR
+
+
 ## The bar as a clock face, downbeat at the top: a ring of pulses per rhythm
 ## (bright when in favour), the last bar of taps round the outside, the
 ## playhead, and the charge as an arc round everything.
 func _draw_dial() -> void:
-	var centre := _dial.size * 0.5
-	var outer := minf(centre.x, centre.y) - 8.0
-	_dial.draw_circle(centre, outer + 4.0, UiTokens.OVERLAY)
-	_dial.draw_arc(centre, outer + 4.0, 0.0, TAU, 64, Color(UiTokens.SIGIL, 0.35), 1.0, true)
+	var rect := get_viewport_rect()
+	var centre := rect.get_center()
+	var outer := dial_radius(rect.size)
+	# Everything below is in the units the dial was first drawn in.
+	var unit := outer / DIAL_DESIGN_RADIUS
+	var clock := AudioManager.get_music_clock()
+	_dial.draw_circle(centre, outer + 4.0 * unit, UiTokens.OVERLAY)
+	_dial.draw_arc(
+		centre, outer + 4.0 * unit, 0.0, TAU, 128, Color(UiTokens.SIGIL, 0.35), unit, true
+	)
 
-	var ring := outer - 14.0
+	var ring := outer - 14.0 * unit
 	for rhythm in table.rhythms:
 		var weight := sim.weight_for(rhythm.pulses)
 		var color := rhythm.color
 		color.a = clampf(0.25 + (weight - WEIGHT_LOW) / (WEIGHT_HIGH - WEIGHT_LOW) * 0.75, 0.2, 1.0)
-		_dial.draw_arc(centre, ring, 0.0, TAU, 48, Color(color, color.a * 0.3), 1.0, true)
+		_dial.draw_arc(centre, ring, 0.0, TAU, 96, Color(color, color.a * 0.3), unit, true)
 		for k in rhythm.pulses:
-			_dial.draw_circle(centre + _dial_point(float(k) / rhythm.pulses, ring), 3.5, color)
-		ring -= 16.0
+			var phase := heard_phase(float(k) / rhythm.pulses, clock)
+			_dial.draw_circle(centre + _dial_point(phase, ring), 3.5 * unit, color)
+		ring -= 16.0 * unit
 
-	for phase in reader.window(_last_beats):
-		var at := _dial_point(phase, outer)
-		_dial.draw_line(centre + at * 0.9, centre + at * 1.05, UiTokens.RUNE, 2.0, true)
+	for phase in reader.window(_score_beats):
+		var at := _dial_point(heard_phase(phase, clock), outer)
+		_dial.draw_line(centre + at * 0.9, centre + at * 1.05, UiTokens.RUNE, 2.0 * unit, true)
 
 	var playhead := reader.phase_of(maxf(_last_beats, 0.0))
 	var hand := Color(UiTokens.TEXT, 0.35)
-	_dial.draw_line(centre, centre + _dial_point(playhead, outer), hand, 1.0, true)
+	_dial.draw_line(centre, centre + _dial_point(playhead, outer), hand, unit, true)
 
 	var start := -PI / 2.0
 	if charge.is_cooling_down():
 		var left := charge.cooldown / charge.cooldown_beats
 		_dial.draw_arc(
-			centre, outer + 3.0, start, start + TAU * left, 64, Color(UiTokens.SIGIL, 0.3), 3.0
+			centre,
+			outer + 3.0 * unit,
+			start,
+			start + TAU * left,
+			128,
+			Color(UiTokens.SIGIL, 0.3),
+			3.0 * unit
 		)
 	elif charge.charge > 0.0:
 		var rhythm := table.get_rhythm(charge.winner)
 		var color := rhythm.color if rhythm != null else ArtPalette.LIGHT
 		_dial.draw_arc(
-			centre, outer + 3.0, start, start + TAU * charge.charge, 64, color, 4.0, true
+			centre,
+			outer + 3.0 * unit,
+			start,
+			start + TAU * charge.charge,
+			128,
+			color,
+			4.0 * unit,
+			true
 		)
 
 	var font := UiTheme.hud_font()
 	var label := str(reading.winner) if reading.tap_count > 0 else ""
+	var font_size := roundi(20.0 * unit)
 	_dial.draw_string(
 		font,
-		centre + Vector2(-20.0, 7.0),
+		centre + Vector2(-outer, font_size * 0.35),
 		label,
 		HORIZONTAL_ALIGNMENT_CENTER,
-		40.0,
-		20,
+		outer * 2.0,
+		font_size,
 		UiTokens.HUD_TEXT
 	)
 

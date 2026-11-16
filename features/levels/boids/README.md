@@ -107,13 +107,21 @@ and the band they sing over are the host's.
 
 ## Reading the screen
 
-The dial in the corner is the bar as a clock face, downbeat at the top. It
-shows a ring of pulses per rhythm (outer 3, then 4, then 6), brighter the
+The dial is the bar as a clock face, downbeat at the top. It fills the middle
+of the screen, half see-through, drawn over the water and under the flocks.
+It shows a ring of pulses per rhythm (outer 3, then 4, then 6), brighter the
 more that rhythm is in favour; the last bar's taps as white ticks; the
 playhead; and the charge as a coloured arc round the outside (a faint grey
 arc while it is settling after a scatter). As the charge builds, the flocks
 it would scatter tremble and the flocks that would survive glow. The label
-in the other corner spells out the tempo, the reading and the charge.
+in the corner spells out the tempo, the reading and the charge.
+
+With swing on (the swing slider in the debug overlay, see
+`core/audio/README.md`), the flocks' pulses are heard swung with the band,
+and the dial shows it: the hand still turns evenly, and each pulse sits
+where it is heard, so the 3's and 6's off-beat pulses lean late. A tap is
+read where it falls in the score, so playing along with the swing still
+reads as the rhythm.
 
 ## Pieces
 

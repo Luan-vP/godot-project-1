@@ -4,6 +4,7 @@ extends Node
 ## section by section by a [SongWalker], every part played live off the same
 ## [StepClock] — melodic parts as [Synth] notes that follow whatever chord is
 ## current, drum parts as [DrumKit] hits read from the song's [StepPattern]s.
+## The clock's swing ([method AudioManager.set_swing]) moves every part alike.
 ## A fill pattern plays over the beat on the last bar of every section.
 ##
 ## Whether each part plays is up to whoever drives the band: [method
@@ -356,25 +357,24 @@ func _on_step(_index: int, bar: int, step_in_bar: int) -> void:
 	var chord := _song.chord_in_bar(chords, step_in_bar).transposed(_key_offset)
 	var steps := _song.beats_per_bar * 4
 	var chord_steps := steps / chords.size()
-	var seconds_per_step := _seconds_per_step()
 
 	_play_drums(step_in_bar)
 
 	if is_playing("pads") and (new_bar or step_in_bar % chord_steps == 0):
 		var remaining := chord_steps - step_in_bar % chord_steps
-		_voice_pads(chord, seconds_per_step * (remaining - 0.5))
+		_voice_pads(chord, _hold_seconds(remaining - 0.5))
 	if is_playing("bass"):
 		var note := bass_note(chord, _song.bass_line[step_in_bar], _song.bass_range.x)
 		if note >= 0:
 			var accent := 0.9 if step_in_bar % 4 == 0 else 0.7
-			_play("bass", note, accent, seconds_per_step * (_song.bass_hold_steps - 0.4))
+			_play("bass", note, accent, _hold_seconds(_song.bass_hold_steps - 0.4))
 	if is_playing("arp"):
 		var symbol := _song.arp_pattern[step_in_bar]
 		if symbol.is_valid_int():
 			var tones := chord.tones_between(_song.arp_range.x, _song.arp_range.y)
 			if not tones.is_empty():
 				var accent := 0.75 if step_in_bar % 4 == 0 else 0.55
-				_play("arp", tones[symbol.to_int() % tones.size()], accent, seconds_per_step * 1.5)
+				_play("arp", tones[symbol.to_int() % tones.size()], accent, _hold_seconds(1.5))
 	if is_playing("melody"):
 		var section := _walker.section_at(_song_bar(bar))
 		if not _melodies.has(section):
@@ -385,7 +385,7 @@ func _on_step(_index: int, bar: int, step_in_bar: int) -> void:
 			)
 		for note in _folded_melodies[section][_walker.bar_in_section(_song_bar(bar))]:
 			if note[0] == step_in_bar:
-				_play("melody", note[1], 0.8, seconds_per_step * note[2] * 0.95)
+				_play("melody", note[1], 0.8, _hold_seconds(note[2] * 0.95))
 
 	stepped.emit(bar, step_in_bar)
 
@@ -453,6 +453,14 @@ func _seconds_per_step() -> float:
 	return AudioManager.get_music_clock().seconds_per_step()
 
 
+## Wall seconds a note starting on the step playing now takes to last
+## [param steps] grid steps, at the live tempo and swing: with swing the steps
+## are not all the same length, and a note held "a step and a half" should
+## still let go the same way short of the next one.
+func _hold_seconds(steps: float) -> float:
+	return AudioManager.get_music_clock().seconds_across_steps(_step_in_bar, steps)
+
+
 ## Play whatever [constant DRUM_PARTS] hits (and the fill, on a section's last
 ## bar) fall on [param step_in_bar], each at its part's [constant PART_DB].
 func _play_drums(step_in_bar: int) -> void:
@@ -512,7 +520,7 @@ func _revoice_pads() -> void:
 	var chord_steps := steps / chords.size()
 	var remaining := chord_steps - _step_in_bar % chord_steps
 	var chord := _song.chord_in_bar(chords, _step_in_bar).transposed(_key_offset)
-	_voice_pads(chord, _seconds_per_step() * (remaining - 0.5))
+	_voice_pads(chord, _hold_seconds(remaining - 0.5))
 
 
 ## [param bars] shifted by [param offset]'s pitch class and folded by a whole

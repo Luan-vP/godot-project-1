@@ -10,6 +10,12 @@ extends RefCounted
 ## [param lookahead] in [method update] reports a step slightly before it is
 ## due, for a [MusicTimeSource] that knows sound it starts will be heard late.
 ## It is in beats too — see [method MusicClock.beats_from_seconds].
+##
+## Steps are positions in the score, and the beats handed in are where the
+## music is heard, so this is where the clock's swing ([member
+## MusicClock.swing]) is applied: a step is due once the music reaches where
+## that step is heard. Every grid there is — the band's sixteenths, the
+## flocks' twelfths — runs through here, so they all swing as one.
 
 ## After a long frame, report at most this many overdue steps — the most
 ## recent ones. A hitch should drop old notes, not fire a burst of them at once.
@@ -45,11 +51,11 @@ func reset() -> void:
 ## yet, oldest first.
 func update(beats: float, lookahead: float = 0.0) -> Array[int]:
 	var due: Array[int] = []
-	var horizon := beats + maxf(lookahead, 0.0)
+	var horizon := _clock.score_beats(beats + maxf(lookahead, 0.0))
 	if _next_step == -1:
 		# Start on the step at or after now, so joining mid-step does not fire
 		# a step that should already have sounded.
-		_next_step = int(ceil(beats * _clock.steps_per_beat - 0.000001))
+		_next_step = int(ceil(_clock.score_beats(beats) * _clock.steps_per_beat - 0.000001))
 	var last_due := _clock.step_at(horizon)
 	if last_due < _next_step:
 		return due
