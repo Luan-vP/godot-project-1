@@ -177,7 +177,7 @@ fi
 # leak reports at exit are noise.
 export_failed() {
 	local log="$1" output="$2"
-	if grep "ERROR" "$log" | grep -qv "leaked\|still in use" || [ ! -s "$output" ]; then
+	if grep "ERROR" "$log" | grep -qv "leaked\|still in use\|Pages in use" || [ ! -s "$output" ]; then
 		grep -A1 "ERROR" "$log" >&2 || true
 		echo "Export failed; full log in ${log#"$ROOT"/}" >&2
 		return 0
