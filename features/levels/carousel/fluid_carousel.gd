@@ -62,8 +62,9 @@ const VARIANTS: Array[Array] = [
 const BASE_OFFSET_META := &"carousel_base_offset_x"
 
 ## Share of the screen's height, up from the bottom edge, that a swipe has to
-## start in.
-const SWIPE_BAND := 0.2
+## start in: the bottom third, a wide strip for a thumb on a phone held
+## landscape.
+const SWIPE_BAND := 1.0 / 3.0
 ## Least sideways travel, as a share of the screen's width, that makes a swipe.
 const SWIPE_MIN_TRAVEL := 0.12
 ## No swipe is being watched.

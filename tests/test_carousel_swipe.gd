@@ -73,6 +73,22 @@ func test_only_a_long_sideways_drag_from_the_bottom_is_a_swipe() -> void:
 	)
 
 
+func test_the_swipe_strip_is_the_bottom_third() -> void:
+	var screen := Vector2(1152, 648)
+	var inside := screen.y * 0.7
+	var above := screen.y * 0.6
+	assert_eq(
+		FluidCarousel.swipe_step(Vector2(800, inside), Vector2(400, inside), screen),
+		1,
+		"Starting just inside the bottom third"
+	)
+	assert_eq(
+		FluidCarousel.swipe_step(Vector2(800, above), Vector2(400, above), screen),
+		0,
+		"Starting just above it"
+	)
+
+
 func test_a_touch_swipe_along_the_bottom_changes_level() -> void:
 	var screen := _carousel.get_viewport_rect().size
 	var y := screen.y * 0.97

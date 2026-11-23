@@ -123,7 +123,7 @@ Levels are `Node2D`s but their HUDs are `CanvasLayer`s, which ignore the parent
 transform, so `_place` moves the layers' offsets by hand.
 
 A swipe is a press (finger or left mouse button) that starts in the bottom
-`SWIPE_BAND` (a fifth) of the screen and lets go at least `SWIPE_MIN_TRAVEL`
+`SWIPE_BAND` (a third) of the screen and lets go at least `SWIPE_MIN_TRAVEL`
 (an eighth or so) of the screen's width to the side, more across than up.
 The carousel watches it in `_input` without consuming it, so the level
 underneath still sees the touch. `advance()` and `retreat()` are public so
