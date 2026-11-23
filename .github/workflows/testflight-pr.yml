@@ -15,10 +15,12 @@ on:
   issue_comment:
     types: [created]
 
+# A pull request's comments are the pull request's, not an issue's: reacting
+# to one, or replying, needs pull-requests: write as well as issues: write.
 permissions:
   contents: read
   issues: write
-  pull-requests: read
+  pull-requests: write
 
 jobs:
   resolve:
@@ -50,11 +52,16 @@ jobs:
               return;
             }
             core.setOutput('sha', pr.head.sha);
-            await github.rest.reactions.createForIssueComment({
-              ...context.repo,
-              comment_id: context.payload.comment.id,
-              content: 'rocket',
-            });
+            // A nicety: never let the reaction stop the build.
+            try {
+              await github.rest.reactions.createForIssueComment({
+                ...context.repo,
+                comment_id: context.payload.comment.id,
+                content: 'rocket',
+              });
+            } catch (error) {
+              core.warning(`Could not react to the comment: ${error.message}`);
+            }
             const run = `${context.serverUrl}/${here}/actions/runs/${context.runId}`;
             await github.rest.issues.createComment({
               ...context.repo,
