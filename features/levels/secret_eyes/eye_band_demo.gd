@@ -75,6 +75,11 @@ var _debug_label: Label
 var _key_shift := KeyShiftInput.new()
 
 
+## What the corner menu ([GameMenu]) tells a player to do here.
+func hint() -> String:
+	return "Keep eyes off the edges to hear them play."
+
+
 func _ready() -> void:
 	_shared = SharedLayers.host_of(self)
 	if _shared == null:
@@ -105,6 +110,8 @@ func _ready() -> void:
 	_debug_label.offset_left = 16.0
 	_debug_label.offset_top = 12.0
 	layer.add_child(_debug_label)
+	# Readouts for working on the game; a player sees the tank alone.
+	layer.visible = DevTools.enabled()
 	add_child(layer)
 	_update_label()
 
@@ -127,10 +134,12 @@ func _build_tank_level() -> void:
 	add_child(_motion)
 
 	# Live tilt values on the device itself, where there is no console: F3, or
-	# the gamepad's Y button, hides them.
-	var motion_debug := MotionDebugOverlay.new()
-	motion_debug.name = "MotionDebugOverlay"
-	add_child(motion_debug)
+	# the gamepad's Y button, hides them. Only in a build with the developer
+	# tools: a player never sees them.
+	if DevTools.enabled():
+		var motion_debug := MotionDebugOverlay.new()
+		motion_debug.name = "MotionDebugOverlay"
+		add_child(motion_debug)
 
 	var driver := FluidMotionDriver.new()
 	driver.name = "FluidMotionDriver"

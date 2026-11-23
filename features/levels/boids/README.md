@@ -72,8 +72,8 @@ and the band they sing over are the host's.
   a timbre (sine, square or saw) for life. The step is fixed; its pitch
   follows the band's key and scale, so a key move or a new scale carries
   every flock with it. The scale is the song's pentatonic until the
-  `scale ▸` button in the corner steps it on (see the carousel's
-  `KeyScaleButtons`); it is the palette the flocks' arpeggios pick from. On each pulse a
+  `scale ▸` button in the corner menu steps it on (see the carousel's
+  `GameMenu`); it is the palette the flocks' arpeggios pick from. On each pulse a
   few members sing in turn, so a flock's melody comes from who is in it.
 - **Flocks breathe on their pulses.** Cohesion and alignment surge on each
   pulse and die away before the next (`FlockSim.surge`), so a 3-flock

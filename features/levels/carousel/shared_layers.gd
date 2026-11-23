@@ -25,8 +25,8 @@ extends Node2D
 ## When the song starts, and whichever level moves the band's key, a
 ## [KeyPrint] here prints the key's name into the tank.
 ##
-## The key and scale buttons ([KeyScaleButtons]) live here too, so they are
-## in the top-right corner in every level and stay put through a slide. So
+## The menu ([GameMenu]) lives here too, so it is in the top-right corner in
+## every level and stays put through a slide. So
 ## does the shake that moves the band on to its next song ([SongShake]).
 
 const SEED_BLOBS := 5
@@ -43,8 +43,8 @@ var stage: Node2D
 ## Prints the key's name into the tank on every new song and key move; a
 ## level can print other names with it too.
 var key_print: KeyPrint
-## The key and scale buttons, top right.
-var key_scale_buttons: KeyScaleButtons
+## The menu button, top right: the level's hint, key, scale and next song.
+var game_menu: GameMenu
 ## A shake of the device moves on to the next song.
 var song_shake: SongShake
 
@@ -68,10 +68,10 @@ func _ready() -> void:
 	add_child(key_print)
 	band.start()
 
-	key_scale_buttons = KeyScaleButtons.new()
-	key_scale_buttons.name = "KeyScaleButtons"
-	key_scale_buttons.band = band
-	add_child(key_scale_buttons)
+	game_menu = GameMenu.new()
+	game_menu.name = "GameMenu"
+	game_menu.band = band
+	add_child(game_menu)
 
 	song_shake = SongShake.new()
 	song_shake.name = "SongShake"

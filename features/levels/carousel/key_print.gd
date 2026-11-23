@@ -36,7 +36,7 @@ const SCALE_HEIGHT := 0.3
 ## and the seconds it takes to fade in, and out as it is printed.
 const SCALE_HOVER := 4.0
 const HOVER_FADE := 0.25
-## Over the levels, under [KeyScaleButtons].
+## Over the levels, under [GameMenu].
 const HOVER_LAYER := 85
 
 var band: Band

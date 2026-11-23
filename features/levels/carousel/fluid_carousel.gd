@@ -105,6 +105,7 @@ func _ready() -> void:
 	_current = _instance_level(0)
 	_shared.stage.add_child(_current)
 	_place(_current, 0.0)
+	_shared.game_menu.level = _current
 	_note_level()
 	_restart_timer()
 
@@ -241,6 +242,7 @@ func _arrive(outgoing: Node2D, incoming: Node2D, target: int) -> void:
 	_current = incoming
 	_index = target
 	_sliding = false
+	_shared.game_menu.level = _current
 	_note_level()
 	level_changed.emit(_index)
 	_restart_timer()

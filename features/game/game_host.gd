@@ -4,8 +4,9 @@ extends Node
 ## hands over to when there is no demo menu ([method DevTools.enabled]).
 ##
 ## It opens the fluid carousel and stays beside it under the root, out of
-## sight, holding the debug overlay ([LevelMeterOverlay], hidden until asked
-## for). The same launch options as the menu reach the levels a player can
+## sight. There is no debug overlay here ([LevelMeterOverlay] is the Deck's,
+## with the menu): a player gets the game and its corner menu ([GameMenu])
+## alone. The same launch options as the menu reach the levels a player can
 ## play ([constant SCENES]): [code]--open=[/code] and [code]--probe[/code], so a
 ## phone nobody is holding can still be checked from the command line.
 
@@ -36,12 +37,7 @@ var _scene: Node
 
 
 func _ready() -> void:
-	var args := LaunchOptions.command_line()
-	var meter := LevelMeterOverlay.new()
-	meter.name = "LevelMeterOverlay"
-	meter.visible = args.has("--meter")
-	add_child(meter)
-	_start.call_deferred(LaunchOptions.parse(args, SCENES))
+	_start.call_deferred(LaunchOptions.parse(LaunchOptions.command_line(), SCENES))
 
 
 ## The running scene, or null between scenes.

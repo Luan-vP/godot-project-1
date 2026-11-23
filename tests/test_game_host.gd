@@ -1,8 +1,8 @@
 extends GutTest
 ## Covers [GameHost], the game alone as every build but the Deck's plays it:
 ## it opens its start scene beside itself, reads the same launch options as the
-## menu against the levels a player can reach, and keeps the debug overlay
-## hidden until asked for. A stand-in scene keeps any GPU tank out of it.
+## menu against the levels a player can reach, and has no debug overlay at
+## all. A stand-in scene keeps any GPU tank out of it.
 
 const STAND_IN_PATH := "user://test_game_host_stand_in.tscn"
 
@@ -51,10 +51,10 @@ func test_a_player_starts_on_the_carousel() -> void:
 	assert_eq(GameHost.START_PATH, Splash.START_PATH)
 
 
-func test_the_debug_overlay_starts_hidden() -> void:
-	var meter := _host.get_node("LevelMeterOverlay") as LevelMeterOverlay
-	assert_not_null(meter)
-	assert_false(meter.visible, "Hidden until asked for")
+func test_a_player_has_no_debug_overlay() -> void:
+	await get_tree().process_frame
+	var overlays := _host.get_children().filter(func(child): return child is LevelMeterOverlay)
+	assert_eq(overlays.size(), 0, "Not even hidden: there is no way to it")
 
 
 func test_close_frees_the_scene() -> void:
