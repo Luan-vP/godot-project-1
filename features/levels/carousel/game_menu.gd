@@ -7,7 +7,8 @@ extends CanvasLayer
 ## The panel holds the hint for the level playing ([member level], read
 ## through its [code]hint()[/code] method), the key moved by a fourth either
 ## way, the next scale ([method Band.cycle_scale]) and the next song
-## ([method Band.next_song]). [SharedLayers] keeps one, so it stays put while
+## ([method Band.next_song]). Under those, folded until opened, the mix
+## ([MixPanel]) and the swing ([SwingPanel]). [SharedLayers] keeps one, so it stays put while
 ## levels slide under it; the carousel tells it which level has arrived.
 ##
 ## A tap anywhere outside the panel closes it, and the tap still reaches the
@@ -89,6 +90,12 @@ func _ready() -> void:
 	column.add_child(row)
 
 	column.add_child(_button("NextSong", "next song ▸", next_song))
+
+	# Folded, so the panel opens on the buttons; each unfolds on a tap.
+	for panel: DropDownPanel in [MixPanel.new(), SwingPanel.new()]:
+		panel.name = panel.get_script().get_global_name()
+		column.add_child(panel)
+		panel.set_collapsed(true)
 
 	_refresh_hint()
 	_fit()

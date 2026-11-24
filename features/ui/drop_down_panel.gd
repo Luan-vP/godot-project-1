@@ -1,8 +1,11 @@
 class_name DropDownPanel
 extends PanelContainer
-## A panel of sliders for the debug overlay ([LevelMeterOverlay]) under a
-## header button that folds it away to a line. [MixPanel] and [SwingPanel]
-## are each one of these with their own rows.
+## A panel of sliders, for the corner menu ([GameMenu]) and the debug overlay
+## ([LevelMeterOverlay]), under a header button that folds it away to a line.
+## [MixPanel] and [SwingPanel] are each one of these with their own rows.
+##
+## Nothing in it takes focus, so the arrow keys and the pad stay with the
+## level and the tempo ([code]TempoControl[/code]) while it is open.
 
 const WIDTH := 240.0
 const NAME_WIDTH := 76.0
@@ -21,6 +24,7 @@ func _ready() -> void:
 	add_child(column)
 	_toggle = Button.new()
 	_toggle.flat = true
+	_toggle.focus_mode = Control.FOCUS_NONE
 	_toggle.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_toggle.pressed.connect(func() -> void: set_collapsed(_body.visible))
 	column.add_child(_toggle)
@@ -62,6 +66,7 @@ func add_slider(
 	slider.step = step
 	slider.value = value
 	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.focus_mode = Control.FOCUS_NONE
 	row.add_child(slider)
 	var value_label := Label.new()
 	value_label.custom_minimum_size.x = VALUE_WIDTH
