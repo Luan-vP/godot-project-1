@@ -6,6 +6,7 @@ extends GutTest
 
 const Hosting := preload("res://tests/hosting.gd")
 const BOIDS_SCENE := preload("res://features/levels/boids/boids_level.tscn")
+const EYE_BAND_SCENE := preload("res://features/levels/secret_eyes/eye_band_demo.tscn")
 
 const LEVEL_HINTS := {
 	"res://features/levels/secret_eyes/eye_band_demo.gd":
@@ -125,6 +126,17 @@ func test_a_player_sees_no_hud_text_over_the_level() -> void:
 	assert_gt(layers.size(), 0)
 	for layer in layers:
 		assert_false((layer as CanvasLayer).visible, "Hidden for a player")
+
+
+func test_a_player_sees_no_readouts_over_the_eye_band() -> void:
+	DevTools.forced = false
+	var level: Node2D = EYE_BAND_SCENE.instantiate()
+	Hosting.host(self, level)
+	var layers := level.find_children("*", "CanvasLayer", true, false)
+	assert_gt(layers.size(), 0)
+	for layer in layers:
+		assert_false((layer as CanvasLayer).visible, "%s hidden for a player" % layer.name)
+	assert_null(level.get_node_or_null("MotionDebugOverlay"), "No tilt readout at all")
 
 
 func test_the_developer_tools_keep_the_hud_text() -> void:

@@ -298,8 +298,9 @@ func _draw_rings() -> void:
 		)
 
 
-## Which source won, and what the tilt is doing. Worth showing: the whole point
-## of the port is that this line changes on a phone and nothing else does.
+## Which source won, and what the tilt is doing. Worth showing while working
+## on the game: the whole point of the port is that this line changes on a
+## phone and nothing else does. A player never sees it.
 func _build_readout() -> void:
 	var layer := CanvasLayer.new()
 	layer.name = "Readout"
@@ -307,6 +308,7 @@ func _build_readout() -> void:
 	_readout.position = Vector2(16.0, 12.0)
 	layer.add_child(_readout)
 	SafeArea.offset_layer(layer, get_viewport())
+	layer.visible = DevTools.enabled()
 	add_child(layer)
 	_motion.source_changed.connect(_on_source_changed)
 	_on_source_changed(_motion.get_source_description())
