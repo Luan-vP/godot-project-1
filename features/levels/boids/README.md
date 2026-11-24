@@ -2,7 +2,8 @@
 
 An alternative to the eye band (#90): instead of eyes that each play a part,
 a pond of waterboatmen over the eye tank's fluid, who flock and row, where
-every flock sings one polyrhythm and the player plays a snare against them.
+every flock sings one polyrhythm and the player plays three drums against
+them.
 `scripts/run.sh boatmen`, or *Waterboatmen* in the demo menu. The same level
 also exists with the original flying birds, *Birds* (`scripts/run.sh birds`):
 see [Two motions](#two-motions). The class and file names (`Bird`, `FlockSim`,
@@ -13,16 +14,21 @@ see [Two motions](#two-motions). The class and file names (`Bird`, `FlockSim`,
 
 | Input | Does |
 | --- | --- |
-| `B` (keyboard or gamepad), `Esc`, `Space`, left or right click | Snare |
+| Tap the ring bottom left; `J`, gamepad A | Kick |
+| Tap the ring bottom right; `B` (keyboard or gamepad), `Esc`, `Space`, right click | Snare |
+| Tap the ring top right; `H`, gamepad X | Hi-hat |
+| A left click anywhere but a ring or the dial | Snare (the Deck's R2) |
+| Hold the dial; `S` | Shuffle the three rhythms in play |
 | L1 / R1 (`Q` / `E`), `Z` / `X` | Move the band's key a fourth, a fifth — see `KeyShiftInput` |
-| `key −4th` / `key +4th` / `scale ▸`, top right | Move the key a fourth, or step the scale the flocks sing in |
+| The menu button, top right | The level's hint; key −4th / +4th, scale and next song |
 | ↑ / ↓ (d-pad too) | Tempo ±2 bpm — in every scene, see `TempoControl` |
 | ← / → (d-pad too) | Tempo ±10 bpm |
 
 On the Deck in Desktop Mode, run outside Steam, Steam Input keeps the
 controller in its desktop layout and the game sees a keyboard and mouse. B
 sends Esc, Y sends Space, R2 and L2 are left and right click, so all four
-play the snare, and the d-pad sends the arrows, so tempo works as it is. See
+play the snare (R2 plays a ring instead when the pointer is on one), A sends
+Enter, the kick, and the d-pad sends the arrows, so tempo works as it is. See
 [docs/steam-deck-controls.md](../../../docs/steam-deck-controls.md). The HUD's
 *last input* shows what the game actually received for the last press, and
 names the Deck control that sent it.
@@ -42,7 +48,7 @@ One sim and one level, two ways to move, picked by `FlockSim.Motion` and
 | Drawn as | Oval body with oars (`_draw_boatman`) | Arrowhead (`_draw_flier`) |
 | Wake strength | `WAKE_GAIN_ROW` (1) | `WAKE_GAIN_FLY` (0.67) |
 
-Flocks, voices, the snare, taps, the scatter and the wakes are shared. The
+Flocks, voices, the drums, taps, the scatter and the wakes are shared. The
 flying motion is how the level first worked (PR #97, before the boatmen);
 `FlockSim._fly` and `_steer` hold it, `_row_step` and `_row` the rowing. Both
 are foregrounds over a `SharedLayers` host, like every level (see
@@ -62,10 +68,18 @@ and the band they sing over are the host's.
   motion as well as the sound. The oars fold back at rest and fling out on
   the pull.
 
-- **Flocks sing polyrhythms.** Every flock plays 3, 4 or 6 even pulses across
-  one shared bar, all on the same downbeat, so a 3-flock and a 4-flock are
-  3-against-4, over the band's song, whose beat marks the downbeat they all
-  share.
+- **Flocks sing polyrhythms.** Every flock plays one of the three rhythms in
+  play: that many even pulses across one shared bar, all on the same
+  downbeat, so a 3-flock and a 4-flock are 3-against-4, over the band's song,
+  whose beat marks the downbeat they all share. The level opens on 3, 4 and 6.
+- **Holding the dial shuffles the rhythms.** Hold it still for a moment (or
+  press `S`) and three others come in, picked from 3 to 8 (`RhythmTable.POOL`,
+  `RhythmTable.shuffled`). Old and new pair up lowest to highest — 3, 4, 6 to
+  3, 5, 7 moves the 3s to 3, the 4s to 5 and the 6s to 7 — and every flock,
+  with the weight and the pull on new flocks its rhythm had, carries over to
+  the rhythm taking its place (`RhythmTable.swap_to`,
+  `FlockSim.remap_rhythms`). The old rings fade from the dial as the new ones
+  come in. 6 and 8 nest over 3 and 4, so they form half as often.
 - **Loners are silent.** A loner that flies into a flock joins it, taking its
   rhythm and keeping its own voice: every bird has a step of the band's
   scale (`Bird.degree`, sung by `BoidsLevel.voice_note` from E3 up) and
@@ -82,19 +96,24 @@ and the band they sing over are the host's.
   60 px of each other for 1.5 s become a flock, with a rhythm rolled from the
   `RhythmTable`. At most five flocks fly at once; two flocks of the same
   rhythm that meet merge.
-- **The snare steers the sky.** Every tap is read against every rhythm: the
-  last bar of taps, scored with a two-way least-squares fit (`TapReader`).
+- **The drums steer the sky.** Kick, snare and hi-hat are each a faint ring
+  in a corner, breathing on the beat (`DrumPads`). Each drum's taps are read
+  on their own against every rhythm: the last bar of that drum's taps, scored
+  with a two-way least-squares fit (`TapReader`). So the kick can hold a 3
+  while the hi-hat plays a 5, and each rhythm listens to whichever drum fits
+  it best.
   Rhythms that fit gain weight: their flocks tighten, hold on to their
   members and pull loners in. Rhythms that do not fit lose weight: their
   flocks loosen, stop recruiting and shed birds. Tapping also makes a rhythm
   that is *missing* from the sky likelier to be the next one to form.
 - **Holding one rhythm scatters the rest — rarely.** Keep playing one rhythm
-  clearly and a charge builds (`ScatterCharge`). The winner must have enough
+  clearly, with no drum clearly playing another, and a charge builds
+  (`ScatterCharge`, `BoidsLevel.agreed_winner`). The winner must have enough
   taps, a fit over 0.75 and a 0.15 lead over second best. It takes about four
   bars of that to fill, and changing rhythm starts it again. When it fills,
   every flock playing anything else bursts apart and goes silent. Then
   nothing can charge for eight bars.
-- **The snare shows how it was heard.** It sounds the instant it is hit, and
+- **Every drum shows how it was heard.** It sounds the instant it is hit, and
   a quiet ghost of it lands a bar later on the pulse it was read as.
 - **Boatmen stir the fluid; the fluid leaves boatmen alone.** The sky is the
   host's painterly fluid (`features/fluid/`). Only flocked birds touch it:
@@ -109,10 +128,14 @@ and the band they sing over are the host's.
 
 The dial is the bar as a clock face, downbeat at the top. It fills the middle
 of the screen, half see-through, drawn over the water and under the flocks.
-It shows a ring of pulses per rhythm (outer 3, then 4, then 6), brighter the
-more that rhythm is in favour; the last bar's taps as white ticks; the
-playhead; and the charge as a coloured arc round the outside (a faint grey
-arc while it is settling after a scatter). As the charge builds, the flocks
+It shows a ring of pulses per rhythm in play (outermost the fewest pulses),
+brighter the more that rhythm is in favour; round the rim, the last bar of
+each drum's taps on a track of its own (hi-hats as dots outermost, then
+snares as dashes, then kicks as squares, as a drum part is written from the
+top line down, each in its ring's colour); the playhead; an arc inside the
+rings that fills while the dial is held; and the charge as a coloured arc
+round the outside (a faint grey arc while it is settling after a scatter).
+`RhythmDial` draws it, and the drum rings in the corners. As the charge builds, the flocks
 it would scatter tremble and the flocks that would survive glow. The label
 in the corner spells out the tempo, the reading and the charge.
 
@@ -127,7 +150,10 @@ reads as the rhythm.
 
 | File | What it is |
 | --- | --- |
-| `boids_level.gd`, `boids_level.tscn` | The scene: fluid, birds, voices, snare, dial. Waterboatmen. |
+| `boids_level.gd`, `boids_level.tscn` | The scene: fluid, birds, voices, drums, shuffle. Waterboatmen. |
+| `rhythm_dial.gd` | `RhythmDial` — draws the dial and the drum rings. |
+| `drum_pads.gd` | `DrumPads` — where the three drum rings sit, which a tap hits, and each drum's mark. |
+| `press_hold.gd` | `PressHold` — a press held still, the dial's hold to shuffle. |
 | `birds_level.tscn` | The same script with `motion = FLY`: the flying birds. |
 | `bird_wakes.gd` | `BirdWakes` — bins birds into the wakes that stir the fluid. |
 | `flock_sim.gd` | `FlockSim` — boids plus flock membership, pure and testable. |
@@ -137,11 +163,13 @@ reads as the rhythm.
 
 ## Adding a rhythm
 
-Add an entry to `RhythmTable.default_table()`. The grid — the least common
-multiple of every rhythm's pulses and the bar's beats — follows by itself:
-12 steps a bar for 3, 4 and 6; 60 with a 5; 420 with a 7. Nothing else in
-the level names a rhythm. At 420 steps a bar the grid sequencer fires about
-200 steps a second at 120 bpm, which is worth revisiting when 7 lands.
+Add it to `RhythmTable.POOL` and give it a colour in `ArtPalette.rhythm`.
+A shuffle can then pick it. The grid — the least common multiple of the
+three rhythms in play and the bar's beats — follows by itself and is worked
+out afresh on every shuffle: 12 steps a bar for 3, 4 and 6; 60 with a 5;
+420 for 3, 5 and 7, the most any three from 3 to 8 need. At 420 steps a bar
+the grid sequencer fires about 150 steps a second at 85 bpm, cheap, since
+each step only checks a handful of flocks.
 
 ## Known rough edges
 

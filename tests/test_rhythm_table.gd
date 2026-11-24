@@ -57,3 +57,45 @@ func test_roll_follows_the_weights() -> void:
 
 func test_empty_table_rolls_nothing() -> void:
 	assert_eq(RhythmTable.new().roll(RandomNumberGenerator.new()), 0, "Nothing to roll")
+
+
+func test_the_pool_is_three_to_eight_with_nested_rhythms_rarer() -> void:
+	assert_eq(RhythmTable.POOL, [3, 4, 5, 6, 7, 8] as Array[int])
+	for pulses in RhythmTable.POOL:
+		var nested := pulses == 6 or pulses == 8
+		var expected := RhythmTable.NESTED_SPAWN_WEIGHT if nested else 1.0
+		assert_eq(RhythmTable.pool_spawn_weight(pulses), expected, str(pulses))
+		assert_ne(ArtPalette.rhythm(pulses), ArtPalette.LIGHT, "%d has a colour" % pulses)
+
+
+func test_of_sorts_and_colours() -> void:
+	var table := RhythmTable.of([7, 3, 5] as Array[int])
+	assert_eq(table.pulse_counts(), [3, 5, 7] as Array[int], "Lowest first")
+	assert_eq(table.get_rhythm(5).color, ArtPalette.RHYTHM_5)
+	assert_eq(table.grid_steps(4), 420, "3, 5, 7 in 4/4")
+
+
+func test_shuffled_picks_three_others_from_the_pool() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 5
+	var current: Array[int] = [3, 4, 6]
+	for i in 200:
+		var picked := RhythmTable.shuffled(rng, current)
+		assert_eq(picked.size(), RhythmTable.IN_PLAY)
+		assert_ne(picked, current, "Never the same set")
+		var sorted := picked.duplicate()
+		sorted.sort()
+		assert_eq(picked, sorted, "Lowest first")
+		for pulses in picked:
+			assert_has(RhythmTable.POOL, pulses)
+			assert_eq(picked.count(pulses), 1, "No repeats")
+		current = picked
+
+
+func test_swap_to_pairs_lowest_to_highest_in_place() -> void:
+	var table := RhythmTable.default_table()
+	var held := table.rhythms
+	var pairing := table.swap_to([7, 3, 5] as Array[int])
+	assert_eq(pairing, {3: 3, 4: 5, 6: 7})
+	assert_eq(table.pulse_counts(), [3, 5, 7] as Array[int])
+	assert_same(table.rhythms, held, "The same array, so whoever holds it follows")

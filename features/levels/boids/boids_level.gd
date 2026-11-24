@@ -5,27 +5,38 @@ extends Node2D
 ##
 ## [b]Rowing[/b] ([constant FlockSim.Motion.ROW], the Waterboatmen level):
 ## boatmen row in strokes and glides rather than flying. Boatmen in a flock row
-## together on the flock's pulses and sing on the flock's rhythm — 3, 4 or 6
-## pulses to a shared bar, so flocks play polyrhythms against each other — each
-## with a voice of its own. Loners are silent.
+## together on the flock's pulses and sing on the flock's rhythm — three
+## rhythms at a time out of 3 to 8 pulses to a shared bar, so flocks play
+## polyrhythms against each other — each with a voice of its own. Loners are
+## silent.
 ##
 ## [b]Flying[/b] ([constant FlockSim.Motion.FLY], the Birds level): the
 ## original version, a sky of birds that fly continuously and sing the same
 ## way. Only the motion, the drawing and the strength of the wakes differ; the
-## snare, the taps, the scatter and the music are shared.
+## drums, the taps, the scatter and the music are shared.
 ##
-## The player plays a snare (B, Esc, Space or a click; B on a gamepad).
-## Every tap is read against every rhythm (see [TapReader]): flocks whose
-## rhythm fits the last bar of taps tighten and pull loners in, and flocks that
-## do not loosen and shed birds. Hold one rhythm unambiguously for long enough
-## and every flock playing something else bursts apart (see [ScatterCharge]) —
-## rare on purpose.
+## The player plays three drums, each a faint ring pulsing in a corner
+## ([DrumPads]): the kick bottom left, the snare bottom right, the hi-hat top
+## right. Tap a ring to play it; on a keyboard or pad, J or A is the kick, B,
+## Esc or Space the snare, H or X the hi-hat. Each drum's taps are read on
+## their own against every rhythm (see [TapReader]), so the kick can play a 3
+## while the hi-hat plays a 5. A rhythm takes its weight from whichever drum
+## fits it best: flocks whose rhythm fits tighten and pull loners in, and
+## flocks that do not loosen and shed birds. Hold one rhythm unambiguously for
+## long enough, with no drum playing another, and every flock playing
+## something else bursts apart (see [ScatterCharge]) — rare on purpose.
 ##
-## The snare sounds the instant it is hit, and a quieter ghost of it lands a
-## bar later on the pulse it was read as, so the player hears how they were
-## heard. The dial shows the same thing: the bar going round, every rhythm's
-## pulses, the last bar's taps, and the charge building. It fills the middle
-## of the screen, see-through, over the water and under the flocks.
+## Three rhythms are in play at a time ([member table]). Holding the dial
+## shuffles them ([method shuffle]): three others from 3 to 8, paired with the
+## old ones lowest to highest, and every flock, and the favour its rhythm had,
+## carries over to the rhythm taking its place.
+##
+## A drum sounds the instant it is hit, and a quieter ghost of it lands a bar
+## later on the pulse it was read as, so the player hears how they were heard.
+## The dial shows the same thing: the bar going round, every rhythm's pulses,
+## the last bar of each drum's taps (kicks as squares, snares as dashes,
+## hi-hats as dots), and the charge building. It fills the middle of the
+## screen, see-through, over the water and under the flocks.
 ##
 ## Swing ([method AudioManager.set_swing]) bends all of it together. The
 ## flocks' pulses are positions in the score like the band's notes, so they
@@ -54,11 +65,25 @@ extends Node2D
 const BEATS_PER_BAR := 4
 const BIRD_COUNT := 43
 
+## The rhythms in play when the level opens.
+const START_PULSES: Array[int] = [3, 4, 6]
 ## A flock of each of these is already flying when the level opens, so the
 ## first bar is already 3-against-4.
 const SEED_PULSES: Array[int] = [3, 4]
 
 const SNARE := &"snare"
+const KICK := &"kick_drum"
+const HAT := &"hi_hat"
+## Each pad's input action.
+const PAD_ACTIONS := {
+	DrumPads.Pad.KICK: KICK,
+	DrumPads.Pad.SNARE: SNARE,
+	DrumPads.Pad.HAT: HAT,
+}
+## Shuffles the rhythms on a keyboard, as holding the dial does on a screen.
+const SHUFFLE_KEY := KEY_S
+## The mouse, as a finger, for [PressHold].
+const MOUSE_INDEX := -2
 
 ## Attraction weight a rhythm gets from a fit of 0 (after [constant FIT_FLOOR])
 ## up to a perfect one. See [method weight_for_fit].
@@ -74,7 +99,10 @@ const FIT_FLOOR := 0.45
 const WEIGHT_RETENTION := 0.12
 
 const SNARE_DB := -3.0
-const GHOST_DB := -17.0
+const KICK_DB := -4.0
+const HAT_DB := -10.0
+## How far under its drum a ghost plays.
+const GHOST_DROP_DB := -14.0
 ## The kick under a scatter's crash.
 const SCATTER_KICK_DB := -7.0
 const CRASH_DB := -8.0
@@ -109,11 +137,9 @@ const WAKE_PAINT := 0.04
 const LONER_COLOR := ArtPalette.LONER
 
 ## The dial's radius, as a share of the screen's shorter side.
-const DIAL_REACH := 0.36
+const DIAL_REACH := 0.4
 ## How solid the dial is: the water shows through it.
 const DIAL_OPACITY := 0.5
-## The radius the dial's marks were sized for; they scale with it.
-const DIAL_DESIGN_RADIUS := 82.0
 
 ## Seconds added to a tap before it is read, to cancel the time between
 ## hearing a pulse and a press registering. 0 until measured on a device.
@@ -123,13 +149,22 @@ const DIAL_DESIGN_RADIUS := 82.0
 ## Read once, when the level is ready.
 @export var motion: FlockSim.Motion = FlockSim.Motion.ROW
 
+## The three rhythms in play. [method shuffle] swaps them in place.
 var table: RhythmTable
 var sim: FlockSim
-var reader: TapReader
+## A [TapReader] per drum ([enum DrumPads.Pad]), each reading only its own taps.
+var readers := {}
 var charge: ScatterCharge
+## Holding the dial, to shuffle the rhythms.
+var hold := PressHold.new()
 
-## The latest reading of the player's taps.
+## The latest reading of each drum's taps, by [enum DrumPads.Pad].
+var readings := {}
+## The reading that says the most: the drum fitting its rhythm best, with
+## enough taps to count. The snare's when no drum has been played.
 var reading: TapReader.Reading
+## The dial in the middle and the drum pads in the corners.
+var dial: RhythmDial
 
 var _rng := RandomNumberGenerator.new()
 var _grid := 12
@@ -139,8 +174,8 @@ var _sequencer_clock: MusicClock
 var _last_beats := -1.0
 ## Where the music is in the score: [member _last_beats] with the swing out.
 var _score_beats := 0.0
-## Beats positions still waiting to play a ghost snare.
-var _ghosts: Array[float] = []
+## Ghosts still waiting to play: x the score beats they land on, y the pad.
+var _ghosts: Array[Vector2] = []
 ## pulses -> weight, eased; mirrored into [member FlockSim.weights].
 var _weights := {}
 var _scatter_flash := 0.0
@@ -152,11 +187,11 @@ var _players: Array[AudioStreamPlayer] = []
 var _next_player := 0
 var _snare_stream: AudioStreamWAV
 var _kick_stream: AudioStreamWAV
+var _hat_stream: AudioStreamWAV
 var _crash_stream: AudioStreamWAV
 var _key_shift := KeyShiftInput.new()
 
 var _hud: Label
-var _dial: Node2D
 var _fluid: FluidSimulation
 ## The level's host: the tank to stir and the band to play over. See
 ## [SharedLayers].
@@ -170,14 +205,20 @@ func hint() -> String:
 
 
 func _ready() -> void:
-	# B on a keyboard or a gamepad, and whatever the Deck's B, Y and triggers
-	# send when Steam keeps it in its Desktop Mode layout.
+	# B on a keyboard or a gamepad, and whatever the Deck's B, Y and L2 send
+	# when Steam keeps it in its Desktop Mode layout. The Deck's R2 is a left
+	# click, which plays the pad under the pointer, or the snare anywhere else
+	# but the dial (see [method press]).
 	InputActions.ensure(
 		SNARE,
 		[KEY_B, DeckDesktopLayout.B, DeckDesktopLayout.Y] as Array[Key],
 		[JOY_BUTTON_B] as Array[JoyButton],
-		[DeckDesktopLayout.R2, DeckDesktopLayout.L2] as Array[MouseButton]
+		[DeckDesktopLayout.L2] as Array[MouseButton]
 	)
+	InputActions.ensure(
+		KICK, [KEY_J, DeckDesktopLayout.A] as Array[Key], [JOY_BUTTON_A] as Array[JoyButton]
+	)
+	InputActions.ensure(HAT, [KEY_H] as Array[Key], [JOY_BUTTON_X] as Array[JoyButton])
 	_shared = SharedLayers.host_of(self)
 	if _shared == null:
 		process_mode = PROCESS_MODE_DISABLED
@@ -187,11 +228,13 @@ func _ready() -> void:
 	# The snare has the triggers.
 	_key_shift.use_triggers = false
 	_rng.randomize()
-	table = RhythmTable.default_table()
+	table = RhythmTable.of(START_PULSES)
 	_grid = table.grid_steps(BEATS_PER_BAR)
-	reader = TapReader.new(BEATS_PER_BAR)
+	for pad in DrumPads.ALL:
+		readers[pad] = TapReader.new(BEATS_PER_BAR)
+		readings[pad] = readers[pad].read(0.0, table)
+	reading = readings[DrumPads.Pad.SNARE]
 	charge = ScatterCharge.new()
-	reading = reader.read(0.0, table)
 	for pulses in table.pulse_counts():
 		_weights[pulses] = 1.0
 	sim = FlockSim.new(table, get_viewport_rect(), _rng)
@@ -227,15 +270,20 @@ func _process(delta: float) -> void:
 	_last_beats = beats
 	_score_beats = AudioManager.get_music_clock().score_beats(beats)
 
-	reading = reader.read(_score_beats, table)
+	_read_all(_score_beats)
 	_ease_weights(delta)
-	if charge.advance(elapsed, reading.winner, reading.unambiguous):
+	var agreed := agreed_winner()
+	if charge.advance(elapsed, agreed, agreed > 0):
 		_scatter(charge.winner)
+	if hold.poll(now()):
+		shuffle()
 
 	sim.bounds = get_viewport_rect()
 	# A rhythm played cleanly always has a creature playing it.
-	if reading.unambiguous and reading.winner > 0:
-		sim.ensure_flock(reading.winner)
+	for pad in DrumPads.ALL:
+		var heard: TapReader.Reading = readings[pad]
+		if heard.unambiguous and heard.winner > 0:
+			sim.ensure_flock(heard.winner)
 	var step := minf(delta, 0.05)
 	sim.step(step, _score_beats)
 	_stir(step)
@@ -246,7 +294,7 @@ func _process(delta: float) -> void:
 	if source.is_running():
 		_play_due(source, beats)
 	queue_redraw()
-	_dial.queue_redraw()
+	dial.queue_redraw()
 	_update_hud()
 
 
@@ -271,26 +319,195 @@ func _unhandled_input(event: InputEvent) -> void:
 		_band.set_key_offset(_band.get_key_offset() + key_step)
 		get_viewport().set_input_as_handled()
 		return
-	if event.is_action_pressed(SNARE) and not event.is_echo():
+	for pad in DrumPads.ALL:
+		if event.is_action_pressed(PAD_ACTIONS[pad]) and not event.is_echo():
+			get_viewport().set_input_as_handled()
+			hit(pad)
+			return
+	var key := event as InputEventKey
+	if key != null and key.pressed and not key.echo and key.keycode == SHUFFLE_KEY:
 		get_viewport().set_input_as_handled()
-		_play_one_shot(_snare_stream, SNARE_DB)
-		var source := AudioManager.get_music_time_source()
-		var clock := AudioManager.get_music_clock()
-		var heard := source.get_beats() + tap_offset_seconds / clock.seconds_per_beat()
-		tap(clock.score_beats(heard))
+		shuffle()
+		return
+	var touch := event as InputEventScreenTouch
+	if touch != null:
+		if touch.pressed:
+			press(touch.index, touch.position, true)
+		else:
+			hold.end(touch.index)
+		return
+	var drag := event as InputEventScreenDrag
+	if drag != null:
+		hold.moved(drag.index, drag.position)
+		return
+	var click := event as InputEventMouseButton
+	# Mouse events Godot makes up from a touch are skipped: the touch itself
+	# was already read.
+	if (
+		click != null
+		and click.button_index == MOUSE_BUTTON_LEFT
+		and click.device != InputEvent.DEVICE_ID_EMULATION
+	):
+		if click.pressed:
+			press(MOUSE_INDEX, click.position, false)
+		else:
+			hold.end(MOUSE_INDEX)
+		return
+	var pointer := event as InputEventMouseMotion
+	if pointer != null and pointer.device != InputEvent.DEVICE_ID_EMULATION:
+		hold.moved(MOUSE_INDEX, pointer.position)
 
 
-## Read a snare hit at [param beats] in the score (see [method
-## MusicClock.score_beats]): it joins the last bar of taps, and its ghost is
-## queued a bar later on the pulse it reads as. Returns where the ghost will
-## land, in score beats.
-func tap(beats: float) -> float:
+## A press by finger [param index] (or [constant MOUSE_INDEX]) at [param at],
+## in canvas units: a pad plays its drum, and the dial starts a hold that
+## shuffles the rhythms. A click anywhere else is the snare, which keeps the
+## Deck's R2 (a left click in its desktop layout) a snare wherever the pointer
+## is; a touch anywhere else does nothing. Presses on the corner menu are the
+## menu's. Returns the pad played, or -1.
+func press(index: int, at: Vector2, is_touch: bool) -> int:
+	if _shared != null and _shared.game_menu != null and _shared.game_menu.covers(at):
+		return -1
+	var rect := get_viewport_rect()
+	var pad := DrumPads.pad_at(at, rect.size, safe_insets())
+	if pad != -1:
+		hit(pad)
+		return pad
+	if at.distance_to(rect.get_center()) <= dial_radius(rect.size):
+		hold.begin(index, at, now())
+		return -1
+	if not is_touch:
+		hit(DrumPads.Pad.SNARE)
+		return DrumPads.Pad.SNARE
+	return -1
+
+
+## Play [param pad]'s drum now, and read the hit.
+func hit(pad: int) -> void:
+	_play_one_shot(_stream_for(pad), _db_for(pad))
+	dial.flash_pad(pad)
+	var source := AudioManager.get_music_time_source()
+	var clock := AudioManager.get_music_clock()
+	var heard := source.get_beats() + tap_offset_seconds / clock.seconds_per_beat()
+	tap(clock.score_beats(heard), pad)
+
+
+## Read a hit on [param pad] at [param beats] in the score (see [method
+## MusicClock.score_beats]): it joins the last bar of that drum's taps, and its
+## ghost is queued a bar later on the pulse it reads as. Returns where the
+## ghost will land, in score beats.
+func tap(beats: float, pad: int = DrumPads.Pad.SNARE) -> float:
+	var reader: TapReader = readers[pad]
 	reader.add_tap(beats)
-	reading = reader.read(beats, table)
-	var pulses := reading.winner if reading.winner > 0 else table.min_pulses()
+	readings[pad] = reader.read(beats, table)
+	reading = lead_reading()
+	var heard: TapReader.Reading = readings[pad]
+	var pulses := heard.winner if heard.winner > 0 else table.min_pulses()
 	var ghost := reader.quantise(beats, pulses) + BEATS_PER_BAR
-	_ghosts.append(ghost)
+	_ghosts.append(Vector2(ghost, pad))
 	return ghost
+
+
+## Swap the three rhythms in play for three others ([method
+## RhythmTable.shuffled]), or for [param pulse_counts] when given. Old and new
+## pair up lowest to highest: every flock moves over to the rhythm taking its
+## rhythm's place, and so does the favour that rhythm had (its weight, its
+## pull on new flocks, and a charge building for it). The old rings fade from
+## the dial as the new ones come in.
+func shuffle(pulse_counts: Array[int] = []) -> void:
+	var incoming := pulse_counts
+	if incoming.is_empty():
+		incoming = RhythmTable.shuffled(_rng, table.pulse_counts())
+	var outgoing := table.rhythms.duplicate()
+	var pairing := table.swap_to(incoming)
+	sim.remap_rhythms(pairing)
+	var moved := {}
+	for old in pairing:
+		moved[pairing[old]] = _weights.get(old, 1.0)
+	_weights = moved
+	charge.winner = pairing.get(charge.winner, 0)
+	_grid = table.grid_steps(BEATS_PER_BAR)
+	# The flocks' grid changes with the rhythms: start it afresh from now.
+	_sequencer_clock = null
+	if _sequencer != null:
+		_sequencer.reset()
+	_read_all(_score_beats)
+	dial.fade_out(outgoing)
+
+
+## The rhythm every drum that reads clearly agrees on, or 0: none reads
+## clearly, or two read clearly as different rhythms. Only an agreed rhythm
+## builds the charge, so a player keeping two rhythms going keeps both alive.
+func agreed_winner() -> int:
+	var agreed := 0
+	for pad in DrumPads.ALL:
+		var heard: TapReader.Reading = readings[pad]
+		if not heard.unambiguous or heard.winner == 0:
+			continue
+		if agreed != 0 and heard.winner != agreed:
+			return 0
+		agreed = heard.winner
+	return agreed
+
+
+## The drum whose reading says the most: the best fit, weighed by how much
+## its taps count ([member TapReader.Reading.confidence]). The snare's when no
+## drum has any taps.
+func lead_reading() -> TapReader.Reading:
+	var best: TapReader.Reading = readings[DrumPads.Pad.SNARE]
+	var best_score := best.winner_fit * best.confidence
+	for pad in DrumPads.ALL:
+		var heard: TapReader.Reading = readings[pad]
+		var score := heard.winner_fit * heard.confidence
+		if score > best_score:
+			best = heard
+			best_score = score
+	return best
+
+
+func _read_all(beats: float) -> void:
+	for pad in DrumPads.ALL:
+		readings[pad] = readers[pad].read(beats, table)
+	reading = lead_reading()
+
+
+func _stream_for(pad: int) -> AudioStream:
+	match pad:
+		DrumPads.Pad.KICK:
+			return _kick_stream
+		DrumPads.Pad.HAT:
+			return _hat_stream
+	return _snare_stream
+
+
+func _db_for(pad: int) -> float:
+	match pad:
+		DrumPads.Pad.KICK:
+			return KICK_DB
+		DrumPads.Pad.HAT:
+			return HAT_DB
+	return SNARE_DB
+
+
+## The safe area's insets, so the pads clear the phone's island and corners.
+func safe_insets() -> Vector4:
+	var viewport := get_viewport()
+	return SafeArea.insets(SafeArea.canvas_rect(viewport), viewport.get_visible_rect().size)
+
+
+## Where the music was in the score at the last frame, in beats: what the
+## taps are read against.
+func score_beats() -> float:
+	return _score_beats
+
+
+## Where the music was as heard at the last frame, in beats; 0 before it starts.
+func heard_beats() -> float:
+	return maxf(_last_beats, 0.0)
+
+
+## Seconds on the clock holds are timed by.
+static func now() -> float:
+	return Time.get_ticks_msec() / 1000.0
 
 
 ## Attraction weight for a rhythm the taps fit [param fit] (0..1), before
@@ -300,14 +517,25 @@ static func weight_for_fit(fit: float) -> float:
 	return lerpf(WEIGHT_LOW, WEIGHT_HIGH, smoothstep(FIT_FLOOR, 1.0, fit))
 
 
+## Ease every rhythm's weight towards what the drums say of it. Each rhythm
+## listens to the drum that fits it best (fit weighed by confidence), so a
+## kick playing a 3 favours the 3 whatever the hi-hat is doing; with no drum
+## played, every rhythm eases back to neutral.
 func _ease_weights(delta: float) -> void:
 	var keep := pow(WEIGHT_RETENTION, delta)
 	for pulses in table.pulse_counts():
-		var fit: float = reading.fits.get(pulses, 0.0)
-		var target := lerpf(1.0, weight_for_fit(fit), reading.confidence)
-		_weights[pulses] = lerpf(target, _weights[pulses], keep)
+		var fit := 0.0
+		var confidence := 0.0
+		for pad in DrumPads.ALL:
+			var heard: TapReader.Reading = readings[pad]
+			var pad_fit: float = heard.fits.get(pulses, 0.0)
+			if pad_fit * heard.confidence > fit * confidence:
+				fit = pad_fit
+				confidence = heard.confidence
+		var target := lerpf(1.0, weight_for_fit(fit), confidence)
+		_weights[pulses] = lerpf(target, _weights.get(pulses, 1.0), keep)
 		sim.weights[pulses] = _weights[pulses]
-		sim.spawn_bias[pulses] = fit * reading.confidence
+		sim.spawn_bias[pulses] = fit * confidence
 
 
 func _scatter(survivor: int) -> void:
@@ -319,8 +547,7 @@ func _scatter(survivor: int) -> void:
 	_play_one_shot(_kick_stream, SCATTER_KICK_DB)
 
 
-## Every grid step due now: the downbeat's soft kick, each flock's pulses, and
-## any ghost snares.
+## Every grid step due now: each flock's pulses, and any ghost drums.
 func _play_due(source: MusicTimeSource, beats: float) -> void:
 	var clock := AudioManager.get_music_clock()
 	if clock != _sequencer_clock:
@@ -338,10 +565,11 @@ func _play_due(source: MusicTimeSource, beats: float) -> void:
 			if in_bar % (_grid / flock.pulses) == 0:
 				_sing(flock, in_bar == 0)
 	var horizon := clock.score_beats(beats + lookahead)
-	for ghost: float in _ghosts.duplicate():
-		if horizon >= ghost:
+	for ghost: Vector2 in _ghosts.duplicate():
+		if horizon >= ghost.x:
 			_ghosts.erase(ghost)
-			_play_one_shot(_snare_stream, GHOST_DB)
+			var pad := int(ghost.y)
+			_play_one_shot(_stream_for(pad), _db_for(pad) + GHOST_DROP_DB)
 
 
 ## One pulse of [param flock]: a few of its birds sing, in turn, each in its
@@ -380,8 +608,10 @@ func _build_audio() -> void:
 	var rate := int(AudioServer.get_mix_rate())
 	_snare_stream = DrumSynth.one_shot(DrumSynth.Hit.SNARE, rate)
 	_kick_stream = DrumSynth.one_shot(DrumSynth.Hit.KICK, rate)
+	_hat_stream = DrumSynth.one_shot(DrumSynth.Hit.CLOSED_HAT, rate)
 	_crash_stream = DrumSynth.one_shot(DrumSynth.Hit.OPEN_HAT, rate)
-	for i in 6:
+	# Three drums and their ghosts can land together.
+	for i in 10:
 		var player := AudioStreamPlayer.new()
 		player.bus = AudioManager.RHYTHM_BUS
 		add_child(player)
@@ -548,39 +778,47 @@ func _build_hud() -> void:
 
 	# A child drawn behind this node: over the tank, which is the host's, and
 	# under the flocks, which this node draws.
-	_dial = Node2D.new()
-	_dial.name = "Dial"
-	_dial.show_behind_parent = true
-	_dial.modulate.a = DIAL_OPACITY
-	_dial.draw.connect(_draw_dial)
-	add_child(_dial)
+	dial = RhythmDial.new()
+	dial.name = "Dial"
+	dial.level = self
+	dial.show_behind_parent = true
+	dial.modulate.a = DIAL_OPACITY
+	add_child(dial)
 
 
 func _update_hud() -> void:
-	var read := "·"
-	if reading.tap_count > 0:
-		read = (
-			"%d (%.2f)%s" % [reading.winner, reading.winner_fit, "" if reading.unambiguous else "?"]
-		)
+	var reads := PackedStringArray()
+	for pad in DrumPads.ALL:
+		var heard: TapReader.Reading = readings[pad]
+		var read := "·"
+		if heard.tap_count > 0:
+			read = (
+				"%d (%.2f)%s" % [heard.winner, heard.winner_fit, "" if heard.unambiguous else "?"]
+			)
+		reads.append("%s %s" % [DrumPads.name_of(pad), read])
 	var state := "charge %d%%" % roundi(charge.charge * 100.0)
 	if charge.is_cooling_down():
 		state = "settling"
 	_hud.text = (
 		(
-			"♪ %s · key %+d · %s · ♩ %d bpm · %d flocks · %d singing, %d silent\n"
+			"♪ %s · key %+d · %s · ♩ %d bpm · %s · %d flocks · %d singing, %d silent\n"
 			% [
 				_band.song_title(),
 				KeyShiftInput.display_offset(_band.get_key_offset()),
 				_band.scale_name(),
 				roundi(AudioManager.get_tempo()),
+				" ".join(PackedStringArray(table.pulse_counts().map(str))),
 				sim.flocks.size(),
 				_singing(),
 				_silent(),
 			]
 		)
-		+ "reads as %s · %s\n" % [read, state]
+		+ "%s · %s\n" % [" · ".join(reads), state]
 		+ (
-			"B / Esc / Space / click snare · Q/E Z/X key · ↑↓ ±2 bpm · ←→ ±10 bpm · last input: %s"
+			(
+				"J/A kick · B/Esc/Space snare · H/X hi-hat · S or hold the dial shuffles"
+				+ " · Q/E Z/X key · ↑↓ ±2 bpm · ←→ ±10 bpm · last input: %s"
+			)
 			% _last_input
 		)
 	)
@@ -609,80 +847,6 @@ static func heard_phase(score_phase: float, clock: MusicClock) -> float:
 	return clock.heard_beats(score_phase * BEATS_PER_BAR) / BEATS_PER_BAR
 
 
-## The bar as a clock face, downbeat at the top: a ring of pulses per rhythm
-## (bright when in favour), the last bar of taps round the outside, the
-## playhead, and the charge as an arc round everything.
-func _draw_dial() -> void:
-	var rect := get_viewport_rect()
-	var centre := rect.get_center()
-	var outer := dial_radius(rect.size)
-	# Everything below is in the units the dial was first drawn in.
-	var unit := outer / DIAL_DESIGN_RADIUS
-	var clock := AudioManager.get_music_clock()
-	_dial.draw_circle(centre, outer + 4.0 * unit, UiTokens.OVERLAY)
-	_dial.draw_arc(
-		centre, outer + 4.0 * unit, 0.0, TAU, 128, Color(UiTokens.SIGIL, 0.35), unit, true
-	)
-
-	var ring := outer - 14.0 * unit
-	for rhythm in table.rhythms:
-		var weight := sim.weight_for(rhythm.pulses)
-		var color := rhythm.color
-		color.a = clampf(0.25 + (weight - WEIGHT_LOW) / (WEIGHT_HIGH - WEIGHT_LOW) * 0.75, 0.2, 1.0)
-		_dial.draw_arc(centre, ring, 0.0, TAU, 96, Color(color, color.a * 0.3), unit, true)
-		for k in rhythm.pulses:
-			var phase := heard_phase(float(k) / rhythm.pulses, clock)
-			_dial.draw_circle(centre + _dial_point(phase, ring), 3.5 * unit, color)
-		ring -= 16.0 * unit
-
-	for phase in reader.window(_score_beats):
-		var at := _dial_point(heard_phase(phase, clock), outer)
-		_dial.draw_line(centre + at * 0.9, centre + at * 1.05, UiTokens.RUNE, 2.0 * unit, true)
-
-	var playhead := reader.phase_of(maxf(_last_beats, 0.0))
-	var hand := Color(UiTokens.TEXT, 0.35)
-	_dial.draw_line(centre, centre + _dial_point(playhead, outer), hand, unit, true)
-
-	var start := -PI / 2.0
-	if charge.is_cooling_down():
-		var left := charge.cooldown / charge.cooldown_beats
-		_dial.draw_arc(
-			centre,
-			outer + 3.0 * unit,
-			start,
-			start + TAU * left,
-			128,
-			Color(UiTokens.SIGIL, 0.3),
-			3.0 * unit
-		)
-	elif charge.charge > 0.0:
-		var rhythm := table.get_rhythm(charge.winner)
-		var color := rhythm.color if rhythm != null else ArtPalette.LIGHT
-		_dial.draw_arc(
-			centre,
-			outer + 3.0 * unit,
-			start,
-			start + TAU * charge.charge,
-			128,
-			color,
-			4.0 * unit,
-			true
-		)
-
-	var font := UiTheme.hud_font()
-	var label := str(reading.winner) if reading.tap_count > 0 else ""
-	var font_size := roundi(20.0 * unit)
-	_dial.draw_string(
-		font,
-		centre + Vector2(-outer, font_size * 0.35),
-		label,
-		HORIZONTAL_ALIGNMENT_CENTER,
-		outer * 2.0,
-		font_size,
-		UiTokens.HUD_TEXT
-	)
-
-
 ## The MIDI note [param degree] sings in a key with tonic [param root] (pitch
 ## class, 0 = C): that step of [param intervals], the band's scale, counted up
 ## from the tonic at or above [constant VOICE_FLOOR].
@@ -694,7 +858,3 @@ static func voice_note(degree: int, root: int, intervals: Array[int]) -> int:
 
 static func midi_to_hz(note: int) -> float:
 	return 440.0 * pow(2.0, (note - 69) / 12.0)
-
-
-static func _dial_point(phase: float, radius: float) -> Vector2:
-	return Vector2.from_angle(-PI / 2.0 + phase * TAU) * radius

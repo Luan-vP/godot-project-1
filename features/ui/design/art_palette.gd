@@ -71,13 +71,35 @@ const PIN_SATURATION := 0.55
 ## A pin with no note yet.
 const PIN_BLANK := Color(0.8, 0.8, 0.8)
 
-## Rhythms in the birds and boatmen levels, by pulses: 3 orange, 4 sky, 6
-## lilac.
+## Rhythms in the birds and boatmen levels, by pulses: 3 orange, 4 sky, 5
+## mint, 6 lilac, 7 rose, 8 gold. See [method rhythm].
 const RHYTHM_3 := Color(0.98, 0.62, 0.36)
 const RHYTHM_4 := Color(0.42, 0.78, 0.96)
+const RHYTHM_5 := Color(0.46, 0.90, 0.64)
 const RHYTHM_6 := Color(0.80, 0.56, 0.96)
+const RHYTHM_7 := Color(0.97, 0.50, 0.64)
+const RHYTHM_8 := Color(0.95, 0.86, 0.42)
 ## A bird in no flock.
 const LONER := Color(0.86, 0.87, 0.93, 0.42)
+
+
+## The colour of a rhythm of [param pulses] pulses, or [constant LIGHT] for
+## one with no colour of its own.
+static func rhythm(pulses: int) -> Color:
+	match pulses:
+		3:
+			return RHYTHM_3
+		4:
+			return RHYTHM_4
+		5:
+			return RHYTHM_5
+		6:
+			return RHYTHM_6
+		7:
+			return RHYTHM_7
+		8:
+			return RHYTHM_8
+	return LIGHT
 
 
 ## The dye for slot [param index], wrapping.

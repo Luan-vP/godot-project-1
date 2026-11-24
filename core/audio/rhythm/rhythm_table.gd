@@ -7,6 +7,18 @@ extends RefCounted
 ## pulse counts — and of the bar's beats, so beats land on the grid too. That
 ## grid is derived here and never written down anywhere else: 3, 4 and 6 in 4/4
 ## need 12 steps a bar, adding 5 makes it 60, adding 7 makes it 420.
+##
+## A level plays [constant IN_PLAY] rhythms at a time, drawn from
+## [constant POOL]; [method shuffled] picks another set and [method swap_to]
+## moves the table over to it in place, so whoever holds the table follows.
+
+## Every rhythm a table can hold, by pulses.
+const POOL: Array[int] = [3, 4, 5, 6, 7, 8]
+## How many rhythms a level plays at once.
+const IN_PLAY := 3
+## Rhythms that nest over another (6 over 3, 8 over 4) form half as often:
+## they are a rarer extra voice. Every other rhythm weighs 1.
+const NESTED_SPAWN_WEIGHT := 0.5
 
 var rhythms: Array[Rhythm] = []
 
@@ -18,12 +30,62 @@ func _init(p_rhythms: Array[Rhythm] = []) -> void:
 ## 3, 4 and 6: the 3-against-4 the level is built around, plus 6 as a rarer
 ## third voice that nests over the 3.
 static func default_table() -> RhythmTable:
-	var table: Array[Rhythm] = [
-		Rhythm.create(3, 1.0, ArtPalette.RHYTHM_3),
-		Rhythm.create(4, 1.0, ArtPalette.RHYTHM_4),
-		Rhythm.create(6, 0.5, ArtPalette.RHYTHM_6),
-	]
-	return RhythmTable.new(table)
+	return of([3, 4, 6])
+
+
+## A table of the rhythms with [param pulse_counts] pulses, lowest first, each
+## with its colour ([method ArtPalette.rhythm]) and spawn weight
+## ([method pool_spawn_weight]).
+static func of(pulse_counts: Array[int]) -> RhythmTable:
+	return RhythmTable.new(_rhythms_for(pulse_counts))
+
+
+## The spawn weight a rhythm of [param pulses] pulses gets in [method of].
+static func pool_spawn_weight(pulses: int) -> float:
+	for other in POOL:
+		if other * 2 == pulses:
+			return NESTED_SPAWN_WEIGHT
+	return 1.0
+
+
+## [constant IN_PLAY] rhythms from [constant POOL], picked at random, lowest
+## first, and never the same set as [param current].
+static func shuffled(rng: RandomNumberGenerator, current: Array[int] = []) -> Array[int]:
+	var now := current.duplicate()
+	now.sort()
+	while true:
+		var pool := POOL.duplicate()
+		var picked: Array[int] = []
+		for i in IN_PLAY:
+			picked.append(pool.pop_at(rng.randi_range(0, pool.size() - 1)))
+		picked.sort()
+		if picked != now:
+			return picked
+	return []
+
+
+## Move the table over to the rhythms with [param pulse_counts] pulses, in
+## place. Old and new are paired lowest to lowest, up to highest to highest;
+## returns that pairing, old pulses -> new pulses, so whoever keeps something
+## per rhythm can carry it over to the rhythm taking its place.
+func swap_to(pulse_counts: Array[int]) -> Dictionary:
+	var old := pulse_counts()
+	old.sort()
+	var incoming := _rhythms_for(pulse_counts)
+	var pairing := {}
+	for i in mini(old.size(), incoming.size()):
+		pairing[old[i]] = incoming[i].pulses
+	rhythms.assign(incoming)
+	return pairing
+
+
+static func _rhythms_for(pulse_counts: Array[int]) -> Array[Rhythm]:
+	var sorted := pulse_counts.duplicate()
+	sorted.sort()
+	var made: Array[Rhythm] = []
+	for pulses in sorted:
+		made.append(Rhythm.create(pulses, pool_spawn_weight(pulses), ArtPalette.rhythm(pulses)))
+	return made
 
 
 ## Every rhythm's pulse count, in table order.
