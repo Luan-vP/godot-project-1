@@ -1,6 +1,7 @@
 class_name MixPanel
 extends DropDownPanel
-## Volume mix controls for the debug overlay ([LevelMeterOverlay]): a slider
+## Volume mix controls, in the corner menu ([GameMenu]) and the debug overlay
+## ([LevelMeterOverlay]): a slider
 ## in dB for the band, the duck solo and the rhythm voices, set through
 ## [method AudioManager.set_mix_db].
 

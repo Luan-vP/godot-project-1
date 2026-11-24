@@ -1,6 +1,7 @@
 class_name SwingPanel
 extends DropDownPanel
-## The swing control for the debug overlay ([LevelMeterOverlay]): one slider
+## The swing control, in the corner menu ([GameMenu]) and the debug overlay
+## ([LevelMeterOverlay]): one slider
 ## for [method AudioManager.set_swing], in the percent a drum machine shows —
 ## 50 straight, 67 a triplet shuffle, 75 the hardest. Everything on the music
 ## clock follows it: the band, the flocks and their dial, the spout's pins.
