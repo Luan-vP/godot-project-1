@@ -23,7 +23,7 @@ extends Node
 ## not the song's own scale, which the chords keep. Until [method
 ## set_scale_named] picks one it is the pentatonic matching the song's mode,
 ## and [signal scale_changed] tells the levels each time it moves, whichever
-## of them (or the corner buttons, [KeyScaleButtons]) moved it.
+## of them (or the corner buttons, [GameMenu]) moved it.
 ##
 ## [method next_song] moves on to another song without stopping the clock: a
 ## shake of the device asks for it, and so does a timer, every

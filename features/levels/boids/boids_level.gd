@@ -41,7 +41,7 @@ extends Node2D
 ## The music is the host's [Band]: its song keeps playing in full, and the
 ## flocks play over it, on its clock and in its key. A bird's voice is a step
 ## of the band's scale ([method voice_note]) — the song's pentatonic until the
-## scale button in the corner ([KeyScaleButtons]) picks another — so a key
+## scale button in the corner menu ([GameMenu]) picks another — so a key
 ## move (L1/R1 or Q/E a fourth, Z/X a fifth — see [KeyShiftInput], or the
 ## corner buttons) or a new scale carries every flock with it.
 ## Tempo is [code]TempoControl[/code]'s, like everywhere else: the flocks, the
@@ -162,6 +162,11 @@ var _fluid: FluidSimulation
 ## [SharedLayers].
 var _shared: SharedLayers
 var _band: Band
+
+
+## What the corner menu ([GameMenu]) tells a player to do here.
+func hint() -> String:
+	return "Play a rhythm to strengthen that group."
 
 
 func _ready() -> void:
@@ -538,6 +543,8 @@ func _build_hud() -> void:
 	_hud.offset_left = 16.0
 	_hud.offset_bottom = -12.0
 	layer.add_child(_hud)
+	# Readouts for working on the game; a player sees the level alone.
+	layer.visible = DevTools.enabled()
 
 	# A child drawn behind this node: over the tank, which is the host's, and
 	# under the flocks, which this node draws.

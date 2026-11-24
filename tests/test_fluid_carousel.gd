@@ -158,6 +158,13 @@ func test_the_outgoing_level_is_freed_and_the_incoming_one_is_live() -> void:
 	assert_eq(_carousel.current_level().position.x, 0.0, "At rest")
 
 
+func test_the_menu_follows_the_level_playing_for_its_hint() -> void:
+	var menu := _carousel.shared_layers().game_menu
+	assert_eq(menu.level, _carousel.current_level(), "The first level")
+	_carousel.advance()
+	assert_eq(menu.level, _carousel.current_level(), "The one that arrived")
+
+
 func test_the_shared_layers_survive_every_transition() -> void:
 	var shared := _carousel.shared_layers()
 	var fluid := shared.fluid

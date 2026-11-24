@@ -17,7 +17,7 @@ extends Node2D
 ## the new key, one column per step of the music, left to right. So does a
 ## change of the band's scale ([signal Band.scale_changed]), which every level
 ## shares: [method cycle_scale] on the pad's Y or [kbd]Enter[/kbd] (the Deck's
-## A outside Steam), or the host's scale button ([KeyScaleButtons]), as
+## A outside Steam), or the host's scale button ([GameMenu]), as
 ## stand-ins until the real input is decided (#117). Not Tab: on a Deck
 ## outside Steam, View sends Tab, and that leaves the level.
 ## [method set_pin_scale] sets a scale on the pins alone.
@@ -64,6 +64,11 @@ var _hud: Label
 var _status: Label
 ## The scale whose name was last printed into the tank.
 var _printed_scale := ""
+
+
+## What the corner menu ([GameMenu]) tells a player to do here.
+func hint() -> String:
+	return "Shoot bubbles at the ducks to solo."
 
 
 func _ready() -> void:
@@ -222,6 +227,8 @@ func _build_hud() -> void:
 	_status.offset_left = 16.0
 	_status.offset_top = 12.0
 	layer.add_child(_status)
+	# Readouts for working on the game; a player sees the level alone.
+	layer.visible = DevTools.enabled()
 	add_child(layer)
 
 

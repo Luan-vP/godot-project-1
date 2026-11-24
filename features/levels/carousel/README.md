@@ -55,10 +55,12 @@ the level disables itself.
 
 ### Key, scale and song
 
-Three buttons sit in the top-right corner of every level
-([`KeyScaleButtons`](key_scale_buttons.gd), kept by the host so they stay
-put through a slide): `key −4th`, `key +4th` and `scale ▸`. Most players are
-on a touch screen, with no shoulder buttons to move the key.
+A menu button sits in the top-right corner of every level
+([`GameMenu`](game_menu.gd), kept by the host so it stays put through a
+slide). It opens a panel with the level's hint (its `hint()` method; the
+carousel tells the menu which level has arrived) over `key −4th`,
+`key +4th`, `scale ▸` and `next song ▸`. Most players are on a touch screen,
+with no shoulder buttons to move the key. A tap outside the panel closes it.
 
 The scale is the band's (`Band.scale_name()`, `scale_changed`): not the
 song's own, which its chords keep, but the palette of notes the levels play
@@ -121,7 +123,7 @@ Levels are `Node2D`s but their HUDs are `CanvasLayer`s, which ignore the parent
 transform, so `_place` moves the layers' offsets by hand.
 
 A swipe is a press (finger or left mouse button) that starts in the bottom
-`SWIPE_BAND` (a fifth) of the screen and lets go at least `SWIPE_MIN_TRAVEL`
+`SWIPE_BAND` (a third) of the screen and lets go at least `SWIPE_MIN_TRAVEL`
 (an eighth or so) of the screen's width to the side, more across than up.
 The carousel watches it in `_input` without consuming it, so the level
 underneath still sees the touch. `advance()` and `retreat()` are public so

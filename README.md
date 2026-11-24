@@ -37,9 +37,9 @@ A 2D game about floaty eye thingies, in a painterly style. Godot 4.4.
 
 Pressing play opens on Godot's boot splash, then the studio logo
 (`features/splash/`; any key or tap skips it), then straight into the fluid
-carousel (swipe along the bottom to change level; the key and scale
-buttons are top right in every level, and shaking a phone moves on to the
-next song).
+carousel (swipe along the bottom to change level; the menu button top right
+in every level opens the level's hint, the key and scale buttons and the next
+song, and shaking a phone moves on to the next song too).
 
 ### The Deck's build and everyone else's
 
@@ -51,7 +51,8 @@ Deck's alone (`core/platform/dev_tools.gd`):
 | Exported from | the **Steam Deck** preset, which adds the `deck` feature tag | its own preset |
 | After the splash | the carousel, opened from the demo menu behind it | the carousel, opened by `features/game/game_host.gd`; no menu |
 | Demo menu, PR picker, Synth / Groove / Audio / Motion / Comfort | yes | left out of the export (`exclude_filter`) |
-| Debug overlay (meter and mix) | `F8`, `--meter`, or a three-finger hold | hidden; a three-finger hold for a moment shows it |
+| Debug overlay (meter and mix) | `F8`, `--meter`, or a three-finger hold | not there at all |
+| Levels' HUD text (song, key, controls, tilt readout) | shown | hidden |
 | `--open=` / `--probe` | every demo in the menu | the carousel and its levels |
 
 On the Deck, `Backspace` (or `Select` on a gamepad) leaves the carousel for
