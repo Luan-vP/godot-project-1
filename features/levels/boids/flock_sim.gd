@@ -361,6 +361,33 @@ func pulses_on_screen() -> Array[int]:
 	return on_screen
 
 
+## Move every flock, and the weight and spawn bias kept for its rhythm, over
+## to the rhythm that takes its place: [param pairing] is old pulses -> new
+## pulses, as [method RhythmTable.swap_to] returns it. A flock keeps its
+## members and voices; only what it plays changes, so a favoured group stays
+## favoured under its new rhythm. A flock whose rhythm has no pairing leaves
+## the sky, its birds back to loners.
+func remap_rhythms(pairing: Dictionary) -> void:
+	for flock in flocks.duplicate():
+		if pairing.has(flock.pulses):
+			flock.pulses = pairing[flock.pulses]
+			# Pulses are counted afresh in the new rhythm.
+			flock.last_pulse = -1
+		else:
+			for bird: Bird in flock.members.duplicate():
+				leave(bird)
+			_remove_flock(flock)
+	var moved_weights := {}
+	var moved_bias := {}
+	for old in pairing:
+		if weights.has(old):
+			moved_weights[pairing[old]] = weights[old]
+		if spawn_bias.has(old):
+			moved_bias[pairing[old]] = spawn_bias[old]
+	weights = moved_weights
+	spawn_bias = moved_bias
+
+
 func weight_for(pulses: int) -> float:
 	return weights.get(pulses, 1.0)
 

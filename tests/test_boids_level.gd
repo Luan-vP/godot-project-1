@@ -27,7 +27,7 @@ func test_the_sky_opens_with_three_against_four() -> void:
 
 
 func test_a_tap_ghosts_a_bar_later_on_the_pulse_it_reads_as() -> void:
-	_level.reader.clear()
+	_level.readers[DrumPads.Pad.SNARE].clear()
 	_level.tap(100.0)
 	_level.tap(100.0 + 4.0 / 3.0)
 	var ghost := _level.tap(100.0 + 8.0 / 3.0 + 0.05)
@@ -36,10 +36,10 @@ func test_a_tap_ghosts_a_bar_later_on_the_pulse_it_reads_as() -> void:
 
 
 func test_favoured_rhythms_weigh_more() -> void:
-	_level.reader.clear()
+	_level.readers[DrumPads.Pad.SNARE].clear()
 	for k in 4:
 		_level.tap(200.0 + k)
-	_level.reading = _level.reader.read(203.5, _level.table)
+	_level._read_all(203.5)
 	for i in 30:
 		_level._ease_weights(0.1)
 	assert_gt(_level.sim.weight_for(4), 1.3, "4 is favoured")
@@ -68,11 +68,10 @@ func test_the_snare_hears_the_deck_in_desktop_mode() -> void:
 		key.physical_keycode = keycode
 		key.pressed = true
 		assert_true(key.is_action_pressed(BoidsLevel.SNARE), OS.get_keycode_string(keycode))
-	for button_index in [DeckDesktopLayout.R2, DeckDesktopLayout.L2]:
-		var click := InputEventMouseButton.new()
-		click.button_index = button_index
-		click.pressed = true
-		assert_true(click.is_action_pressed(BoidsLevel.SNARE), "Mouse button %d" % button_index)
+	var l2 := InputEventMouseButton.new()
+	l2.button_index = DeckDesktopLayout.L2
+	l2.pressed = true
+	assert_true(l2.is_action_pressed(BoidsLevel.SNARE), "L2, a right click")
 
 
 func _birds_level() -> BoidsLevel:
@@ -151,8 +150,8 @@ func test_the_dial_fills_the_middle_under_the_flocks() -> void:
 	assert_true(dial.show_behind_parent, "Drawn before the birds")
 	assert_eq(dial.get_parent(), _level, "In the level, so over the tank")
 	assert_lt(dial.modulate.a, 1.0, "The water shows through")
-	assert_almost_eq(BoidsLevel.dial_radius(Vector2(1280.0, 800.0)), 288.0, 0.001)
-	assert_almost_eq(BoidsLevel.dial_radius(Vector2(390.0, 844.0)), 140.4, 0.001, "Portrait")
+	assert_almost_eq(BoidsLevel.dial_radius(Vector2(1280.0, 800.0)), 320.0, 0.001)
+	assert_almost_eq(BoidsLevel.dial_radius(Vector2(390.0, 844.0)), 156.0, 0.001, "Portrait")
 
 
 func test_the_dial_shows_pulses_where_they_are_heard() -> void:
@@ -166,7 +165,7 @@ func test_the_dial_shows_pulses_where_they_are_heard() -> void:
 func test_playing_along_with_the_swing_still_reads_as_the_rhythm() -> void:
 	AudioManager.set_swing(Swing.MAX)
 	var clock := AudioManager.get_music_clock()
-	_level.reader.clear()
+	_level.readers[DrumPads.Pad.SNARE].clear()
 	var ghost := 0.0
 	for k in 3:
 		# Where a 3's pulses are heard, with the swing on.

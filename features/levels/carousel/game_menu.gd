@@ -135,6 +135,17 @@ func is_open() -> bool:
 	return _panel != null and _panel.visible
 
 
+## Whether [param point], in canvas units, is on the menu: its button, or the
+## panel while it is open. A level that reads taps by position leaves these
+## to the menu. A hidden menu covers nothing.
+func covers(point: Vector2) -> bool:
+	if not visible:
+		return false
+	if _menu_button != null and _menu_button.get_global_rect().has_point(point):
+		return true
+	return is_open() and _panel.get_global_rect().has_point(point)
+
+
 ## The hint the panel shows: the level's own, or an empty string.
 func hint_text() -> String:
 	return hint_for(level)
