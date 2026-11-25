@@ -60,7 +60,10 @@ A menu button sits in the top-right corner of every level
 slide). It opens a panel with the level's hint (its `hint()` method; the
 carousel tells the menu which level has arrived) over `key −4th`,
 `key +4th`, `scale ▸` and `next song ▸`, then the mix and swing sliders
-(`MixPanel`, `SwingPanel`), folded until tapped open. Most players are on a touch screen,
+(`MixPanel`, `SwingPanel`), folded until tapped open. The mix is only what
+the level plays: the band everywhere, plus whatever the level lists in its
+`mix_rows()` — the duck solo, the delay and its decay over the spout; the
+rhythm voices over the flocks. Most players are on a touch screen,
 with no shoulder buttons to move the key. A tap outside the panel closes it.
 
 The scale is the band's (`Band.scale_name()`, `scale_changed`): not the

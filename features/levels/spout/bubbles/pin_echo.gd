@@ -3,9 +3,14 @@ extends Node2D
 ## The spout level's delay. Every pin played comes back twice more, softer each
 ## time, after the pins' recharge: a popped pin returns on the next bar line,
 ## so the delay is a bar ([member delay_bars]). An echo keeps its sixteenth,
-## so the bar's phrase loops whole, in time with the band, twice: nearly as
-## loud as it was played, then a little softer ([constant ECHO_LEVELS]). It replays the note that
-## was played, even if the pins have scrolled to a new key since.
+## so the bar's phrase loops whole, in time with the band, twice
+## ([constant REPEATS], always): nearly as loud as it was played, then softer
+## by the decay ([method level_of]). It replays the note that was played, even
+## if the pins have scrolled to a new key since.
+##
+## The echoes have a mix bus of their own ([constant AudioManager.DELAY_BUS]),
+## so the corner menu's mix ([MixPanel]) sets their volume, and their decay
+## ([method set_decay_db]) beside it.
 ##
 ## Each bar's phrase is drawn as a constellation: a star where every pin
 ## played, joined in the order they played. When the bar ends it lifts off
@@ -20,9 +25,16 @@ extends Node2D
 ## Emitted for every echo that sounds; [param repeat] is 1 for the first.
 signal echoed(note: int, strength: float, repeat: int)
 
-## How loud each echo is, against the note it repeats: as many loops as
-## there are entries.
-const ECHO_LEVELS: Array[float] = [0.85, 0.6]
+## How many times every note comes back. Always two, whatever the decay.
+const REPEATS := 2
+## How loud the first echo is, against the note it repeats.
+const FIRST_LEVEL := 0.85
+## dB each repeat drops below the one before, to begin with: 0.85, then 0.6.
+const DECAY_DEFAULT_DB := 3.0
+## The decay's range: from no drop at all to a second repeat barely there.
+const DECAY_MAX_DB := 24.0
+const _SETTINGS_SECTION := "audio"
+const _DECAY_SETTING_KEY := "echo_decay_db"
 ## How far a constellation rises in a bar, in pixels.
 const RISE_PER_BAR := 90.0
 ## How much of the current at its middle a constellation drifts with.
@@ -41,6 +53,9 @@ const TWINKLE_RADIUS := 18.0
 const TWINKLE_SECONDS := 0.5
 ## Seconds a note is held before it is let go to ring, as [PinField] does.
 const HOLD_SECONDS := 0.04
+
+## The decay every echo shares, once read from the save; see [method get_decay_db].
+static var _decay_db := NAN
 
 ## The pins it echoes, for their positions and loudness.
 var pins: PinField
@@ -102,6 +117,7 @@ func _ready() -> void:
 	_synth.name = "EchoVoice"
 	_synth.patch = patch
 	_synth.polyphony = 16
+	_synth.bus = AudioManager.DELAY_BUS
 	add_child(_synth)
 
 
@@ -140,7 +156,7 @@ func record(
 	star.at = to_local(at_global)
 	star.color = PinField.note_color(note, 1.0).lightened(0.25)
 	phrase.stars.append(star)
-	for i in ECHO_LEVELS.size():
+	for i in REPEATS:
 		var echo := Echo.new()
 		echo.due = sixteenth + (i + 1) * delay_bars * _sixteenths
 		echo.star = star
@@ -163,8 +179,32 @@ func tick(now_bars: float, sixteenths_per_bar: int) -> void:
 		if now - echo.due <= 1:
 			_sound(echo)
 	for phrase in _phrases:
-		if not phrase.printed and age_of(phrase) >= ECHO_LEVELS.size() * delay_bars:
+		if not phrase.printed and age_of(phrase) >= REPEATS * delay_bars:
 			print_phrase(phrase)
+
+
+## How loud repeat [param repeat] (1 for the first) is against the note it
+## repeats: [constant FIRST_LEVEL], then [method get_decay_db] softer each time.
+static func level_of(repeat: int) -> float:
+	return FIRST_LEVEL * db_to_linear(-get_decay_db() * (repeat - 1))
+
+
+## Set the dB each repeat drops below the one before, within 0 and
+## [constant DECAY_MAX_DB], and keep the choice. Echoes already waiting
+## sound at the new decay.
+static func set_decay_db(db: float) -> void:
+	_decay_db = clampf(db, 0.0, DECAY_MAX_DB)
+	SaveManager.set_value(_SETTINGS_SECTION, _DECAY_SETTING_KEY, _decay_db)
+
+
+## The dB each repeat drops below the one before.
+static func get_decay_db() -> float:
+	if is_nan(_decay_db):
+		var saved: float = SaveManager.get_value(
+			_SETTINGS_SECTION, _DECAY_SETTING_KEY, DECAY_DEFAULT_DB
+		)
+		_decay_db = clampf(saved, 0.0, DECAY_MAX_DB)
+	return _decay_db
 
 
 ## The music started again: nothing waiting sounds, and every constellation
@@ -233,7 +273,7 @@ func _phrase_for(bar: int) -> Phrase:
 
 
 func _sound(echo: Echo) -> void:
-	var strength := echo.star.strength * ECHO_LEVELS[echo.repeat - 1]
+	var strength := echo.star.strength * level_of(echo.repeat)
 	echo.star.twinkle = 1.0
 	if _synth != null:
 		var voice := _synth.note_on(Band.midi_to_hz(echo.star.note), strength)
@@ -253,7 +293,7 @@ func _release(voice: SynthVoice, started_usec: int) -> void:
 ## brightest as it lifts off, dimming with each loop, then fading out.
 func _alpha(phrase: Phrase) -> float:
 	var age := age_of(phrase)
-	var loops := float(ECHO_LEVELS.size() * delay_bars)
+	var loops := float(REPEATS * delay_bars)
 	var shown := 0.45 if age < 0.0 else lerpf(0.85, 0.45, clampf(age / loops, 0.0, 1.0))
 	return shown * clampf(phrase.fade, 0.0, 1.0)
 
