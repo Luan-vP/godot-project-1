@@ -10,7 +10,7 @@ const EYE_BAND_SCENE := preload("res://features/levels/secret_eyes/eye_band_demo
 
 const LEVEL_HINTS := {
 	"res://features/levels/secret_eyes/eye_band_demo.gd":
-	"Keep eyes off the edges to hear them play.",
+	"Keep eyes off the edges to hear them play. Tap one to mute it.",
 	"res://features/levels/spout/spout_level.gd": "Shoot bubbles at the ducks to solo.",
 	"res://features/levels/boids/boids_level.gd": "Play a rhythm to strengthen that group.",
 }

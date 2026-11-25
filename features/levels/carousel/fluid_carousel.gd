@@ -114,7 +114,7 @@ func _ready() -> void:
 ## Watched here rather than in an unhandled handler, so a level that takes
 ## the touch for itself cannot hide the swipe from the carousel.
 func _input(event: InputEvent) -> void:
-	var press := _press_of(event)
+	var press := press_of(event)
 	if press.is_empty():
 		return
 	if press["pressed"]:
@@ -141,7 +141,7 @@ static func swipe_step(from: Vector2, to: Vector2, screen: Vector2) -> int:
 ## The first finger, or the left mouse button, going down or coming up, as
 ## [code]{pressed, position}[/code]; empty for anything else. Mouse events
 ## Godot makes up from a touch are skipped, so a touch is not counted twice.
-static func _press_of(event: InputEvent) -> Dictionary:
+static func press_of(event: InputEvent) -> Dictionary:
 	var touch := event as InputEventScreenTouch
 	if touch != null:
 		if touch.index != 0:

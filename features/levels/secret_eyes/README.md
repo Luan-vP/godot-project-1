@@ -13,7 +13,7 @@ worth keeping.
 
 ## Controls
 
-Drag to stir and paint, WASD to tilt, `Space` to jog, `C` to recalibrate,
+Tap an eye to mute it, tap it again to bring it back. Drag to stir and paint, WASD to tilt, `Space` to jog, `C` to recalibrate,
 `R` to empty the tank, `B` to make everyone blink. On a device with sensors
 WASD and space give way to the real accelerometer with no code change.
 
@@ -55,7 +55,14 @@ eyes; at 0.8 a full tilt pinned nothing. 0.1 was picked by ear to leave the
 eyes looser, so keeping the band playing takes some work.
 
 A ring round each eye shows its state: bright while playing, red while pressed
-against a wall, faint while silent. Contact has hysteresis — an eye takes hold
+against a wall, faint while silent.
+
+**Tap an eye to mute it.** It fades to grey and a thicker grey ring stays
+round it, whatever it does, for as long as it is muted; its part drops out at
+the next bar, even floating free. Tap it again for its colour and its part
+back. A tap is a press that lets go within 18 px and 0.4 s (`TAP_SLOP`,
+`TAP_SECONDS`), and lands on an eye or within 14 px of its rim; anything
+longer is a stir, as before. Presses on the corner menu stay the menu's. Contact has hysteresis — an eye takes hold
 of a wall within 10 px of its rim and lets go only past 40 px — so one bobbing
 at the edge does not stutter its part.
 

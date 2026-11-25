@@ -9,6 +9,10 @@ extends Node2D
 ## fluid and stir it, and their wants decide which of the band's parts play.
 ## See [EyeBand] for how eyes become parts.
 ##
+## Tap an eye to mute it: it greys out, a grey ring stays round it, and its
+## part drops out at the next bar wherever it floats. Tap it again to bring it
+## back ([method tap_at]).
+##
 ## Drag to stir and paint. Arrows tilt, space jogs, C recalibrates, R empties
 ## the tank, B makes everyone blink. On a phone WASD and space are replaced by
 ## the real accelerometer, with no change here — [MotionInput] picks the
@@ -36,6 +40,16 @@ const RING_GAP := 7.0
 const PLAYING_COLOR := UiTokens.HUD_TEXT
 const SILENT_COLOR := Color(UiTokens.SIGIL, 0.22)
 const TOUCHING_COLOR := UiTokens.ALERT
+## The ring round a muted eye, there for as long as it stays muted.
+const MUTED_COLOR := Color(UiTokens.MUTED, 0.75)
+const MUTED_RING_WIDTH := 3.0
+
+## A press that lets go within this many pixels and seconds is a tap; one that
+## travels further is a stir.
+const TAP_SLOP := 18.0
+const TAP_SECONDS := 0.4
+## How far past its rim a tap still lands on an eye, for a fingertip.
+const TAP_REACH := 14.0
 
 ## Read straight from [Input], not [KeyShiftInput], so the debug line shows
 ## whether the hardware event reaches Godot at all — independent of any bug
@@ -73,11 +87,16 @@ var _overlay: Node2D
 var _parts_label: Label
 var _debug_label: Label
 var _key_shift := KeyShiftInput.new()
+## Where and when the press being watched for a tap went down, and the eye it
+## went down on; no eye, no tap.
+var _tap_eye: FloatyEye
+var _tap_from := Vector2.ZERO
+var _tap_msec := 0
 
 
 ## What the corner menu ([GameMenu]) tells a player to do here.
 func hint() -> String:
-	return "Keep eyes off the edges to hear them play."
+	return "Keep eyes off the edges to hear them play. Tap one to mute it."
 
 
 func _ready() -> void:
@@ -197,6 +216,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	_watch_tap(event)
 	var step := _key_shift.step_for(event)
 	if step != 0:
 		_band.set_key_offset(_band.get_key_offset() + step)
@@ -205,6 +225,63 @@ func _unhandled_input(event: InputEvent) -> void:
 		# chords, bass, arp and melody only catch up from the next step (see
 		# [method EyeBand.set_key_offset]), but the press itself is instant.
 		_update_label()
+
+
+## A press that goes down on an eye and lets go close by, soon after, is a tap
+## on it. Read unhandled, so the corner menu's buttons keep their own presses.
+func _watch_tap(event: InputEvent) -> void:
+	var press := FluidCarousel.press_of(event)
+	if press.is_empty():
+		return
+	var at: Vector2 = press["position"]
+	if press["pressed"]:
+		_tap_eye = eye_at(at)
+		_tap_from = at
+		_tap_msec = Time.get_ticks_msec()
+		return
+	var eye := _tap_eye
+	_tap_eye = null
+	if eye == null or not is_instance_valid(eye):
+		return
+	if at.distance_to(_tap_from) > TAP_SLOP:
+		return
+	if Time.get_ticks_msec() - _tap_msec > TAP_SECONDS * 1000.0:
+		return
+	toggle_mute(eye)
+
+
+## Mute or unmute whatever eye is at [param at], in canvas units, as a tap
+## there does. Returns the eye, or null when the tap missed every eye.
+func tap_at(at: Vector2) -> FloatyEye:
+	var eye := eye_at(at)
+	if eye != null:
+		toggle_mute(eye)
+	return eye
+
+
+## Mute [param eye] if it is playing, unmute it if it is muted.
+func toggle_mute(eye: FloatyEye) -> void:
+	var muted := not _contacts.is_muted(eye)
+	_contacts.set_muted(eye, muted)
+	eye.greyed = muted
+
+
+## The eye with a part under [param at], in canvas units, the nearest if
+## two overlap; null when there is none, or the corner menu is there.
+func eye_at(at: Vector2) -> FloatyEye:
+	if _shared != null and _shared.game_menu != null and _shared.game_menu.covers(at):
+		return null
+	var best: FloatyEye
+	var best_distance := INF
+	for child in get_children():
+		var eye := child as FloatyEye
+		if eye == null or _contacts.part_for(eye).is_empty():
+			continue
+		var distance := eye.get_global_transform_with_canvas().origin.distance_to(at)
+		if distance <= eye.radius + TAP_REACH and distance < best_distance:
+			best = eye
+			best_distance = distance
+	return best
 
 
 func _process(delta: float) -> void:
@@ -253,7 +330,8 @@ func _update_debug_label() -> void:
 
 
 ## A ring round each eye: bright while its part plays, red while it is pressed
-## against a wall, faint while it waits silent. Its part is written beneath.
+## against a wall, faint while it waits silent, and a thicker grey for as long
+## as it is muted, whatever else is going on. Its part is written beneath.
 ## While a part is due to start or stop at the next bar, the ring becomes a
 ## countdown instead — white or red, its arc shrinking to nothing as the bar
 ## line arrives (see [method EyeBand.pending]).
@@ -274,7 +352,12 @@ func _draw_rings() -> void:
 			color = TOUCHING_COLOR
 		var ring_radius := eye.radius + RING_GAP
 		var pending := _band.pending(part)
-		if pending != EyeBand.Pending.NONE:
+		if _contacts.is_muted(eye):
+			color = MUTED_COLOR
+			_overlay.draw_arc(
+				eye.global_position, ring_radius, 0.0, TAU, 48, color, MUTED_RING_WIDTH, true
+			)
+		elif pending != EyeBand.Pending.NONE:
 			if pending == EyeBand.Pending.STARTING:
 				color = PENDING_START_COLOR
 			else:
