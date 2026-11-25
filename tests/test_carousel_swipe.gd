@@ -114,9 +114,9 @@ func test_a_mouse_made_up_from_a_touch_is_not_a_second_swipe() -> void:
 	click.button_index = MOUSE_BUTTON_LEFT
 	click.pressed = true
 	click.device = InputEvent.DEVICE_ID_EMULATION
-	assert_true(FluidCarousel._press_of(click).is_empty(), "Emulated: ignored")
+	assert_true(FluidCarousel.press_of(click).is_empty(), "Emulated: ignored")
 	click.device = 0
-	assert_false(FluidCarousel._press_of(click).is_empty(), "A real mouse counts")
+	assert_false(FluidCarousel.press_of(click).is_empty(), "A real mouse counts")
 
 
 func _stand_in_path(stand_in_name: String) -> String:

@@ -18,6 +18,8 @@ uniform float wobble_amount : hint_range(0.0, 0.2) = 0.035;
 uniform float wobble_speed : hint_range(0.0, 8.0) = 1.3;
 uniform float seed = 0.0;
 uniform float edge_softness : hint_range(0.001, 0.2) = 0.02;
+// 0 in full colour, 1 greyed out and dimmed, as a muted eye is.
+uniform float grey : hint_range(0.0, 1.0) = 0.0;
 
 float hash21(vec2 p) {
 	vec2 h = fract(p * vec2(123.34, 456.21));
@@ -70,6 +72,10 @@ void fragment() {
 	colour = mix(colour, rim_color.rgb, rim * 0.65);
 	float glint = smoothstep(0.075, 0.0, length(centred - iris_centre + vec2(0.085, 0.085)));
 	colour = mix(colour, vec3(1.0), glint * 0.72);
+
+	// Muted: drained of colour and a little dimmer, the glint and all.
+	float luma = dot(colour, vec3(0.299, 0.587, 0.114));
+	colour = mix(colour, vec3(luma * 0.7), grey);
 
 	// Lids close from both sides, as a fraction of the body height.
 	float lid_edge = (1.0 - lid) * body_radius;

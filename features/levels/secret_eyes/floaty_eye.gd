@@ -17,6 +17,9 @@ const BODY_EXTENT := 0.84
 ## Seconds a blink takes, lids closing and opening.
 const BLINK_DURATION := 0.16
 
+## Seconds the eye takes to fade to grey when muted, or back to colour.
+const GREY_SECONDS := 0.25
+
 ## Visible radius in pixels.
 @export var radius: float = 44.0
 
@@ -40,6 +43,9 @@ const BLINK_DURATION := 0.16
 ## Random range between blinks, in seconds.
 @export var blink_interval: Vector2 = Vector2(2.4, 7.0)
 
+## Greyed out, as a muted eye is. It fades there over [constant GREY_SECONDS].
+var greyed := false
+
 var _pivot: Node2D
 var _visual: ColorRect
 var _material := ShaderMaterial.new()
@@ -47,6 +53,8 @@ var _gaze: Vector2 = Vector2.ZERO
 var _wander_phase: float = 0.0
 var _blink_countdown: float = 0.0
 var _blink_phase: float = -1.0
+## 0 in full colour, 1 fully grey.
+var _grey := 0.0
 
 
 func _ready() -> void:
@@ -68,11 +76,25 @@ func _physics_process(delta: float) -> void:
 	_face_motion(delta)
 	_update_gaze(delta)
 	_update_blink(delta)
+	_update_grey(delta)
 
 
 ## Interrupt whatever the eye was doing and make it blink now.
 func blink() -> void:
 	_blink_phase = 0.0
+
+
+## How grey the eye is drawn: 0 in full colour, 1 fully grey.
+func grey_amount() -> float:
+	return _grey
+
+
+func _update_grey(delta: float) -> void:
+	var target := 1.0 if greyed else 0.0
+	if _grey == target:
+		return
+	_grey = move_toward(_grey, target, delta / GREY_SECONDS)
+	_material.set_shader_parameter("grey", _grey)
 
 
 func _build_visual() -> void:

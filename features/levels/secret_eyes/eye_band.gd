@@ -14,6 +14,9 @@ extends Band
 ## An eye near a wall uses two distances, not one, so one hovering at the
 ## threshold does not flicker its part on and off: it counts as touching once
 ## it comes within [member touch_px], and only lets go past [member release_px].
+##
+## An eye can also be muted ([method set_muted]): its part stays out wherever
+## the eye floats, until it is unmuted. The level mutes one on a tap.
 
 ## Emitted when an eye starts or stops touching a wall.
 signal contact_changed(part: String, touching: bool)
@@ -28,6 +31,7 @@ var _eyes: Array[FloatyEye] = []
 ## Part index for each eye in [member _eyes]; -1 for an eye with no part.
 var _eye_parts: Array[int] = []
 var _touching: Array[bool] = []
+var _muted: Array[bool] = []
 
 
 func _ready() -> void:
@@ -49,6 +53,8 @@ func bind_eyes(eyes: Array[FloatyEye]) -> void:
 	_eye_parts = parts_by_size(radii, PARTS.size())
 	_touching.resize(eyes.size())
 	_touching.fill(false)
+	_muted.resize(eyes.size())
+	_muted.fill(false)
 
 
 ## The part an eye plays, or an empty string for one with none.
@@ -59,15 +65,28 @@ func part_for(eye: FloatyEye) -> String:
 	return PARTS[_eye_parts[i]]
 
 
-## Whether the eye playing [param part] is clear of the walls, which is what
-## decides if the part should sound from the next bar on. A part with no eye
-## never plays.
+## Whether the eye playing [param part] is clear of the walls and not muted,
+## which is what decides if the part should sound from the next bar on. A part
+## with no eye never plays.
 func wants_part(part: String) -> bool:
 	var index := PARTS.find(part)
 	for i in _eyes.size():
 		if _eye_parts[i] == index:
-			return not _touching[i]
+			return not _touching[i] and not _muted[i]
 	return false
+
+
+## Mute or unmute [param eye]: a muted eye's part stays out, from the next bar
+## line, wherever it floats.
+func set_muted(eye: FloatyEye, muted: bool) -> void:
+	var i := _eyes.find(eye)
+	if i >= 0:
+		_muted[i] = muted
+
+
+func is_muted(eye: FloatyEye) -> bool:
+	var i := _eyes.find(eye)
+	return i >= 0 and _muted[i]
 
 
 func is_touching(eye: FloatyEye) -> bool:
