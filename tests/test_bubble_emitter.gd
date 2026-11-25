@@ -172,13 +172,49 @@ func test_a_played_pin_echoes_a_bar_later_and_again_softer() -> void:
 	emitter.tick_clock(1.0 + sixteenth + 0.001)
 	assert_eq(echoes.size(), 1, "A bar later: the pins' recharge")
 	assert_eq(echoes[0][0], note, "The same note")
-	assert_almost_eq(echoes[0][1], PinEcho.ECHO_LEVELS[0], 0.001, "Nearly as loud")
+	assert_almost_eq(echoes[0][1], PinEcho.FIRST_LEVEL, 0.001, "Nearly as loud")
 	emitter.tick_clock(2.0 + sixteenth + 0.001)
 	assert_eq(echoes.size(), 2, "And again a bar after that")
-	assert_almost_eq(echoes[1][1], PinEcho.ECHO_LEVELS[1], 0.001, "Softer again")
+	assert_almost_eq(echoes[1][1], PinEcho.level_of(2), 0.001, "Softer again")
 	assert_eq(echoes[1][2], 2)
 	emitter.tick_clock(4.0)
 	assert_eq(echoes.size(), 2, "Twice, then done")
+
+
+func test_the_decay_sets_how_much_softer_each_repeat_is() -> void:
+	var before := PinEcho.get_decay_db()
+	PinEcho.set_decay_db(PinEcho.DECAY_DEFAULT_DB)
+	assert_almost_eq(PinEcho.level_of(1), 0.85, 0.001, "The first echo, as it always was")
+	assert_almost_eq(PinEcho.level_of(2), 0.6, 0.005, "Then about 0.6, as it always was")
+	PinEcho.set_decay_db(12.0)
+	assert_almost_eq(PinEcho.level_of(1), PinEcho.FIRST_LEVEL, 0.001, "The decay leaves the first")
+	assert_almost_eq(PinEcho.level_of(2), PinEcho.FIRST_LEVEL * db_to_linear(-12.0), 0.001)
+	PinEcho.set_decay_db(-5.0)
+	assert_eq(PinEcho.get_decay_db(), 0.0, "Never louder than the repeat before")
+	PinEcho.set_decay_db(99.0)
+	assert_eq(PinEcho.get_decay_db(), PinEcho.DECAY_MAX_DB)
+	PinEcho.set_decay_db(before)
+
+
+func test_every_decay_still_echoes_exactly_twice_on_the_delay_bus() -> void:
+	var before := PinEcho.get_decay_db()
+	var sixteenth := 1.0 / BubbleEmitter.sixteenths_per_bar()
+	for decay in [0.0, PinEcho.DECAY_DEFAULT_DB, PinEcho.DECAY_MAX_DB]:
+		PinEcho.set_decay_db(decay)
+		var level := _level()
+		var emitter: BubbleEmitter = level.emitter
+		var voice: Synth = emitter.echo.get_node("EchoVoice")
+		assert_eq(voice.bus, StringName(AudioManager.DELAY_BUS), "On the delay's own bus")
+		var count := [0]
+		emitter.echo.echoed.connect(func(_n: int, _s: float, _r: int): count[0] += 1)
+		emitter.tick_clock(0.01)
+		emitter.stick(emitter.fire(), level.pins.live_pins()[2], BubbleEmitter.FULL_STRENGTH_SPEED)
+		emitter.tick_clock(sixteenth + 0.001)
+		for bar in range(1, 6):
+			emitter.tick_clock(bar + sixteenth + 0.001)
+		assert_eq(count[0], PinEcho.REPEATS, "Twice at a decay of %s dB" % decay)
+	assert_eq(PinEcho.REPEATS, 2)
+	PinEcho.set_decay_db(before)
 
 
 func test_an_echo_keeps_its_note_through_a_key_change() -> void:

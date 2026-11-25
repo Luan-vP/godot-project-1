@@ -12,7 +12,9 @@ to high left to right, is still there: see [Layouts](#layouts).)
 The spout fires **bubbles** (`bubbles/`). A bubble sticks round the first
 free duck it hits; the pin plays on the next sixteenth of the music, the
 bubble pops, and the duck is gone until the next bar. Every note echoes
-twice, and each bar's notes rise as a constellation that ends up printed in
+twice — always twice — on a `Delay` bus of its own: the corner menu's mix
+sets its volume (`delay`, in dB) and how much softer the second repeat is
+(`decay`, dB per repeat). Each bar's notes rise as a constellation that ends up printed in
 the water. The spout's jet and the bubbles stir and paint the tank, but the
 water never moves a bubble. See [The bubbles](#the-bubbles).
 

@@ -11,6 +11,10 @@ extends CanvasLayer
 ## ([MixPanel]) and the swing ([SwingPanel]). [SharedLayers] keeps one, so it stays put while
 ## levels slide under it; the carousel tells it which level has arrived.
 ##
+## The panel follows the level: its hint, and a mix of only what the level
+## plays ([method MixPanel.rows_for]): the band everywhere, the duck solo and
+## its delay over the spout, the rhythm voices over the flocks.
+##
 ## A tap anywhere outside the panel closes it, and the tap still reaches the
 ## level. The buttons never take focus, so Enter and the pad stay with the
 ## level.
@@ -33,11 +37,14 @@ var level: Node:
 	set(value):
 		level = value
 		_refresh_hint()
+		_refresh_mix()
 
 var _corner: VBoxContainer
 var _menu_button: Button
 var _panel: PanelContainer
 var _hint: Label
+var _mix: MixPanel
+var _swing: SwingPanel
 
 
 func _ready() -> void:
@@ -92,12 +99,13 @@ func _ready() -> void:
 	column.add_child(_button("NextSong", "next song ▸", next_song))
 
 	# Folded, so the panel opens on the buttons; each unfolds on a tap.
-	for panel: DropDownPanel in [MixPanel.new(), SwingPanel.new()]:
-		panel.name = panel.get_script().get_global_name()
-		column.add_child(panel)
-		panel.set_collapsed(true)
+	_swing = SwingPanel.new()
+	_swing.name = "SwingPanel"
+	column.add_child(_swing)
+	_swing.set_collapsed(true)
 
 	_refresh_hint()
+	_refresh_mix()
 	_fit()
 	get_viewport().size_changed.connect(_fit)
 
@@ -199,6 +207,26 @@ func _refresh_hint() -> void:
 		return
 	_hint.text = hint_text()
 	_hint.visible = not _hint.text.is_empty()
+
+
+## The rows [member level] plays, in place of the mix there was: folded or
+## open as it was, above the swing.
+func _refresh_mix() -> void:
+	if _swing == null:
+		return
+	var rows := MixPanel.rows_for(level)
+	if _mix != null and _mix.rows == rows:
+		return
+	var collapsed := true
+	if _mix != null:
+		collapsed = _mix.is_collapsed()
+		_mix.get_parent().remove_child(_mix)
+		_mix.queue_free()
+	_mix = MixPanel.new(rows)
+	_mix.name = "MixPanel"
+	_swing.add_sibling(_mix)
+	_swing.get_parent().move_child(_mix, _swing.get_index())
+	_mix.set_collapsed(collapsed)
 
 
 ## Three bars, centred on the menu button.

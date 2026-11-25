@@ -71,6 +71,11 @@ func hint() -> String:
 	return "Shoot bubbles at the ducks to solo."
 
 
+## The mix rows the corner menu ([GameMenu]) shows here, over the band's.
+func mix_rows() -> Array[String]:
+	return [AudioManager.SOLO_BUS, AudioManager.DELAY_BUS, MixPanel.DECAY]
+
+
 func _ready() -> void:
 	var extent := get_viewport_rect().size
 	_shared = SharedLayers.host_of(self)

@@ -204,6 +204,11 @@ func hint() -> String:
 	return "Play a rhythm to strengthen that group."
 
 
+## The mix rows the corner menu ([GameMenu]) shows here, over the band's.
+func mix_rows() -> Array[String]:
+	return [AudioManager.RHYTHM_BUS]
+
+
 func _ready() -> void:
 	# B on a keyboard or a gamepad, and whatever the Deck's B, Y and L2 send
 	# when Steam keeps it in its Desktop Mode layout. The Deck's R2 is a left

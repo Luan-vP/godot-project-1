@@ -5,8 +5,8 @@ extends CanvasLayer
 ## a lamp that lights on an over and fades, and the session's loudest peak and
 ## overs as text.
 ##
-## A [MixPanel] under it sets the band, solo and rhythm volumes, and a
-## [SwingPanel] under that sets the swing; each folds away. It starts hidden,
+## A [MixPanel] under it sets every mix row (the band, solo, delay, decay and
+## rhythm), and a [SwingPanel] under that sets the swing; each folds away. It starts hidden,
 ## unless the game was launched with [code]--meter[/code] (the way to have it
 ## on a Deck, where there is no F8: [code]scripts/deck.sh run NAME
 ## --meter[/code]). F8 toggles it, and so does holding three fingers on the

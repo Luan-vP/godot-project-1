@@ -63,14 +63,16 @@ const _ALL_BUSES: Array[String] = [MASTER_BUS, MUSIC_BUS, SFX_BUS]
 
 ## Sub-buses of Music, made in code at startup, one per kind of part so the
 ## mix can be set by ear (see [method set_mix_db]): the band's synths and
-## drums, the spout's duck solo, and the boids' rhythm voices. Music's chorus
-## and reverb still apply to all three.
+## drums, the spout's duck solo, its delay ([PinEcho]), and the boids' rhythm
+## voices. Music's chorus and reverb still apply to all of them.
 const BAND_BUS := "Band"
 const SOLO_BUS := "Solo"
+const DELAY_BUS := "Delay"
 const RHYTHM_BUS := "Rhythm"
 ## Each mix bus's default level in dB. The solo and rhythm sit well above the
-## band, which gives way under them.
-const MIX_DEFAULT_DB := {BAND_BUS: -6.0, SOLO_BUS: 9.0, RHYTHM_BUS: 9.0}
+## band, which gives way under them. The delay starts where its echoes played
+## before it had a bus of its own.
+const MIX_DEFAULT_DB := {BAND_BUS: -6.0, SOLO_BUS: 9.0, DELAY_BUS: 0.0, RHYTHM_BUS: 9.0}
 const MIX_MIN_DB := -36.0
 const MIX_MAX_DB := 18.0
 const _SETTINGS_SECTION := "audio"
@@ -554,8 +556,8 @@ func _mute_key(bus_name: String) -> String:
 	return "%s_muted" % bus_name.to_lower()
 
 
-## Make the [constant BAND_BUS], [constant SOLO_BUS] and [constant RHYTHM_BUS]
-## under Music if they are not already there, at their default levels.
+## Make the mix buses ([constant MIX_DEFAULT_DB]) under Music if they are not
+## already there, at their default levels.
 func _build_mix_buses() -> void:
 	for bus_name: String in MIX_DEFAULT_DB:
 		var index := AudioServer.get_bus_index(bus_name)
@@ -569,8 +571,8 @@ func _build_mix_buses() -> void:
 		AudioServer.set_bus_volume_db(index, clampf(db, MIX_MIN_DB, MIX_MAX_DB))
 
 
-## Set a mix bus ([constant BAND_BUS], [constant SOLO_BUS] or
-## [constant RHYTHM_BUS]) to [param db], within [constant MIX_MIN_DB] and
+## Set a mix bus ([constant BAND_BUS], [constant SOLO_BUS],
+## [constant DELAY_BUS] or [constant RHYTHM_BUS]) to [param db], within [constant MIX_MIN_DB] and
 ## [constant MIX_MAX_DB], and keep the choice.
 func set_mix_db(bus_name: String, db: float) -> void:
 	var index := AudioServer.get_bus_index(bus_name)

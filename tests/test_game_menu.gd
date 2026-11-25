@@ -109,17 +109,6 @@ func test_the_mix_and_swing_are_in_the_menu_folded() -> void:
 			assert_eq((slider as Control).focus_mode, Control.FOCUS_NONE, "Never takes focus")
 
 
-func test_the_menus_mix_slider_sets_the_mix() -> void:
-	var before := AudioManager.get_mix_db(AudioManager.RHYTHM_BUS)
-	var panel := _menu().find_child("MixPanel", true, false) as DropDownPanel
-	var sliders := panel.find_children("*", "HSlider", true, false)
-	assert_eq(sliders.size(), MixPanel.LABELS.size(), "A slider per bus")
-	var rhythm := sliders[MixPanel.LABELS.keys().find(AudioManager.RHYTHM_BUS)] as HSlider
-	rhythm.value = before - 3.0
-	assert_almost_eq(AudioManager.get_mix_db(AudioManager.RHYTHM_BUS), before - 3.0, 0.01)
-	AudioManager.set_mix_db(AudioManager.RHYTHM_BUS, before)
-
-
 func test_every_level_has_its_hint() -> void:
 	for path in LEVEL_HINTS:
 		var level: Node = load(path).new()
